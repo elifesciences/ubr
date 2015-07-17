@@ -44,22 +44,21 @@ class BasicUsage(unittest.TestCase):
         "what we load is what we expect"
         fixture = self.known_backup_fixtures[0]
         expected = {
-            'project-name': {
-                'mysql': [
-                    'mydb1',
-                    'mydb2.table1',
-                ],
-                
-                'postgresql': [
-                    'dbx',
-                ],
-                
-                'files': [
-                    '/opt/thing/logs/',
-                    '/opt/thing/',
-                    '/opt/otherthing/reports/*.csv',
-                ],
-            }
+            'mysql': [
+                'mydb1',
+                'mydb2.table1',
+            ],
+
+            'postgresql': [
+                'dbx',
+            ],
+
+            'files': [
+                '/opt/thing/logs/',
+                '/opt/thing/',
+                '/opt/otherthing/reports/*.csv',
+            ],
+
         }
         self.assertEqual(expected, main.load_descriptor(fixture))
 

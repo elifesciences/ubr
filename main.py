@@ -28,15 +28,12 @@ def targets():
     return {'file': None}
 
 def valid_descriptor(descriptor):
+    assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
     known_targets = targets().keys()
-    for project_name, target in descriptor.items():
-        assert isinstance(project_name, str), "project name must be a string"
-        assert isinstance(target, dict), "a project's target must be a dict"
-        for target_name, target_items in target.items():
-            assert isinstance(target, dict), "a project's targets must be a list of dictionaries"
-            assert target_name in known_targets, "a project target must be known"
-            
-            
+    for target_name, target_items in descriptor.items():
+        assert isinstance(target_items, list), "a target's list of things to back up must be a list"
+        assert target_name in known_targets, "we don't recognize what a %r is. known targets: %r" % (target_name, ', '.join(known_targets))
+    return True
 
 def is_descriptor(path):
     "returns true if the given path or filename looks like a backup descriptor"
@@ -50,7 +47,6 @@ def find_descriptors(descriptor_dir):
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
 
 def load_descriptor(descriptor):
-    import yaml
     return yaml.load(open(descriptor, "r"))
 
 

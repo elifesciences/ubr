@@ -1,12 +1,11 @@
-project-name:
-    mysql:
-        - mydb1
-        - mydb2.table1
-        
-    postgresql:
-        - dbx
-        
-    files:
-        - /opt/thing/logs/
-        - /opt/thing/
-        - /opt/otherthing/reports/*.csv
+mysql:
+    - mydb1
+    - mydb2.table1
+    
+postgresql:
+    - dbx
+    
+files:
+    - /opt/thing/logs/
+    - /opt/thing/
+    - /opt/otherthing/reports/*.csv
