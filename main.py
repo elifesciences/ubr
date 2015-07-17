@@ -24,6 +24,20 @@ def list_paths(d):
 
 # 
 
+def targets():
+    return {'file': None}
+
+def valid_descriptor(descriptor):
+    known_targets = targets().keys()
+    for project_name, target in descriptor.items():
+        assert isinstance(project_name, str), "project name must be a string"
+        assert isinstance(target, dict), "a project's target must be a dict"
+        for target_name, target_items in target.items():
+            assert isinstance(target, dict), "a project's targets must be a list of dictionaries"
+            assert target_name in known_targets, "a project target must be known"
+            
+            
+
 def is_descriptor(path):
     "returns true if the given path or filename looks like a backup descriptor"
     fname = os.path.basename(path)
@@ -35,13 +49,10 @@ def find_descriptors(descriptor_dir):
     location_list = map(lambda path: doall(path, os.path.expanduser, os.path.abspath), list_paths(descriptor_dir))
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
 
-
 def load_descriptor(descriptor):
     import yaml
-    print 'given descriptor',descriptor
-    x = yaml.load(open(descriptor, "r"))
-    print 'loaded',x
-    return x
+    return yaml.load(open(descriptor, "r"))
+
 
 #
 #

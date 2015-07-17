@@ -10,6 +10,7 @@ THIS_DIR = os.path.abspath(os.path.dirname(__name__))
 
 class BasicUsage(unittest.TestCase):
     def setUp(self):
+        self.maxDiff = 1024
         self.fixture_dir = os.path.join(THIS_DIR, "tests")
         self.known_backup_fixtures = [
             self.fixture("ubr-backup.yaml"),
@@ -40,26 +41,42 @@ class BasicUsage(unittest.TestCase):
         self.assertEqual(len(set(found_descriptors)), len(self.known_backup_fixtures))
 
     def test_find_bits(self):
+        "what we load is what we expect"
         fixture = self.known_backup_fixtures[0]
         expected = {
-            'project-name': [
-                {'mysql': [
+            'project-name': {
+                'mysql': [
                     'mydb1',
                     'mydb2.table1',
-                ]},
+                ],
                 
-                {'postgresql': [
+                'postgresql': [
                     'dbx',
-                ]},
+                ],
                 
-                {'files': [
+                'files': [
                     '/opt/thing/logs/',
                     '/opt/thing/',
-                    '/opt/otherthing/reports/*.csv'
-                ]}
-            ]
+                    '/opt/otherthing/reports/*.csv',
+                ],
+            }
         }
         self.assertEqual(expected, main.load_descriptor(fixture))
+
+    def test_descriptor_correctness(self):
+        self.assertTrue(main.valid_descriptor, main.load_descriptor(self.known_backup_fixtures[0]))
+
+    def test_descriptor_invalid(self):
+        bad_descriptors = [
+            {'project-name': 'foo'}, # targets must be a dict
+            {'project-name': {'foo': 'bar'}}, # unknown target 'foo'
+        ]
+        for bad_descriptor in bad_descriptors:
+            self.assertRaises(AssertionError, main.valid_descriptor, bad_descriptor)
+        
+    def test_backup_files(self):
+        "a simple backup description can be run"
+        pass
 
 if __name__ == '__main__':
     unittest.main()
