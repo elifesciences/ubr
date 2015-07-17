@@ -67,15 +67,17 @@ class BasicUsage(unittest.TestCase):
 
     def test_descriptor_invalid(self):
         bad_descriptors = [
-            {'project-name': 'foo'}, # targets must be a dict
-            {'project-name': {'foo': 'bar'}}, # unknown target 'foo'
+            {'foo': 'bar'}, # target items must be a list
+            {'foo': ['baz', 'bar']}, # unknown target 'foo'
         ]
         for bad_descriptor in bad_descriptors:
             self.assertRaises(AssertionError, main.valid_descriptor, bad_descriptor)
         
     def test_backup_files(self):
         "a simple backup description can be run"
-        pass
+        descriptor = {'file': [self.fixture('dontworry.png')]}
+        main.backup(descriptor)
+        
 
 if __name__ == '__main__':
     unittest.main()

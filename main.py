@@ -24,9 +24,6 @@ def list_paths(d):
 
 # 
 
-def targets():
-    return {'file': None}
-
 def valid_descriptor(descriptor):
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
     known_targets = targets().keys()
@@ -49,6 +46,34 @@ def find_descriptors(descriptor_dir):
 def load_descriptor(descriptor):
     return yaml.load(open(descriptor, "r"))
 
+def file_backup(path_list, destination):
+    print 'given paths',path_list,'dest',destination
+    errors = filter(lambda p: not os.path.exists(p), path_list)
+    if errors:
+        print 'the following paths could not be found!'
+        print '\n'.join(errors)
+    path_list = set(path_list) - set(errors)
+    # tar files up
+    cmd = 'tar cvzf /tmp/foo.tar.gz %s' % ' '.join(path_list)
+    print cmd
+    return cmd
+
+def targets():
+    return {'file': file_backup}
+
+# looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
+def _backup(target, args, destination):
+    "a descriptor is a set of targets and inputs to the target functions."
+    return targets()[target](args, destination)
+
+def gen_destination(protocol):
+    "generates an appropriate destination filename given a destination protocol"
+    if protocol == 'file://':
+        return '/tmp/foo.tar.gz'
+
+# looks like: backup({'file': ['/tmp/foo']}, 'file://')
+def backup(descriptor, destination_protocol='file://'):
+    return [_backup(target, args, gen_destination(destination_protocol)) for target, args in descriptor.items()]
 
 #
 #
