@@ -1,17 +1,12 @@
-project1:
-    - mysql:
+project-name:
+    mysql:
         - mydb1
-        - mydb2
-        - mydb3.table1
-        - mydb3.table2
-        - mydb3.table3
+        - mydb2.table1
         
-    - postgresql:
+    postgresql:
         - dbx
-        - dby
-        - dbz
         
-    - files:
+    files:
         - /opt/thing/logs/
         - /opt/thing/
         - /opt/otherthing/reports/*.csv
