@@ -8,15 +8,20 @@ import main
 
 THIS_DIR = os.path.abspath(os.path.dirname(__name__))
 
-class BasicUsage(unittest.TestCase):
-    def setUp(self):
+class BaseCase(unittest.TestCase):
+    def __init__(self, *args, **kwargs):
+        super(BaseCase, self).__init__(*args, **kwargs)
         self.maxDiff = 1024
         self.fixture_dir = os.path.join(THIS_DIR, "tests")
+        self.expected_output_dir = '/tmp/foo'        
+
+class BasicUsage(BaseCase):
+    def setUp(self):
         self.known_backup_fixtures = [
             os.path.join(THIS_DIR, "tests", "ubr-backup.yaml"),
             os.path.join(THIS_DIR, "tests", "ubr-2-backup.yaml"),
         ]
-        self.expected_output_dir = '/tmp/foo'
+
 
     def tearDown(self):
         os.system('rm -rf %s' % self.expected_output_dir)
@@ -70,6 +75,15 @@ class BasicUsage(unittest.TestCase):
         ]
         for bad_descriptor in bad_descriptors:
             self.assertRaises(AssertionError, main.valid_descriptor, bad_descriptor)
+
+
+class TestFileBackup(BaseCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        os.system('rm -rf %s' % self.expected_output_dir)
+
 
     def test_backup_single_file(self):
         "a simple descriptor of individual file backups can be run"
@@ -160,6 +174,13 @@ class BasicUsage(unittest.TestCase):
         fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
         # a /dev/null backup is valid, right? restore process sucks though ...
         descriptor = {'dev-null': [fixture]}
+
+class TestTarredGzippedBackup(BaseCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

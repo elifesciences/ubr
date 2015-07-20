@@ -137,7 +137,8 @@ def tgz_backup(path_list, destination):
     "does a regular file_backup and then tars and gzips the results"
     output = file_backup(path_list, destination)
     cmd = 'tar cvzf %s.tar.gz %s' % (output['output_dir'], output['output_dir'])
-    os.system(cmd)
+    print cmd
+    #os.system(cmd)
     
 
 def targets():
