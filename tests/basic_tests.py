@@ -16,9 +16,10 @@ class BasicUsage(unittest.TestCase):
             os.path.join(THIS_DIR, "tests", "ubr-backup.yaml"),
             os.path.join(THIS_DIR, "tests", "ubr-2-backup.yaml"),
         ]
+        self.expected_output_dir = '/tmp/foo'
 
     def tearDown(self):
-        pass
+        os.system('rm -rf %s' % self.expected_output_dir)
 
     #
     #
@@ -69,12 +70,96 @@ class BasicUsage(unittest.TestCase):
         ]
         for bad_descriptor in bad_descriptors:
             self.assertRaises(AssertionError, main.valid_descriptor, bad_descriptor)
+
+    def test_backup_single_file(self):
+        "a simple descriptor of individual file backups can be run"
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        descriptor = {'files': [fixture]}
         
-    def test_backup_files(self):
-        "a simple backup description can be run"
-        descriptor = {'file': [os.path.join(THIS_DIR, "tests", 'dontworry.png')]}
-        main.backup(descriptor)
+        expected_output = {
+            'files': {'output_dir': self.expected_output_dir,
+                      'dir_prefix': os.path.join(THIS_DIR, "tests"),
+                      # common directory prefixes are stripped
+                      'results': [os.path.join(self.expected_output_dir, 'img1.png')]}
+        }
+
+        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(expected_output, output)
+        self.assertTrue(main.dir_exists(self.expected_output_dir))
+        self.assertTrue(os.path.exists(os.path.join(self.expected_output_dir, 'img1.png')))
+
+    def test_backup_multiple_file(self):
+        "a simple descriptor of individual file backups can be run"
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        fixture2 = os.path.join(THIS_DIR, "tests", 'img2.jpg')
+        descriptor = {'files': [fixture, fixture2]}
         
+        expected_output = {
+            'files': {'output_dir': self.expected_output_dir,
+                      'dir_prefix': os.path.join(THIS_DIR, "tests"),
+                      # common directory prefixes are stripped
+                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                                  os.path.join(self.expected_output_dir, 'img2.jpg')]}
+        }
+
+        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(expected_output, output)
+
+    def test_backup_multiple_dispersed_files(self):
+        "a simple descriptor of individual files in different directories can be run"
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        fixture2 = os.path.join(THIS_DIR, "tests", 'img2.jpg')
+        fixture3 = os.path.join(THIS_DIR, "tests", "subdir", 'img3.jpg')
+        
+        descriptor = {'files': [fixture, fixture2, fixture3]}
+        
+        expected_output = {
+            'files': {'output_dir': self.expected_output_dir,
+                      'dir_prefix': os.path.join(THIS_DIR, "tests"),
+                      # common directory prefixes are stripped
+                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                                  os.path.join(self.expected_output_dir, 'img2.jpg'),
+                                  os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
+                                  ]
+                    }
+        }
+        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(expected_output, output)
+        self.assertTrue(os.path.exists(os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg')))
+
+    def test_backup_globbed_files(self):
+        "a descriptor of individual files with glob syntax can be run"
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        fixture2 = os.path.join(THIS_DIR, "tests", 'img2.jpg')
+        fixture3 = os.path.join(THIS_DIR, "tests", "subdir", 'img3.jpg')
+        fixture4 = os.path.join(THIS_DIR, "tests", "subdir", 'subdir2', 'img4.jpg')
+        
+        descriptor = {'files': [fixture,
+                                fixture2,
+                                os.path.join(THIS_DIR, "tests", '*/**')]}
+
+        expected_output = {
+            'files': {'output_dir': self.expected_output_dir,
+                      'dir_prefix': os.path.join(THIS_DIR, "tests"),
+                      # common directory prefixes are stripped
+                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                                  os.path.join(self.expected_output_dir, 'img2.jpg'),
+                                  os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
+                                  os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg'),
+                                  ]
+                    }
+        }
+        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+
+        self.assertEqual(expected_output, output)
+        self.assertTrue(os.path.exists(os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg')))
+        
+
+    def test_unknown_backup(self):
+        "an unknown target is reported"
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        # a /dev/null backup is valid, right? restore process sucks though ...
+        descriptor = {'dev-null': [fixture]}
 
 if __name__ == '__main__':
     unittest.main()

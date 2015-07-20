@@ -1,7 +1,20 @@
-import os, sys
+import os, sys, shutil
 import yaml
+from itertools import takewhile
 
+import logging
+logger = logging.getLogger(__name__)
+
+logging.basicConfig()
+
+#logger.addHandler(logging.StreamHandler())
+
+#
 # utils
+#
+
+def dir_exists(p):
+    return os.path.exists(p) and os.path.isdir(p)
 
 def first(lst):
     try:
@@ -22,7 +35,30 @@ def doall(val, *args):
 def list_paths(d):
     return map(lambda f: os.path.join(d, f), os.listdir(d))
 
+# http://rosettacode.org/wiki/Find_common_directory_path#Python
+
+def allnamesequal(name):
+    return all(n==name[0] for n in name[1:])
+
+def common_prefix(paths, sep='/'):
+    """returns the common directory for a list of given paths.
+    if only a single path is given, the parent directory is returned.
+    if the only common directory is the root directory, then an empty string is returned."""
+    bydirectorylevels = zip(*[p.split(sep) for p in paths])
+    common = sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
+    if len(paths) == 1:
+        return os.path.dirname(common)
+    return common
+
+def ymdhms():
+    "returns a UTC datetime stamp as y-m-d--hr-min-sec"
+    from datetime import datetime
+    return datetime.utcnow().strftime("%Y-%m-%d--%H-%M-%S")
+
 # 
+#
+#
+
 
 def valid_descriptor(descriptor):
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
@@ -46,41 +82,88 @@ def find_descriptors(descriptor_dir):
 def load_descriptor(descriptor):
     return yaml.load(open(descriptor, "r"))
 
+def copy_file(src, dest):
+    "a wrapper around shutil.copyfile that will create the dest dirs if necessary"
+    dirs = os.path.dirname(dest)
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+    shutil.copyfile(src, dest)
+    return dest
+
+def file_is_valid(src):
+    return all([
+        os.path.exists(src), # exists?
+        os.path.isfile(src), # is a file?
+        os.access(src, os.R_OK)]) # is a *readable* file?
+
+def expand_path(src):
+    "files can be described using an extended glob syntax with support for recursive dirs"
+    import glob2
+    return glob2.glob(src)
+
+def flatten(shallow_nested_iterable):
+    import itertools
+    return itertools.chain.from_iterable(shallow_nested_iterable)
+
 def file_backup(path_list, destination):
-    print 'given paths',path_list,'dest',destination
-    errors = filter(lambda p: not os.path.exists(p), path_list)
-    if errors:
-        print 'the following paths could not be found!'
-        print '\n'.join(errors)
-    path_list = set(path_list) - set(errors)
-    # tar files up
-    cmd = 'tar cvzf /tmp/foo.tar.gz %s' % ' '.join(path_list)
-    print cmd
-    return cmd
+    "embarassingly simple 'copy each of the files specified to new destination, ignoring the common parents'"
+    logger.debug('given paths %s with destination %s', path_list, destination)
+
+    dir_prefix = common_prefix(path_list)
+
+    # expand any globs and then flatten the resulting nested structure
+    new_path_list = flatten(map(expand_path, path_list))
+    new_path_list = filter(file_is_valid, new_path_list)
+
+    # some adhoc error reporting
+    try:
+        assert len(path_list) == len(new_path_list), "invalid files have been removed from the backup!"
+    except AssertionError, e:
+        # find the difference and then strip out anything that looks like a glob expr
+        missing = filter(lambda p: '*' not in p, set(path_list) - set(new_path_list))
+        if missing:
+            msg = "the following files failed validation and were removed from this backup: %s"
+            logger.error(msg, ", ".join(missing))
+
+    # assumes all paths exist and are file and valid etc etc
+    results = []
+    for src in new_path_list:
+        dest = os.path.join(destination, src[len(dir_prefix):].lstrip('/'))
+        results.append(copy_file(src, dest))
+    
+    return {'dir_prefix': dir_prefix, 'output_dir': destination, 'results': results}
+
+def tgz_backup(path_list, destination):
+    "does a regular file_backup and then tars and gzips the results"
+    output = file_backup(path_list, destination)
+    cmd = 'tar cvzf %s.tar.gz %s' % (output['output_dir'], output['output_dir'])
+    os.system(cmd)
+    
 
 def targets():
-    return {'file': file_backup}
+    return {'files': file_backup,
+            'tar-gzipped': tgz_backup}
 
 # looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
 def _backup(target, args, destination):
     "a descriptor is a set of targets and inputs to the target functions."
-    return targets()[target](args, destination)
-
-def gen_destination(protocol):
-    "generates an appropriate destination filename given a destination protocol"
-    if protocol == 'file://':
-        return '/tmp/foo.tar.gz'
+    try:
+        return targets()[target](args, destination)
+    except KeyError:
+        pass
 
 # looks like: backup({'file': ['/tmp/foo']}, 'file://')
-def backup(descriptor, destination_protocol='file://'):
-    return [_backup(target, args, gen_destination(destination_protocol)) for target, args in descriptor.items()]
+def backup(descriptor, output_dir=None):
+    if not output_dir:
+        output_dir = ymdhms()
+    return {target: _backup(target, args, output_dir) for target, args in descriptor.items()}
 
 #
 #
 #
 
 def main(args):
-    find_descriptors(args)
+    return map(lambda d: backup(load_descriptor(d)), find_descriptors(args[0]))
 
 if __name__ == '__main__':
     main(sys.argv[1:])
