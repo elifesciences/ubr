@@ -13,15 +13,12 @@ class BasicUsage(unittest.TestCase):
         self.maxDiff = 1024
         self.fixture_dir = os.path.join(THIS_DIR, "tests")
         self.known_backup_fixtures = [
-            self.fixture("ubr-backup.yaml"),
-            self.fixture("ubr-2-backup.yaml"),
+            os.path.join(THIS_DIR, "tests", "ubr-backup.yaml"),
+            os.path.join(THIS_DIR, "tests", "ubr-2-backup.yaml"),
         ]
 
     def tearDown(self):
         pass
-
-    def fixture(self, fname):
-         return os.path.join(self.fixture_dir, fname)
 
     #
     #
@@ -75,7 +72,7 @@ class BasicUsage(unittest.TestCase):
         
     def test_backup_files(self):
         "a simple backup description can be run"
-        descriptor = {'file': [self.fixture('dontworry.png')]}
+        descriptor = {'file': [os.path.join(THIS_DIR, "tests", 'dontworry.png')]}
         main.backup(descriptor)
         
 
