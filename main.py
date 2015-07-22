@@ -3,9 +3,12 @@ import yaml
 from itertools import takewhile
 from datetime import datetime
 import logging
-logger = logging.getLogger(__name__)
+
 
 logging.basicConfig()
+
+logger = logging.getLogger(__name__)
+logger.level = logging.INFO
 
 #logger.addHandler(logging.StreamHandler())
 
@@ -131,7 +134,7 @@ def file_backup(path_list, destination):
         dest = os.path.join(destination, src[len(dir_prefix):].lstrip('/'))
         results.append(copy_file(src, dest))
     
-    return {'dir_prefix': dir_prefix, 'output_dir': destination, 'results': results}
+    return {'dir_prefix': dir_prefix, 'output_dir': destination, 'output': results}
 
 def tgz_backup(path_list, destination):
     """does a regular file_backup and then tars and gzips the results.
@@ -152,8 +155,11 @@ def tgz_backup(path_list, destination):
     os.system(cmd)
 
     # amend the results slightly
-    output['results'] = {'files': output['results'],
-                         'archive': output_path}
+    #output['results'] = {'files': output['results'],
+    #                     'archive': output_path}
+
+    output['output'] = output_path
+    
     return output
 
 
@@ -195,9 +201,6 @@ def s3_file(bucket, path):
     "returns the object in the bucket at the given path"
     return s3_conn().list_objects(Bucket=bucket, Prefix=path)
 
-# results {'tar-gzipped': {'output_dir': '/tmp/foo/.tgz-tmp', 'dir_prefix': '/home/luke/dev/python/universal-backup-restore/tests', 'results': {'files': ['/tmp/foo/.tgz-tmp/img1.png', '/tmp/foo/.tgz-tmp/subdir/img3.jpg', '/tmp/foo/.tgz-tmp/subdir/subdir2/img4.jpg'], 'archive': '/tmp/foo/foo.tar.gz'}}}
-
-
 def hostname():
     import platform
     return platform.node()
@@ -209,34 +212,81 @@ def s3_key(project, hostname, filename):
     # path, ext = os.path.splitext(filename) # doesn't work for .tar.gz
     fname, ext = os.path.basename(filename), None
     try:
-        ext = fname[fname.index('.') + 1:]
+        dotidx = fname.index('.')
+        ext = fname[dotidx + 1:]
+        fname = fname[:dotidx]
     except ValueError:
         # couldn't find a dot
         pass
     if ext:
-        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s.%(ext)s" % locals()
+        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s-%(fname)s.%(ext)s" % locals()
     raise ValueError("given file has no extension.")
-    # no support for directories yet. no idea if below would work
-    #return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s" % locals()
-
-    # <project>/yearmonth/yearmonthday_hoursminsseconds-host.tar.gz
-    # looks like _test/201512/20151231_foo.tar.gz
-    #expected_key_name = "_test/%s/%s-%s" % (ym, ymdhs, fname)
 
 
-def upload_backup_to_s3(bucket, backup_results, project_name=None, hostname=None):
-    
-    #return s3_conn().
-    pass
-    
-    
+import threading
+class ProgressPercentage(object):
+    def __init__(self, filename):
+        self._filename = filename
+        self._size = float(os.path.getsize(filename))
+        self._seen_so_far = 0
+        self._lock = threading.Lock()
+
+    def __call__(self, bytes_amount):
+        # To simplify we'll assume this is hooked up
+        # to a single filename.
+        with self._lock:
+            self._seen_so_far += bytes_amount
+            percentage = (self._seen_so_far / self._size) * 100
+            sys.stdout.write(
+                "\r%s  %s / %s  (%.2f%%)" % (self._filename, self._seen_so_far,
+                                             self._size, percentage))
+            sys.stdout.flush()
+
+def upload_to_s3(bucket, src, dest):
+    logger.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
+    s3_conn().upload_file(src, bucket, dest, Callback=ProgressPercentage(src))
+
+def upload_backup_to_s3(bucket, backup_results, project, hostname):
+    """uploads the results of processing a backup.
+    `backup_results` should be a dictionary of targets with their results as values.
+    each value will have a 'output' key with the outputs for that target.
+    these outputs are what is uploaded to s3"""
+    for target, target_results in backup_results.items():
+        logger.info("processing %s", target)
+        # 'target' looks like 'tar-gzipped' or 'mysql' or 'postgresql' etc
+        # 'target_results' looks like {..., 'output': '/tmp/foo.tar.gz', ...}
+        src = target_results['output']
+        if isinstance(src, list):
+            logger.warning("uploads of many files is not supported, skipping")
+            continue
+        if not os.path.exists(src):
+            logger.error("the given output does not exist. cannot upload to s3: %s", src)
+            continue
+        dest = s3_key(project, hostname, src)
+        upload_to_s3(bucket, src, dest)
 
 #
 #
 #
 
 def main(args):
-    return map(lambda d: backup(load_descriptor(d)), find_descriptors(args[0]))
+
+    def pname(filename):
+        try:
+            filename = os.path.basename(filename)
+            return filename[:filename.index('-backup.yaml')]
+        except ValueError:
+            logger.warning("the given backup descriptor isn't suffixed with '-backup.yaml' - I don't know where the project name starts and ends!")
+            return None
+    
+    given_dir = args[0]
+    bucket = 'elife-app-backups'
+    for descriptor in find_descriptors(given_dir):
+        project = pname(descriptor)
+        if not project:
+            logger.warning("no project name, skipping given descriptor %r", descriptor)
+            continue        
+        upload_backup_to_s3(bucket, backup(descriptor), project, hostname())
 
 if __name__ == '__main__':
     main(sys.argv[1:])

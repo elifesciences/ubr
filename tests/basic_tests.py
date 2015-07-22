@@ -95,7 +95,7 @@ class TestFileBackup(BaseCase):
             'files': {'output_dir': self.expected_output_dir,
                       'dir_prefix': os.path.join(THIS_DIR, "tests"),
                       # common directory prefixes are stripped
-                      'results': [os.path.join(self.expected_output_dir, 'img1.png')]}
+                      'output': [os.path.join(self.expected_output_dir, 'img1.png')]}
         }
 
         output = main.backup(descriptor, output_dir=self.expected_output_dir)
@@ -113,7 +113,7 @@ class TestFileBackup(BaseCase):
             'files': {'output_dir': self.expected_output_dir,
                       'dir_prefix': os.path.join(THIS_DIR, "tests"),
                       # common directory prefixes are stripped
-                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                      'output': [os.path.join(self.expected_output_dir, 'img1.png'),
                                   os.path.join(self.expected_output_dir, 'img2.jpg')]}
         }
 
@@ -132,7 +132,7 @@ class TestFileBackup(BaseCase):
             'files': {'output_dir': self.expected_output_dir,
                       'dir_prefix': os.path.join(THIS_DIR, "tests"),
                       # common directory prefixes are stripped
-                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                      'output': [os.path.join(self.expected_output_dir, 'img1.png'),
                                   os.path.join(self.expected_output_dir, 'img2.jpg'),
                                   os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
                                   ]
@@ -157,7 +157,7 @@ class TestFileBackup(BaseCase):
             'files': {'output_dir': self.expected_output_dir,
                       'dir_prefix': os.path.join(THIS_DIR, "tests"),
                       # common directory prefixes are stripped
-                      'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                      'output': [os.path.join(self.expected_output_dir, 'img1.png'),
                                   os.path.join(self.expected_output_dir, 'img2.jpg'),
                                   os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
                                   os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg'),
@@ -191,7 +191,7 @@ class TestTarredGzippedBackup(BaseCase):
             'tar-gzipped': {'output_dir': self.expected_output_dir,
                             'dir_prefix': os.path.join(THIS_DIR, "tests"),
                             # common directory prefixes are stripped
-                            'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                            'output': [os.path.join(self.expected_output_dir, 'img1.png'),
                                         os.path.join(self.expected_output_dir, 'img2.jpg'),
                                         os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
                                         os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg'),
