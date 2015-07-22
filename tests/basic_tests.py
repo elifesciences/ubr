@@ -179,7 +179,7 @@ class TestTarredGzippedBackup(BaseCase):
         pass
 
     def tearDown(self):
-        pass
+        os.system('rm /tmp/foo/foo.tar.gz')
 
     def test_simple_tgz(self):
         fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
@@ -199,6 +199,17 @@ class TestTarredGzippedBackup(BaseCase):
         }
         
         self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'foo.tar.gz')))
+
+class TestUploadToS3(BaseCase):
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_backup_is_copied_to_s3(self):
+        "the results of a backup are uploaded to s3"
+        pass
 
 
 if __name__ == '__main__':
