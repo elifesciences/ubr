@@ -145,7 +145,7 @@ def tgz_backup(path_list, destination):
     target = '*' #os.path.basename(output['output_dir'])
     output_path = '%s/%s.tar.gz' % (original_destination, os.path.basename(original_destination))
 
-    cmd = 'cd %s && tar cvzf %s %s --remove-files' % (cd, output_path, target)
+    cmd = 'cd %s && tar cvzf %s %s --remove-files > /dev/null' % (cd, output_path, target)
     os.system(cmd)
 
     # amend the results slightly
