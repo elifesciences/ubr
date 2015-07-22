@@ -1,7 +1,7 @@
 import os, sys, shutil
 import yaml
 from itertools import takewhile
-
+from datetime import datetime
 import logging
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,8 @@ def file_backup(path_list, destination):
     return {'dir_prefix': dir_prefix, 'output_dir': destination, 'results': results}
 
 def tgz_backup(path_list, destination):
-    "does a regular file_backup and then tars and gzips the results"
+    """does a regular file_backup and then tars and gzips the results.
+    the name of the resulting file is 'archive.tar.gz'"""
     # obfuscate the given destination so it doesn't overwrite anything
     original_destination = destination
     destination = os.path.join(destination, ".tgz-tmp") # /tmp/foo/.tgz-tmp
@@ -143,7 +144,9 @@ def tgz_backup(path_list, destination):
 
     cd = destination
     target = '*' #os.path.basename(output['output_dir'])
-    output_path = '%s/%s.tar.gz' % (original_destination, os.path.basename(original_destination))
+    filename = os.path.basename(original_destination) # this needs to change...!
+    filename = 'archive'
+    output_path = '%s/%s.tar.gz' % (original_destination, filename)
 
     cmd = 'cd %s && tar cvzf %s %s --remove-files > /dev/null' % (cd, output_path, target)
     os.system(cmd)
@@ -172,6 +175,61 @@ def backup(descriptor, output_dir=None):
     if not output_dir:
         output_dir = ymdhms()
     return {target: _backup(target, args, output_dir) for target, args in descriptor.items()}
+
+#
+#
+#
+
+def s3_conn():
+    import boto3
+    return boto3.client("s3")
+
+# TODO: cachable
+def s3_buckets():
+    return [m['Name'] for m in s3_conn().list_buckets()]
+
+def s3_bucket_exists(bname):
+    return bname in s3_buckets()
+
+def s3_file(bucket, path):
+    "returns the object in the bucket at the given path"
+    return s3_conn().list_objects(Bucket=bucket, Prefix=path)
+
+# results {'tar-gzipped': {'output_dir': '/tmp/foo/.tgz-tmp', 'dir_prefix': '/home/luke/dev/python/universal-backup-restore/tests', 'results': {'files': ['/tmp/foo/.tgz-tmp/img1.png', '/tmp/foo/.tgz-tmp/subdir/img3.jpg', '/tmp/foo/.tgz-tmp/subdir/subdir2/img4.jpg'], 'archive': '/tmp/foo/foo.tar.gz'}}}
+
+
+def hostname():
+    import platform
+    return platform.node()
+
+def s3_key(project, hostname, filename):
+    now = datetime.now()
+    ym = now.strftime("%Y%m")
+    ymdhms = now.strftime("%Y%m%d_%H%M%S")
+    # path, ext = os.path.splitext(filename) # doesn't work for .tar.gz
+    fname, ext = os.path.basename(filename), None
+    try:
+        ext = fname[fname.index('.') + 1:]
+    except ValueError:
+        # couldn't find a dot
+        pass
+    if ext:
+        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s.%(ext)s" % locals()
+    raise ValueError("given file has no extension.")
+    # no support for directories yet. no idea if below would work
+    #return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s" % locals()
+
+    # <project>/yearmonth/yearmonthday_hoursminsseconds-host.tar.gz
+    # looks like _test/201512/20151231_foo.tar.gz
+    #expected_key_name = "_test/%s/%s-%s" % (ym, ymdhs, fname)
+
+
+def upload_backup_to_s3(bucket, backup_results, project_name=None, hostname=None):
+    
+    #return s3_conn().
+    pass
+    
+    
 
 #
 #

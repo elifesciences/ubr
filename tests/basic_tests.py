@@ -1,5 +1,6 @@
 import os, unittest
 import main
+from datetime import datetime
 
 """These examples can be run with:
    python -m unittest discover -s tests/ -p *_test.py
@@ -179,7 +180,7 @@ class TestTarredGzippedBackup(BaseCase):
         pass
 
     def tearDown(self):
-        os.system('rm /tmp/foo/foo.tar.gz')
+        os.system('rm /tmp/foo/archive.tar.gz')
 
     def test_simple_tgz(self):
         fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
@@ -198,18 +199,34 @@ class TestTarredGzippedBackup(BaseCase):
                             }
         }
         
-        self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'foo.tar.gz')))
+        self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'archive.tar.gz')))
 
 class TestUploadToS3(BaseCase):
     def setUp(self):
-        pass
+        self.s3_backup_bucket = 'elife-app-backups'
+        
+        self.project_name = '_test'
+        self.hostname = 'testmachine'
 
     def tearDown(self):
         pass
 
+    def test_s3_file_exists(self):
+        "we can talk to s3 about the existence of files"
+        s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
+        self.assertTrue(isinstance(s3obj, dict))
+        self.assertTrue(s3obj.has_key('Contents'))
+
     def test_backup_is_copied_to_s3(self):
         "the results of a backup are uploaded to s3"
-        pass
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        descriptor = {'tar-gzipped': [fixture, os.path.join(THIS_DIR, "tests", '*/**')]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        
+        main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
+
+        s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
+        self.assertTrue(s3obj.has_key('Contents'))
 
 
 if __name__ == '__main__':
