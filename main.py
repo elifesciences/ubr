@@ -135,11 +135,25 @@ def file_backup(path_list, destination):
 
 def tgz_backup(path_list, destination):
     "does a regular file_backup and then tars and gzips the results"
-    output = file_backup(path_list, destination)
-    cmd = 'tar cvzf %s.tar.gz %s' % (output['output_dir'], output['output_dir'])
-    print cmd
-    #os.system(cmd)
+    # obfuscate the given destination so it doesn't overwrite anything
+    original_destination = destination
+    destination = os.path.join(destination, ".tgz-tmp") # /tmp/foo/.tgz-tmp
     
+    output = file_backup(path_list, destination)
+
+    cd = destination
+    target = '*' #os.path.basename(output['output_dir'])
+    output_path = '%s/%s.tar.gz' % (original_destination, os.path.basename(original_destination))
+
+    cmd = 'cd %s && tar cvzf %s %s --remove-files' % (cd, output_path, target)
+    os.system(cmd)
+
+    # amend the results slightly
+    output['results'] = {'files': output['results'],
+                         'archive': output_path}
+    return output
+
+
 
 def targets():
     return {'files': file_backup,

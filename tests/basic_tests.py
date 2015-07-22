@@ -167,7 +167,6 @@ class TestFileBackup(BaseCase):
 
         self.assertEqual(expected_output, output)
         self.assertTrue(os.path.exists(os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg')))
-        
 
     def test_unknown_backup(self):
         "an unknown target is reported"
@@ -181,6 +180,26 @@ class TestTarredGzippedBackup(BaseCase):
 
     def tearDown(self):
         pass
+
+    def test_simple_tgz(self):
+        fixture = os.path.join(THIS_DIR, "tests", 'img1.png')
+        descriptor = {'tar-gzipped': [fixture, os.path.join(THIS_DIR, "tests", '*/**')]}
+        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+
+        expected_output = {
+            'tar-gzipped': {'output_dir': self.expected_output_dir,
+                            'dir_prefix': os.path.join(THIS_DIR, "tests"),
+                            # common directory prefixes are stripped
+                            'results': [os.path.join(self.expected_output_dir, 'img1.png'),
+                                        os.path.join(self.expected_output_dir, 'img2.jpg'),
+                                        os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
+                                        os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg'),
+                                        ]
+                            }
+        }
+        
+        self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'foo.tar.gz')))
+
 
 if __name__ == '__main__':
     unittest.main()
