@@ -6,6 +6,6 @@ fi
 source venv/bin/activate
 pip install -r requirements.txt
 
-pylint2 -E *.py tests/*.py
+pylint2 -E *.py ubr/tests/*.py
 echo 'passed pylint'
-python2 -m unittest discover -s tests/ -p *_tests.py
+python2 -m unittest discover -s ubr/tests/ -p *_tests.py
