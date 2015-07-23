@@ -13,7 +13,7 @@ def defaults(db=None, **overrides):
 def mysql_cmd(mysqlcmd, **kwargs):
     "runs very simple commands from the command line against mysql. doesn't handle quoting at all."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd ="mysql -u %(user)s -p%(passwd)s -e '%(mysqlcmd)s'" % args
+    cmd ="MYSQL_PWD=%(passwd)s mysql -u %(user)s -e '%(mysqlcmd)s'" % args
     return os.system(cmd)
 
 def drop(db, **kwargs):
@@ -27,13 +27,13 @@ def load(db, dump_path, dropdb=False, **kwargs):
     if dropdb:
         # reset the database before loading the fixture
         assert all([drop(db, **kwargs), create(db, **kwargs)], "failed to drop+create the database prior to loading fixture.")
-    cmd ="mysql -u %(user)s -p%(passwd)s %(dbname)s < %(path)s" % args
+    cmd ="MYSQL_PWD=%(passwd)s mysql -u %(user)s %(dbname)s < %(path)s" % args
     return os.system(cmd)
 
 def dump(db, output_path, **kwargs):
     output_path += ".gz"
     args = defaults(db, path=output_path, **kwargs)
-    cmd ="mysqldump -u %(user)s -p%(passwd)s %(dbname)s | gzip > %(path)s" % args
+    cmd ="MYSQL_PWD=%(passwd)s mysqldump -u %(user)s %(dbname)s | gzip > %(path)s" % args
     os.system(cmd)
     return output_path
 
