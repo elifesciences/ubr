@@ -1,5 +1,5 @@
-import os, unittest
-import main
+import os, shutil, unittest
+import main, mysql_backup
 from datetime import datetime
 
 """These examples can be run with:
@@ -14,7 +14,7 @@ class BaseCase(unittest.TestCase):
         super(BaseCase, self).__init__(*args, **kwargs)
         self.maxDiff = 1024
         self.fixture_dir = os.path.join(THIS_DIR, "tests")
-        self.expected_output_dir = '/tmp/foo'        
+        self.expected_output_dir = '/tmp/foo'
 
 class BasicUsage(BaseCase):
     def setUp(self):
@@ -204,7 +204,6 @@ class TestTarredGzippedBackup(BaseCase):
 class TestUploadToS3(BaseCase):
     def setUp(self):
         self.s3_backup_bucket = 'elife-app-backups'
-        
         self.project_name = '_test'
         self.hostname = 'testmachine'
 
@@ -228,6 +227,25 @@ class TestUploadToS3(BaseCase):
         s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
         self.assertTrue(s3obj.has_key('Contents'))
 
+
+class TestDatabaseBackup(BaseCase):
+    def setUp(self):
+        self.expected_output_dir = '/tmp/bar'
+        self.project_name = '_test'
+        mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
+
+    def tearDown(self):
+        assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
+        shutil.rmtree(self.expected_output_dir)
+
+    def test_dump_db(self):
+        "a compressed dump of the test database is created at the expected destination"
+        descriptor = {'mysql-database': ['_test']}        
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(1, len(results['mysql-database']['output']))
+
+        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
+        self.assertTrue(os.path.isfile(expected_path))
 
 if __name__ == '__main__':
     unittest.main()

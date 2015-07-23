@@ -3,7 +3,7 @@ import yaml
 from itertools import takewhile
 from datetime import datetime
 import logging
-
+import threading
 
 logging.basicConfig()
 
@@ -162,11 +162,15 @@ def tgz_backup(path_list, destination):
     
     return output
 
-
+#
+#
+#
 
 def targets():
+    import mysql_backup
     return {'files': file_backup,
-            'tar-gzipped': tgz_backup}
+            'tar-gzipped': tgz_backup,
+            'mysql-database': mysql_backup.backup}
 
 # looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
 def _backup(target, args, destination):
@@ -183,7 +187,7 @@ def backup(descriptor, output_dir=None):
     return {target: _backup(target, args, output_dir) for target, args in descriptor.items()}
 
 #
-#
+# s3 wrangling
 #
 
 def s3_conn():
@@ -222,8 +226,6 @@ def s3_key(project, hostname, filename):
         return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s-%(fname)s.%(ext)s" % locals()
     raise ValueError("given file has no extension.")
 
-
-import threading
 class ProgressPercentage(object):
     def __init__(self, filename):
         self._filename = filename
@@ -266,7 +268,7 @@ def upload_backup_to_s3(bucket, backup_results, project, hostname):
         upload_to_s3(bucket, src, dest)
 
 #
-#
+# bootstrap
 #
 
 def main(args):
