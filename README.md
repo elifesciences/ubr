@@ -1,12 +1,12 @@
 # ubr
 
-I don't ever want to have to write another backup script __ever again__.
+I don't ever want to write another backup script __ever again__.
 
 They are so damn tedious and every time I write one it's just ever so slightly
 different to all the others I've ever written to warrant it's own code.
 
-Screw that noise. This is the one script to rule them [(and in the darkness bind 
-them)](https://www.youtube.com/watch?v=Zp7xHW-JcKk).
+Screw that noise. This is the one script to rule them all [(and in the darkness 
+bind them)](https://www.youtube.com/watch?v=Zp7xHW-JcKk).
 
 ## how it works
 
@@ -49,6 +49,8 @@ Everything the `files` target supports is also supported by `tar-gzipped`.
 
 ### `files`
 
+Creates a copy of the specified files.
+
 Paths that are directories will be ignored. For example:
 
     files:
@@ -72,7 +74,7 @@ For example:
 
 would tar up and then zip __everything__ in `/etc/`. All files, all 
 sub-directories of files, recursively. You often see these double asterisks in 
-Git and Mercural ignore files.
+Git and Mercural `.ignore` files.
 
 
 
@@ -89,3 +91,7 @@ I have nothing right now, just my desired syntax
         
     how to create a backup
         - ubr lagotto mysql backup
+
+
+
+
