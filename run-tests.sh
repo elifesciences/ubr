@@ -6,7 +6,6 @@ CONFIG=$1
 if [ -f "$CONFIG" ]; then
     echo "given config file $CONFIG"
     set -a; source $CONFIG; set +a;
-    env
     echo $MYSQL_USER
 else
     if [ -f "test-config" ]; then
