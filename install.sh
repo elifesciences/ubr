@@ -4,6 +4,7 @@
 set -e
 if [ ! -d venv ]; then
     virtualenv venv --python=`which python2`
+    pip install -r requirements.txt # show output first time
 fi
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt > /dev/null # suppress output from now on
