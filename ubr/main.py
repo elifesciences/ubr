@@ -16,6 +16,17 @@ logger.level = logging.INFO
 # utils
 #
 
+import errno
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc: # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
+
 def dir_exists(p):
     return os.path.exists(p) and os.path.isdir(p)
 
@@ -127,6 +138,8 @@ def file_backup(path_list, destination):
         if missing:
             msg = "the following files failed validation and were removed from this backup: %s"
             logger.error(msg, ", ".join(missing))
+
+    mkdir_p(destination)
 
     # assumes all paths exist and are file and valid etc etc
     results = []
