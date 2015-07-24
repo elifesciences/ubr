@@ -184,7 +184,10 @@ def _backup(target, args, destination):
 def backup(descriptor, output_dir=None):
     if not output_dir:
         output_dir = ymdhms()
-    return {target: _backup(target, args, output_dir) for target, args in descriptor.items()}
+    foo = {}
+    for target, args in descriptor.items():
+        foo[target] = _backup(target, args, output_dir)
+    return foo
 
 #
 # s3 wrangling
