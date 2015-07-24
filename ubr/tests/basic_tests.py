@@ -175,6 +175,10 @@ class TestFileBackup(BaseCase):
         # a /dev/null backup is valid, right? restore process sucks though ...
         descriptor = {'dev-null': [fixture]}
 
+    def test_backup_to_dynamic_output_dir(self):
+        "we're writing our output to a known output_dir for these tests. what happens when we try to output to a dir that doesn't exist?"
+        pass
+
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
         pass
@@ -249,6 +253,7 @@ class TestDatabaseBackup(BaseCase):
         expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
         self.assertTrue(os.path.isfile(expected_path))
 
+    # TODO: not done
     def test_dump_load_query_db(self):
         descriptor = {'mysql-database': [self.project_name]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
