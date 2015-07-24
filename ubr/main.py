@@ -293,8 +293,8 @@ def main(args):
         project = pname(descriptor)
         if not project:
             logger.warning("no project name, skipping given descriptor %r", descriptor)
-            continue        
-        upload_backup_to_s3(bucket, backup(descriptor), project, hostname())
+            continue
+        upload_backup_to_s3(bucket, backup(load_descriptor(descriptor)), project, hostname())
 
 if __name__ == '__main__':
     main(sys.argv[1:])
