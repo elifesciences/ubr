@@ -77,7 +77,24 @@ sub-directories of files, recursively. You often see these double asterisks in
 Git and Mercural `.ignore` files.
 
 
+## configuration
 
+All configuration comes from sourcing `/etc/ubr/config`
+
+Put your default MYSQL/AWS/whatever config (see `config.example`) in there 
+because the system calls I make will just assume (when it can) that it has all 
+the permissions it needs as environment variables.
+
+If it doesn't appear as an environment variable, then the application being 
+called may try to look for it's config:
+
+    * AWS: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
+    * BOTO: http://boto.readthedocs.org/en/latest/boto_config_tut.html
+    * MySQL: https://dev.mysql.com/doc/refman/5.0/en/environment-variables.html
+
+__Exceptions__ to this rule: 
+
+    * MySQL will be given the value of `MYSQL_USER` rather than `USER`
 
 ## command line interface
 

@@ -271,6 +271,9 @@ def upload_backup_to_s3(bucket, backup_results, project, hostname):
 # bootstrap
 #
 
+def env(nom):
+    return os.environ.get(nom, None)
+
 def main(args):
 
     def pname(filename):

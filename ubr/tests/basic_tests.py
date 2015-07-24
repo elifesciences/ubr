@@ -208,7 +208,7 @@ class TestUploadToS3(BaseCase):
         self.hostname = 'testmachine'
 
     def tearDown(self):
-        pass
+        shutil.rmtree(self.expected_output_dir)
 
     def test_s3_file_exists(self):
         "we can talk to s3 about the existence of files"
@@ -232,20 +232,32 @@ class TestDatabaseBackup(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/bar'
         self.project_name = '_test'
+        mysql_backup.create(self.project_name)
         mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
 
     def tearDown(self):
+        mysql_backup.drop(self.project_name)
         assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
         shutil.rmtree(self.expected_output_dir)
 
     def test_dump_db(self):
         "a compressed dump of the test database is created at the expected destination"
-        descriptor = {'mysql-database': ['_test']}        
+        descriptor = {'mysql-database': [self.project_name]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         self.assertEqual(1, len(results['mysql-database']['output']))
 
         expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
         self.assertTrue(os.path.isfile(expected_path))
+
+    def test_dump_load_query_db(self):
+        descriptor = {'mysql-database': [self.project_name]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
+        
+        self.assertTrue(os.path.isfile(expected_path))
+
+        #mysql_backup.load_gzip(expected_path)        
+        
 
 if __name__ == '__main__':
     unittest.main()
