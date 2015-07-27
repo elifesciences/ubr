@@ -7,4 +7,5 @@ if [ -f /etc/ubr/config ]; then
 else
     echo "* couldn't find /etc/ubr/config - you had better hope all the defaults work"
 fi
+mkdir -p /etc/ubr/
 python ubr/main.py /etc/ubr/
