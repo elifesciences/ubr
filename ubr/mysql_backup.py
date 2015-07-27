@@ -32,7 +32,7 @@ def load(db, dump_path, dropdb=False, **kwargs):
     return system(cmd)
 
 def dump(db, output_path, **kwargs):
-    output_path += ".gz"
+    output_path += "-mysql.gz"
     args = defaults(db, path=output_path, **kwargs)
     cmd ="mysqldump -u %(user)s %(dbname)s | gzip > %(path)s" % args
     retval = system(cmd)
