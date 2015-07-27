@@ -18,6 +18,12 @@ logger.level = logging.INFO
 
 import errno
 
+def system(cmd):
+    logger.info(cmd)
+    retval = os.system(cmd)
+    logger.info("return status %s", retval)
+    return retval
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
@@ -165,7 +171,7 @@ def tgz_backup(path_list, destination):
     output_path = '%s/%s.tar.gz' % (original_destination, filename)
 
     cmd = 'cd %s && tar cvzf %s %s --remove-files > /dev/null' % (cd, output_path, target)
-    os.system(cmd)
+    system(cmd)
 
     # amend the results slightly
     #output['results'] = {'files': output['results'],
