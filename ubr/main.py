@@ -4,6 +4,7 @@ from itertools import takewhile
 from datetime import datetime
 import logging
 import threading
+from compiler.ast import flatten # deprecated, removed in Python3
 
 logging.basicConfig()
 
@@ -120,10 +121,6 @@ def expand_path(src):
     "files can be described using an extended glob syntax with support for recursive dirs"
     import glob2
     return glob2.glob(src)
-
-def flatten(shallow_nested_iterable):
-    import itertools
-    return itertools.chain.from_iterable(shallow_nested_iterable)
 
 def file_backup(path_list, destination):
     "embarassingly simple 'copy each of the files specified to new destination, ignoring the common parents'"
@@ -269,25 +266,16 @@ class ProgressPercentage(object):
 def upload_to_s3(bucket, src, dest):
     logger.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
     s3_conn().upload_file(src, bucket, dest, Callback=ProgressPercentage(src))
+    return dest
 
 def upload_backup_to_s3(bucket, backup_results, project, hostname):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
     these outputs are what is uploaded to s3"""
-    for target, target_results in backup_results.items():
-        logger.info("processing %s", target)
-        # 'target' looks like 'tar-gzipped' or 'mysql' or 'postgresql' etc
-        # 'target_results' looks like {..., 'output': '/tmp/foo.tar.gz', ...}
-        src = target_results['output']
-        if isinstance(src, list):
-            logger.warning("uploads of many files is not supported, skipping")
-            continue
-        if not os.path.exists(src):
-            logger.error("the given output does not exist. cannot upload to s3: %s", src)
-            continue
-        dest = s3_key(project, hostname, src)
-        upload_to_s3(bucket, src, dest)
+    upload_targets = [target_results['output'] for target_results in backup_results.values()]
+    upload_targets = filter(os.path.exists, flatten(upload_targets))
+    return [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
 
 #
 # bootstrap

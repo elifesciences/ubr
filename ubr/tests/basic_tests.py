@@ -23,13 +23,8 @@ class BasicUsage(BaseCase):
             os.path.join(self.fixture_dir, "ubr-2-backup.yaml"),
         ]
 
-
     def tearDown(self):
         os.system('rm -rf %s' % self.expected_output_dir)
-
-    #
-    #
-    #
 
     def test_find_no_descriptor(self):
         "a directory with no descriptors in it returns an empty list"
@@ -241,8 +236,16 @@ class TestUploadToS3(BaseCase):
         descriptor = {'tar-gzipped': [fixture],
                       'mysql-database': [self.project_name]}
 
-        main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        uploaded_keys = main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
+        # we have the number of keys we expect
+        self.assertEqual(2, len(uploaded_keys))
+
+        # the keys we expect exist
+        for path in uploaded_keys:
+            s3obj = main.s3_file(self.s3_backup_bucket, path)
+            self.assertTrue(s3obj.has_key('Contents'))
 
 class TestDatabaseBackup(BaseCase):
     def setUp(self):
