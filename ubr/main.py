@@ -155,6 +155,8 @@ def file_backup(path_list, destination):
 def tgz_backup(path_list, destination):
     """does a regular file_backup and then tars and gzips the results.
     the name of the resulting file is 'archive.tar.gz'"""
+    destination = os.path.abspath(destination)
+    
     # obfuscate the given destination so it doesn't overwrite anything
     original_destination = destination
     destination = os.path.join(destination, ".tgz-tmp") # /tmp/foo/.tgz-tmp
@@ -167,15 +169,12 @@ def tgz_backup(path_list, destination):
     filename = 'archive'
     output_path = '%s/%s.tar.gz' % (original_destination, filename)
 
+    # cd 2015-07-27--15-41-36/.tgz-tmp && tar cvzf 2015-07-27--15-41-36/archive.tar.gz *
+    # cd /tmp/foo/.tgz-tmp && tar -cvzf /tmp/foo/archive.tar.gz *
     cmd = 'cd %s && tar cvzf %s %s --remove-files > /dev/null' % (cd, output_path, target)
     system(cmd)
 
-    # amend the results slightly
-    #output['results'] = {'files': output['results'],
-    #                     'archive': output_path}
-
     output['output'] = output_path
-    
     return output
 
 #
