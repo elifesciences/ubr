@@ -6,10 +6,10 @@ source install.sh
 
 # this script expects config to live in /etc/ubr/
 mkdir -p /etc/ubr/
-if [ -f /etc/ubr/config ]; then
-    source /etc/ubr/config
+if [ -f /etc/ubr/config.yaml ]; then
+    source /etc/ubr/config.yaml
 else
-    echo "* couldn't find /etc/ubr/config - you had better hope all the defaults work"
+    echo "* couldn't find /etc/ubr/config.yaml - you had better hope all the defaults work"
 fi
 
 # call ubr
