@@ -212,7 +212,8 @@ class TestUploadToS3(BaseCase):
         self.hostname = 'testmachine'
 
     def tearDown(self):
-        shutil.rmtree(self.expected_output_dir)
+        if os.path.exists(self.expected_output_dir):
+            shutil.rmtree(self.expected_output_dir)
 
     def test_s3_file_exists(self):
         "we can talk to s3 about the existence of files"
@@ -230,6 +231,17 @@ class TestUploadToS3(BaseCase):
 
         s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
         self.assertTrue(s3obj.has_key('Contents'))
+
+    def test_multiple_backups_are_copied_to_s3(self):
+        mysql_backup.create(self.project_name)
+        mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
+        fixture = os.path.join(self.fixture_dir, 'img1.png')
+
+        # two things to upload
+        descriptor = {'tar-gzipped': [fixture],
+                      'mysql-database': [self.project_name]}
+
+        main.backup(descriptor, output_dir=self.expected_output_dir)
 
 
 class TestDatabaseBackup(BaseCase):
