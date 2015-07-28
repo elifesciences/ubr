@@ -267,7 +267,9 @@ class TestDatabaseBackup(BaseCase):
     def tearDown(self):
         mysql_backup.drop(self.project_name)
         assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
-        shutil.rmtree(self.expected_output_dir)
+        if os.path.exists(self.expected_output_dir):
+            # not all tests create the expected output dir
+            shutil.rmtree(self.expected_output_dir)
 
     def test_dump_db(self):
         "a compressed dump of the test database is created at the expected destination"
