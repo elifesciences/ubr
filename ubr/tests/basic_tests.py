@@ -174,6 +174,16 @@ class TestFileBackup(BaseCase):
         "we're writing our output to a known output_dir for these tests. what happens when we try to output to a dir that doesn't exist?"
         pass
 
+    def test_backup_of_bad_file(self):
+        "what happens when the dir/file we specify in the descriptor doesn't exist"
+        pass
+
+    def test_backup_of_no_files(self):
+        "what happens when the path we specify in the descriptor doesn't yield any files?"
+        pass
+
+    
+
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
         pass
@@ -278,6 +288,11 @@ class TestDatabaseBackup(BaseCase):
 
         #mysql_backup.load_gzip(expected_path)        
         
+    def test_backup_is_removed_after_upload(self):
+        "after a successful upload to s3, whatever was uploaded is removed"
+        pass
+
+
 
 if __name__ == '__main__':
     unittest.main()
