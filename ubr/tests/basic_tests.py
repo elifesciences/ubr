@@ -1,5 +1,5 @@
 import os, shutil, unittest
-from ubr import main, mysql_backup
+from ubr import main, mysql_backup, s3, utils
 from datetime import datetime
 from unittest import skip
 
@@ -98,7 +98,7 @@ class TestFileBackup(BaseCase):
 
         output = main.backup(descriptor, output_dir=self.expected_output_dir)
         self.assertEqual(expected_output, output)
-        self.assertTrue(main.dir_exists(self.expected_output_dir))
+        self.assertTrue(utils.dir_exists(self.expected_output_dir))
         self.assertTrue(os.path.exists(os.path.join(self.expected_output_dir, 'img1.png')))
 
     def test_backup_multiple_file(self):
@@ -271,7 +271,7 @@ class TestUploadToS3(BaseCase):
 
     def test_s3_file_exists(self):
         "we can talk to s3 about the existence of files"
-        s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
+        s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
         self.assertTrue(isinstance(s3obj, dict))
         self.assertTrue(s3obj.has_key('Contents'))
 
@@ -281,9 +281,9 @@ class TestUploadToS3(BaseCase):
         descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         
-        main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
+        s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
-        s3obj = main.s3_file(self.s3_backup_bucket, self.project_name)
+        s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
         self.assertTrue(s3obj.has_key('Contents'))
 
     def test_multiple_backups_are_copied_to_s3(self):
@@ -296,14 +296,14 @@ class TestUploadToS3(BaseCase):
                       'mysql-database': [self.project_name]}
 
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        uploaded_keys = main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
+        uploaded_keys = s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         # we have the number of keys we expect
         self.assertEqual(2, len(uploaded_keys))
 
         # the keys we expect exist
         for path in uploaded_keys:
-            s3obj = main.s3_file(self.s3_backup_bucket, path)
+            s3obj = s3.s3_file(self.s3_backup_bucket, path)
             self.assertTrue(s3obj.has_key('Contents'))
 
     def test_backup_is_removed_after_upload(self):
@@ -312,7 +312,7 @@ class TestUploadToS3(BaseCase):
         descriptor = {'tar-gzipped': [fixture]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         
-        main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
+        s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         expected_missing = results['tar-gzipped']['output'][0]
         self.assertTrue(not os.path.exists(expected_missing))
