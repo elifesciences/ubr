@@ -3,8 +3,9 @@
 # used by other scripts to ensure a working env exists
 set -e
 if [ ! -d venv ]; then
+    echo "no virtualenv found, creating"
     virtualenv venv --python=`which python2`
-    pip install -r requirements.txt # show output first time
 fi
+echo "activating"
 source venv/bin/activate
-pip install -r requirements.txt > /dev/null # suppress output from now on
+pip install -r requirements.txt
