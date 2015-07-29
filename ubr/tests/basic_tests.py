@@ -1,7 +1,10 @@
 import os, shutil, unittest
 from ubr import main, mysql_backup
 from datetime import datetime
- 
+from unittest import skip
+
+skiptest = skip("'cuz")
+
 """These examples can be run with:
    python -m unittest discover -s tests/ -p *_test.py
 
@@ -210,6 +213,52 @@ class TestTarredGzippedBackup(BaseCase):
         
         self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'archive.tar.gz')))
 
+    def test_tgz_returns_a_list_of_outputs(self):
+        "the tgz target returns a list for it's 'output' result. all targets must return a list"
+        fixture = os.path.join(self.fixture_dir, 'img1.png')
+        descriptor = {'tar-gzipped': [fixture]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(1, len(results['tar-gzipped']['output']))
+
+
+class TestDatabaseBackup(BaseCase):
+    def setUp(self):
+        self.expected_output_dir = '/tmp/bar'
+        self.project_name = '_test'
+        mysql_backup.create(self.project_name)
+        mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
+
+    def tearDown(self):
+        mysql_backup.drop(self.project_name)
+        assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
+        if os.path.exists(self.expected_output_dir):
+            # not all tests create the expected output dir
+            shutil.rmtree(self.expected_output_dir)
+
+    def test_dump_db(self):
+        "a compressed dump of the test database is created at the expected destination"
+        descriptor = {'mysql-database': [self.project_name]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        self.assertEqual(1, len(results['mysql-database']['output']))
+
+        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
+        self.assertTrue(os.path.isfile(expected_path))
+
+    # TODO: not done
+    def test_dump_load_query_db(self):
+        descriptor = {'mysql-database': [self.project_name]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
+        
+        self.assertTrue(os.path.isfile(expected_path))
+
+        #mysql_backup.load_gzip(expected_path)        
+
+
+#
+# uploading backup outputs happens after backups, obviously ;)
+#
+
 class TestUploadToS3(BaseCase):
     def setUp(self):
         self.s3_backup_bucket = 'elife-app-backups'
@@ -257,42 +306,16 @@ class TestUploadToS3(BaseCase):
             s3obj = main.s3_file(self.s3_backup_bucket, path)
             self.assertTrue(s3obj.has_key('Contents'))
 
-class TestDatabaseBackup(BaseCase):
-    def setUp(self):
-        self.expected_output_dir = '/tmp/bar'
-        self.project_name = '_test'
-        mysql_backup.create(self.project_name)
-        mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
-
-    def tearDown(self):
-        mysql_backup.drop(self.project_name)
-        assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
-        if os.path.exists(self.expected_output_dir):
-            # not all tests create the expected output dir
-            shutil.rmtree(self.expected_output_dir)
-
-    def test_dump_db(self):
-        "a compressed dump of the test database is created at the expected destination"
-        descriptor = {'mysql-database': [self.project_name]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        self.assertEqual(1, len(results['mysql-database']['output']))
-
-        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
-        self.assertTrue(os.path.isfile(expected_path))
-
-    # TODO: not done
-    def test_dump_load_query_db(self):
-        descriptor = {'mysql-database': [self.project_name]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
-        
-        self.assertTrue(os.path.isfile(expected_path))
-
-        #mysql_backup.load_gzip(expected_path)        
-        
     def test_backup_is_removed_after_upload(self):
         "after a successful upload to s3, whatever was uploaded is removed"
-        pass
+        fixture = os.path.join(self.fixture_dir, 'img1.png')
+        descriptor = {'tar-gzipped': [fixture]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        
+        main.upload_backup_to_s3(self.s3_backup_bucket, results, self.project_name, self.hostname)
+
+        expected_missing = results['tar-gzipped']['output'][0]
+        self.assertTrue(not os.path.exists(expected_missing))
 
 
 

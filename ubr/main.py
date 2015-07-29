@@ -318,6 +318,10 @@ def upload_to_s3(bucket, src, dest):
         raise ValueError("local file doesn't match that one uploaded to s3 (content md5 or content length difference)")
     return dest
 
+def remove_targets(path_list, rooted_at="/tmp/"):
+    "deletes the list of given paths."
+    return map(os.unlink, filter(lambda p: p.startswith(rooted_at), filter(os.path.isfile, path_list)))
+
 def upload_backup_to_s3(bucket, backup_results, project, hostname):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
@@ -325,7 +329,11 @@ def upload_backup_to_s3(bucket, backup_results, project, hostname):
     these outputs are what is uploaded to s3"""
     upload_targets = [target_results['output'] for target_results in backup_results.values()]
     upload_targets = filter(os.path.exists, flatten(upload_targets))
-    return [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
+    path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
+    remove_targets(upload_targets, rooted_at=common_prefix(upload_targets))
+    return path_list
+
+    
 
 #
 # bootstrap
