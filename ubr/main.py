@@ -333,7 +333,6 @@ def upload_backup_to_s3(bucket, backup_results, project, hostname):
     remove_targets(upload_targets, rooted_at=common_prefix(upload_targets))
     return path_list
 
-    
 
 #
 # bootstrap
