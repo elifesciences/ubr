@@ -34,7 +34,9 @@ def load(db, dump_path, dropdb=False, **kwargs):
 def dump(db, output_path, **kwargs):
     output_path += "-mysql.gz"
     args = defaults(db, path=output_path, **kwargs)
-    cmd ="mysqldump -u %(user)s %(dbname)s | gzip > %(path)s" % args
+    # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
+    # at the bottom of each dump file, defeating duplicate checks
+    cmd ="mysqldump -u %(user)s %(dbname)s --skip-dump-date | gzip > %(path)s" % args
     retval = system(cmd)
     if not retval == 0:
         raise OSError("bad dump. got return value %s" % retval)
