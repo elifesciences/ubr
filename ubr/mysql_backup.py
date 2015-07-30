@@ -27,15 +27,18 @@ def load(db, dump_path, dropdb=False, **kwargs):
     if dropdb:
         # reset the database before loading the fixture
         assert all([drop(db, **kwargs), create(db, **kwargs)], "failed to drop+create the database prior to loading fixture.")
-    #cmd ="MYSQL_PWD=%(passwd)s mysql -u %(user)s %(dbname)s < %(path)s" % args
     cmd ="mysql -u %(user)s %(dbname)s < %(path)s" % args
     return utils.system(cmd)
 
+def dumpname(db):
+    "generates a filename for the given db"
+    return db + "-mysql.gz" # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz 
+
 def dump(db, output_path, **kwargs):
-    output_path += "-mysql.gz"
+    output_path = dumpname(output_path)
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
-    # at the bottom of each dump file, defeating duplicate checks
+    # at the bottom of each dump file, defeating duplicate checking
     cmd ="mysqldump -u %(user)s %(dbname)s --skip-dump-date | gzip > %(path)s" % args
     retval = utils.system(cmd)
     if not retval == 0:
@@ -62,3 +65,11 @@ def backup(path_list, destination):
         'output_dir': destination,
         'output': map(lambda p: _backup(p, destination), path_list)
     }
+
+def restore(db_list, input_dir):
+    #load(db, dump_path, dropdb=False, **kwargs):
+    for db in db_list:
+        dump_path = os.path.join(input_dir, dumpname(db))
+        assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
+        load(db, dump_path, drop_db=True)
+

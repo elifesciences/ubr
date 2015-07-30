@@ -12,7 +12,7 @@ logger.level = logging.INFO
 
 def valid_descriptor(descriptor):
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
-    known_targets = targets().keys()
+    known_targets = targets()['backup'].keys()
     for target_name, target_items in descriptor.items():
         assert isinstance(target_items, list), "a target's list of things to back up must be a list"
         msg = "we don't recognize what a %r is. known targets: %r" % \
@@ -111,34 +111,75 @@ def tgz_backup(path_list, destination):
     return output
 
 #
+# restore
+#
+
+def file_restore(path_list, input_dir):
+    """how do we restore files? we rsync the target from the input dir.
+
+    if the path is "/opt/program/uploaded-files/" and the input_dir is "/tmp/foo/" than the command looks like:
+    rsync <src> <target>
+    rsync /tmp/foo/opt/program/uploaded-files/ /opt/program/uploaded-files/
+    """
+    cmd = ""
+    
+
+
+def tgz_restore(path_list, input_dir):
+    "just like the file restore, however we unpack the files first before calling `file_restore`"
+    cmd = ""
+
+
+
+#
 #
 #
 
 def targets():
-    return {'files': file_backup,
-            'tar-gzipped': tgz_backup,
-            'mysql-database': mysql_backup.backup}
+    return {'backup': {'files': file_backup,
+                       'tar-gzipped': tgz_backup,
+                       'mysql-database': mysql_backup.backup},
+
+            'restore': {'files': file_restore,
+                        'tar-gzipped': tgz_restore,
+                        'mysql-database': mysql_backup.restore}}
+                       
 
 # looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
 def _backup(target, args, destination):
     "a descriptor is a set of targets and inputs to the target functions."
     try:
-        return targets()[target](args, destination)
+        return targets()['backup'][target](args, destination)
     except KeyError:
         pass
 
 # looks like: backup({'file': ['/tmp/foo']}, 'file://')
 def backup(descriptor, output_dir=None):
+    "consumes a descriptor and creates backups of the target's paths"
     if not output_dir:
         output_dir = utils.ymdhms()
+    # Python 2.6 compatibility
     backup_targets = {}
     for target, args in descriptor.items():
         backup_targets[target] = _backup(target, args, output_dir)
     return backup_targets
 
-def restore(target, path):
-    ""
-    pass
+def _restore(target, args, input_dir):
+    try:
+        return targets()['restore'][target](args, input_dir)
+    except KeyError:
+        pass
+
+def restore(descriptor, input_dir=None):
+    """consumes a descriptor, reading replacements from the given input_dir
+    or the most recent datestamped directory"""
+    if not input_dir:
+        input_dir = '/tmp/baz/' # TODO: not good.
+    restore_targets = {}
+    for target, args in descriptor.items():
+        restore_targets[target] = _restore(target, args, input_dir)
+    return restore_targets
+    
 
 
 #
