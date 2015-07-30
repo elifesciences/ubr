@@ -27,7 +27,8 @@ class BasicUsage(BaseCase):
         ]
 
     def tearDown(self):
-        os.system('rm -rf %s' % self.expected_output_dir)
+        if os.path.exists(self.expected_output_dir):
+            shutil.rmtree(self.expected_output_dir)
 
     def test_find_no_descriptor(self):
         "a directory with no descriptors in it returns an empty list"

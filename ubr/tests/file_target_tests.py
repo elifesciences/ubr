@@ -10,8 +10,8 @@ class TestFileBackup(BaseCase):
         pass
 
     def tearDown(self):
-        os.system('rm -rf %s' % self.expected_output_dir)
-
+        if os.path.exists(self.expected_output_dir):
+            shutil.rmtree(self.expected_output_dir)
 
     def test_backup_single_file(self):
         "a simple descriptor of individual file backups can be run"
@@ -85,10 +85,9 @@ class TestFileBackup(BaseCase):
                       'dir_prefix': self.fixture_dir,
                       # common directory prefixes are stripped
                       'output': [os.path.join(self.expected_output_dir, 'img1.png'),
-                                  os.path.join(self.expected_output_dir, 'img2.jpg'),
-                                  os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
-                                  os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg'),
-                                  ]
+                                 os.path.join(self.expected_output_dir, 'img2.jpg'),
+                                 os.path.join(self.expected_output_dir, 'subdir', 'img3.jpg'),
+                                 os.path.join(self.expected_output_dir, 'subdir', 'subdir2', 'img4.jpg')]
                     }
         }
         output = main.backup(descriptor, output_dir=self.expected_output_dir)
@@ -124,5 +123,20 @@ class TestFileRestore(BaseCase):
         pass
 
     def test_file_restore(self):
+        "a file can be backed-up, modified, and then the backed up version restored"
+        # copy fixture and ensure contents are what we expects ...
+        fixture = os.path.join(self.fixture_dir, 'hello.txt')
+        fixture_copy = '/tmp/foo.txt'
+        shutil.copyfile(fixture, fixture_copy)
+        self.assertEqual(open(fixture, 'r').read(), open(fixture_copy, 'r').read())
+
+        # backup the fixture copy
+        descriptor = {'files': [fixture_copy]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
         
-        pass
+        # overwrite our fixture copy with some garbage
+        open(fixture_copy, 'w').write("fooooooooooooooooooobar")
+
+        # restore our fixture copy
+        main.restore(descriptor, input_dir=self.expected_output_dir)
+        self.assertEqual(open(fixture, 'r').read(), open(fixture_copy, 'r').read())
