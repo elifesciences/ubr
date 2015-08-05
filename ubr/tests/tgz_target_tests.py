@@ -7,7 +7,7 @@ from basic_tests import BaseCase
 
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
-        pass
+        self.expected_output_dir = '/tmp/foo'
 
     def tearDown(self):
         os.system('rm /tmp/foo/archive.tar.gz')

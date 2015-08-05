@@ -59,8 +59,6 @@ def file_backup(path_list, destination):
     to new destination, ignoring the common parents'"""
     logger.debug('given paths %s with destination %s', path_list, destination)
 
-    dir_prefix = utils.common_prefix(path_list)
-
     # expand any globs and then flatten the resulting nested structure
     new_path_list = utils.flatten(map(expand_path, path_list))
     new_path_list = filter(file_is_valid, new_path_list)
@@ -81,9 +79,10 @@ def file_backup(path_list, destination):
     # assumes all paths exist and are file and valid etc etc
     results = []
     for src in new_path_list:
-        dest = os.path.join(destination, src[len(dir_prefix):].lstrip('/'))
+        dest = os.path.join(destination, src.lstrip('/'))
         results.append(copy_file(src, dest))
-    return {'dir_prefix': dir_prefix, 'output_dir': destination, 'output': results}
+    return {'output_dir': destination,
+            'output': results}
 
 def tgz_backup(path_list, destination):
     """does a regular file_backup and then tars and gzips the results.
@@ -114,18 +113,31 @@ def tgz_backup(path_list, destination):
 # restore
 #
 
-def file_restore(path_list, input_dir):
+def _file_restore(path, backup_dir):
+    logger.debug("received path %s and input dir %s", path, backup_dir)
+    data = {
+        'backup_src': os.path.join(backup_dir, path.lstrip('/')),
+        'broken_dest': path}
+    cmd = "rsync %(backup_src)s %(broken_dest)s" % data
+    retcode = utils.system(cmd)
+    return (path, retcode == 0)
+
+def file_restore(path_list, backup_dir):
     """how do we restore files? we rsync the target from the input dir.
 
-    if the path is "/opt/program/uploaded-files/" and the input_dir is "/tmp/foo/" than the command looks like:
+    the 'backup_dir' is the dir we read backups from with the given path_list providing further path information
+
+    if the path is "/opt/program/uploaded-files/" and the backup_dir is "/tmp/foo/" than the command looks like:
     rsync <src> <target>
     rsync /tmp/foo/opt/program/uploaded-files/ /opt/program/uploaded-files/
     """
-    cmd = ""
+    return {
+        'output': map(lambda p: _file_restore(p, backup_dir), path_list)
+    }
     
 
 
-def tgz_restore(path_list, input_dir):
+def tgz_restore(path_list, backup_dir):
     "just like the file restore, however we unpack the files first before calling `file_restore`"
     cmd = ""
 
@@ -164,20 +176,18 @@ def backup(descriptor, output_dir=None):
         backup_targets[target] = _backup(target, args, output_dir)
     return backup_targets
 
-def _restore(target, args, input_dir):
+def _restore(target, args, backup_dir):
     try:
-        return targets()['restore'][target](args, input_dir)
+        return targets()['restore'][target](args, backup_dir)
     except KeyError:
         pass
 
-def restore(descriptor, input_dir=None):
-    """consumes a descriptor, reading replacements from the given input_dir
+def restore(descriptor, backup_dir):
+    """consumes a descriptor, reading replacements from the given backup_dir
     or the most recent datestamped directory"""
-    if not input_dir:
-        input_dir = '/tmp/baz/' # TODO: not good.
     restore_targets = {}
     for target, args in descriptor.items():
-        restore_targets[target] = _restore(target, args, input_dir)
+        restore_targets[target] = _restore(target, args, backup_dir)
     return restore_targets
     
 

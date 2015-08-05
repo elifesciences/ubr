@@ -17,10 +17,10 @@ class BaseCase(unittest.TestCase):
         super(BaseCase, self).__init__(*args, **kwargs)
         self.maxDiff = 1024
         self.fixture_dir = THIS_DIR # I might have a dedicated fixtures dir in future. /shrug
-        self.expected_output_dir = '/tmp/foo'
 
 class BasicUsage(BaseCase):
     def setUp(self):
+        self.expected_output_dir = '/tmp/foo'
         self.known_backup_fixtures = [
             os.path.join(self.fixture_dir, "ubr-backup.yaml"),
             os.path.join(self.fixture_dir, "ubr-2-backup.yaml"),
