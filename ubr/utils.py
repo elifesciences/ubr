@@ -81,3 +81,14 @@ def generate_file_md5(filename, blocksize=2**20):
                 break
             m.update(buf)
     return m.hexdigest()
+
+def rename_keys(data, keypairs):
+    "renames keys in a dictionary. if the replacement is 'None', the key is deleted"
+    kp = keypairs[0:1]
+    if not kp:
+        return data
+    old, new = kp[0]
+    if new:
+        data[new] = data[old]
+    del data[old]
+    return rename_keys(data, keypairs[1:])
