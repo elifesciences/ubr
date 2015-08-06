@@ -1,5 +1,5 @@
 import os, shutil, unittest
-from ubr import main, mysql_backup, s3, utils
+from ubr import main, s3, utils
 from datetime import datetime
 from unittest import skip
 

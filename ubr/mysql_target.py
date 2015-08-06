@@ -5,7 +5,6 @@ import pymysql.cursors
 import logging
 
 logger = logging.getLogger(__name__)
-logger.level = logging.DEBUG
 
 def defaults(db=None, **overrides):
     "default mysql args"

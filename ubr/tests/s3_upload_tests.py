@@ -1,5 +1,5 @@
 import os, shutil, unittest
-from ubr import main, mysql_backup, s3, utils
+from ubr import main, mysql_target, s3, utils
 from datetime import datetime
 from unittest import skip
 
@@ -40,8 +40,8 @@ class TestUploadToS3(BaseCase):
         self.assertTrue(s3obj.has_key('Contents'))
 
     def test_multiple_backups_are_copied_to_s3(self):
-        mysql_backup.create(self.project_name)
-        mysql_backup.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
+        mysql_target.create(self.project_name)
+        mysql_target.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
         fixture = os.path.join(self.fixture_dir, 'img1.png')
 
         # two things to upload

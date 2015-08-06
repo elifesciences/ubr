@@ -1,7 +1,7 @@
 import os, sys, shutil
 import yaml
 import logging
-from ubr import utils, s3, mysql_backup
+from ubr import utils, s3, mysql_target, file_target, tgz_target
 
 logging.basicConfig()
 
@@ -35,127 +35,15 @@ def find_descriptors(descriptor_dir):
 def load_descriptor(descriptor):
     return yaml.load(open(descriptor, "r"))
 
-def copy_file(src, dest):
-    "a wrapper around shutil.copyfile that will create the dest dirs if necessary"
-    dirs = os.path.dirname(dest)
-    if not os.path.exists(dirs):
-        os.makedirs(dirs)
-    shutil.copyfile(src, dest)
-    return dest
-
-def file_is_valid(src):
-    return all([
-        os.path.exists(src), # exists?
-        os.path.isfile(src), # is a file?
-        os.access(src, os.R_OK)]) # is a *readable* file?
-
-def expand_path(src):
-    "files can be described using an extended glob syntax with support for recursive dirs"
-    import glob2
-    return glob2.glob(src)
-
-def file_backup(path_list, destination):
-    """embarassingly simple 'copy each of the files specified
-    to new destination, ignoring the common parents'"""
-    logger.debug('given paths %s with destination %s', path_list, destination)
-
-    # expand any globs and then flatten the resulting nested structure
-    new_path_list = utils.flatten(map(expand_path, path_list))
-    new_path_list = filter(file_is_valid, new_path_list)
-
-    # some adhoc error reporting
-    try:
-        msg = "invalid files have been removed from the backup!"
-        assert len(path_list) == len(new_path_list), msg
-    except AssertionError:
-        # find the difference and then strip out anything that looks like a glob expr
-        missing = filter(lambda p: '*' not in p, set(path_list) - set(new_path_list))
-        if missing:
-            msg = "the following files failed validation and were removed from this backup: %s"
-            logger.error(msg, ", ".join(missing))
-
-    utils.mkdir_p(destination)
-
-    # assumes all paths exist and are file and valid etc etc
-    results = []
-    for src in new_path_list:
-        dest = os.path.join(destination, src.lstrip('/'))
-        results.append(copy_file(src, dest))
-    return {'output_dir': destination,
-            'output': results}
-
-def tgz_backup(path_list, destination):
-    """does a regular file_backup and then tars and gzips the results.
-    the name of the resulting file is 'archive.tar.gz'"""
-    destination = os.path.abspath(destination)
-
-    # obfuscate the given destination so it doesn't overwrite anything
-    original_destination = destination
-    destination = os.path.join(destination, ".tgz-tmp") # /tmp/foo/.tgz-tmp
-
-    output = file_backup(path_list, destination)
-
-    ctd = destination
-    target = '*' #os.path.basename(output['output_dir'])
-    filename = os.path.basename(original_destination) # this needs to change...!
-    filename = 'archive'
-    output_path = '%s/%s.tar.gz' % (original_destination, filename)
-
-    # cd 2015-07-27--15-41-36/.tgz-tmp && tar cvzf 2015-07-27--15-41-36/archive.tar.gz *
-    # cd /tmp/foo/.tgz-tmp && tar -cvzf /tmp/foo/archive.tar.gz *
-    cmd = 'cd %s && tar cvzf %s %s --remove-files > /dev/null' % (ctd, output_path, target)
-    utils.system(cmd)
-
-    output['output'] = [output_path]
-    return output
-
-#
-# restore
-#
-
-def _file_restore(path, backup_dir):
-    logger.debug("received path %s and input dir %s", path, backup_dir)
-    data = {
-        'backup_src': os.path.join(backup_dir, path.lstrip('/')),
-        'broken_dest': path}
-    cmd = "rsync %(backup_src)s %(broken_dest)s" % data
-    retcode = utils.system(cmd)
-    return (path, retcode == 0)
-
-def file_restore(path_list, backup_dir):
-    """how do we restore files? we rsync the target from the input dir.
-
-    the 'backup_dir' is the dir we read backups from with the given path_list providing further path information
-
-    if the path is "/opt/program/uploaded-files/" and the backup_dir is "/tmp/foo/" than the command looks like:
-    rsync <src> <target>
-    rsync /tmp/foo/opt/program/uploaded-files/ /opt/program/uploaded-files/
-    """
-    return {
-        'output': map(lambda p: _file_restore(p, backup_dir), path_list)
-    }
-    
-
-
-def tgz_restore(path_list, backup_dir):
-    "just like the file restore, however we unpack the files first before calling `file_restore`"
-    cmd = ""
-
-
-
-#
-#
-#
-
 def targets():
-    return {'backup': {'files': file_backup,
-                       'tar-gzipped': tgz_backup,
-                       'mysql-database': mysql_backup.backup},
+    return {'backup': {'files': file_target.backup,
+                       'tar-gzipped': tgz_target.backup,
+                       'mysql-database': mysql_target.backup},
 
-            'restore': {'files': file_restore,
-                        'tar-gzipped': tgz_restore,
-                        'mysql-database': mysql_backup.restore}}
-                       
+            'restore': {'files': file_target.restore,
+                        'tar-gzipped': tgz_target.restore,
+                        'mysql-database': mysql_target.restore}}
+
 
 # looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
 def _backup(target, args, destination):
@@ -189,8 +77,12 @@ def restore(descriptor, backup_dir):
     for target, args in descriptor.items():
         restore_targets[target] = _restore(target, args, backup_dir)
     return restore_targets
-    
 
+def s3_backup():
+    pass
+
+def s3_restore():
+    pass
 
 #
 # bootstrap
