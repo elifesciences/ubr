@@ -29,16 +29,6 @@ class TestDatabaseBackup(BaseCase):
         expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
         self.assertTrue(os.path.isfile(expected_path))
 
-    # TODO: not done
-    def test_dump_load_query_db(self):
-        descriptor = {'mysql-database': [self.project_name]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
-        
-        self.assertTrue(os.path.isfile(expected_path))
-
-        #mysql_backup.load_gzip(expected_path)        
-
 class TestDatabaseRestore(BaseCase):
     def setUp(self):
         self.project_name = '_test'
