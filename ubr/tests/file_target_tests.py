@@ -146,14 +146,19 @@ class TestFileRestore(BaseCase):
         fixture_copy = '/tmp/foo.txt' # this is the file to be backed up
         shutil.copyfile(fixture, fixture_copy)
         self.assertEqual(open(fixture, 'r').read(), open(fixture_copy, 'r').read())
-
+        md5 = utils.generate_file_md5(fixture_copy)
+        
         # backup the fixture copy
         descriptor = {'files': [fixture_copy]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         
         # overwrite our fixture copy with some garbage
         open(fixture_copy, 'w').write("fooooooooooooooooooobar")
+        bad_md5 = utils.generate_file_md5(fixture_copy)
+        self.assertNotEqual(md5, bad_md5)
 
         # restore our fixture copy
         main.restore(descriptor, backup_dir=self.expected_output_dir)
         self.assertEqual(open(fixture, 'r').read(), open(fixture_copy, 'r').read())
+        restored_md5 = utils.generate_file_md5(fixture_copy)
+        self.assertEqual(md5, restored_md5)
