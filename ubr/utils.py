@@ -4,6 +4,7 @@ from datetime import datetime
 from compiler.ast import flatten # deprecated, removed in Python3
 import errno
 from itertools import takewhile
+import hashlib
 
 logger = logging.getLogger(__name__)
 
@@ -69,3 +70,14 @@ def ymdhms():
 def hostname():
     import platform
     return platform.node()
+
+def generate_file_md5(filename, blocksize=2**20):
+    "http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python"
+    m = hashlib.md5()
+    with open(filename, "rb") as f:
+        while True:
+            buf = f.read(blocksize)
+            if not buf:
+                break
+            m.update(buf)
+    return m.hexdigest()

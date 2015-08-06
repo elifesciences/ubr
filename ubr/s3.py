@@ -68,17 +68,6 @@ class ProgressPercentage(object):
                                              self._size, percentage))
             sys.stdout.flush()
 
-def generate_file_md5(filename, blocksize=2**20):
-    "http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python"
-    import hashlib
-    m = hashlib.md5()
-    with open(filename, "rb") as f:
-        while True:
-            buf = f.read(blocksize)
-            if not buf:
-                break
-            m.update(buf)
-    return m.hexdigest()
 
 def verify_file(filename, bucket, key):
     """{u'MaxKeys': 1000, u'Prefix': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Name': 'elife-app-backups', 'ResponseMetadata': {'HTTPStatusCode': 200, 'HostId': 'ux+6JS8Snw+wKj7wuUpMF3ajq11aVYLjcFNpYhKpv7WOOTAXcZoMo4Nmpf0GdYQKFYrT60nKCwM=', 'RequestId': 'EBC29E161C7FEAF1'}, u'Marker': '', u'IsTruncated': False, u'Contents': [{u'LastModified': datetime.datetime(2015, 7, 29, 10, 37, 11, tzinfo=tzutc()), u'ETag': '"4c5a880597d564134192e812336c3d9e"', u'StorageClass': 'STANDARD', u'Key': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Owner': {u'DisplayName': 'aws', u'ID': '8a202ef63dada93bea1dc89ddcbc0772245e0f9e8d2d818f8c3c66e193065766'}, u'Size': 234278}]}
@@ -100,7 +89,7 @@ def verify_file(filename, bucket, key):
 
     remote_md5 = s3obj['Contents'][0]['ETag']
     remote_md5 = remote_md5.strip('"') # yes, really. fml.
-    local_md5 = generate_file_md5(filename)
+    local_md5 = utils.generate_file_md5(filename)
 
     logger.info("got remote md5 %s for file %s", remote_md5, key)
     logger.info("got local md5 %s for file %s", local_md5, filename)
@@ -109,7 +98,6 @@ def verify_file(filename, bucket, key):
         raise ValueError("local and remote md5 sums do not match")
     
     return True
-    
 
 def upload_to_s3(bucket, src, dest):
     logger.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
