@@ -101,3 +101,22 @@ def rename_keys(data, keypairs):
         data[new] = data[old]
     del data[old]
     return rename_keys(data, keypairs[1:])
+
+
+from collections import OrderedDict
+        
+def group(item_list, grouper):
+    "the best my tired brain can do on a friday evening. sorry."
+    def _group(item, grouper, store):
+        "grouped func should return a pair of match and rest"
+        bits = grouper(item)
+        first = bits[0]
+        if not store.has_key(first):
+            store[first] = OrderedDict({})
+        rest = bits[1:]
+        if rest:
+            store[first] =  _group(rest[0], grouper, store[first])
+        return store
+    _store = OrderedDict({})
+    map(lambda i: _group(i, grouper, _store), item_list)
+    return _store

@@ -33,10 +33,11 @@ def s3_file(bucket, path):
 def s3_file_exists(s3obj):
     return s3obj.has_key('Contents')
 
-def s3_key(project, hostname, filename):
-    now = datetime.now()
-    ym = now.strftime("%Y%m")
-    ymdhms = now.strftime("%Y%m%d_%H%M%S")
+def s3_key(project, hostname, filename, dt=None):
+    if not dt:
+        dt = datetime.now()
+    ym = dt.strftime("%Y%m")
+    ymdhms = dt.strftime("%Y%m%d_%H%M%S")
     # path, ext = os.path.splitext(filename) # doesn't work for .tar.gz
     fname, ext = os.path.basename(filename), None
     try:
@@ -47,8 +48,27 @@ def s3_key(project, hostname, filename):
         # couldn't find a dot
         pass
     if ext:
-        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s-%(fname)s.%(ext)s" % locals()
+        #return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s-%(fname)s.%(ext)s" % locals()
+        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s_%(fname)s.%(ext)s" % locals()
     raise ValueError("given file has no extension.")
+
+def s3_project_files(bucket, project, strip=True):
+    "returns a list of backups that exist for the given project"
+    listing = s3_conn().list_objects(Bucket=bucket, Prefix=project)
+    print 'received',listing
+    if strip:
+        return map(lambda i: i['Key'], listing['Contents'])
+    return listing
+
+def parse_s3_project_files(bucket, project):
+    "returns a nested OrderedDict instance that lets you traverse backups using the naming scheme in `s3_key`"
+    def grouper(item):
+        bits = item.split('/', 1)
+        if len(bits) == 1:
+            # try splitting by underscore
+            return item.split('_', 1)
+        return bits
+    return utils.group(s3_project_files(bucket, project), grouper)[project]
 
 class ProgressPercentage(object):
     def __init__(self, filename):
@@ -140,3 +160,12 @@ def download_from_s3(bucket, remote_src, local_dest):
     
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
+
+
+# download elife-app-backups elife-lax localhost mysql foodb 2015-01-01
+def download_backup(bucket, project, hostname, target=None, path=None, date=None):
+    """downloads a backup made to s3 given the name of the project (to find the descriptor)
+    the hostname (to differentiate between application backups on different machines) an
+    optional target (like mysql, tar-gzipped, etc) and an optional path (or it will just
+    download the latest)"""
+
