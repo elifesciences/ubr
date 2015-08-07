@@ -30,6 +30,9 @@ def s3_file(bucket, path):
     "returns the object in the bucket at the given path"
     return s3_conn().list_objects(Bucket=bucket, Prefix=path)
 
+def s3_file_exists(s3obj):
+    return s3obj.has_key('Contents')
+
 def s3_key(project, hostname, filename):
     now = datetime.now()
     ym = now.strftime("%Y%m")
@@ -50,10 +53,9 @@ def s3_key(project, hostname, filename):
 class ProgressPercentage(object):
     def __init__(self, filename):
         self._filename = filename
-        self._size = float(os.path.getsize(filename))
+        self._size = float(os.path.getsize(filename)) if not filename.startswith("s3://") else 0.0
         self._seen_so_far = 0
         self._lock = threading.Lock()
-        
         self.done = False
 
     def __call__(self, bytes_amount):
@@ -64,10 +66,18 @@ class ProgressPercentage(object):
             percentage = (self._seen_so_far / self._size) * 100
             self.done = percentage == 100
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)" % (self._filename, self._seen_so_far,
-                                             self._size, percentage))
+                "\r%s  %s / %s  (%.2f%%)        " % \
+                (self._filename, self._seen_so_far,
+                 self._size, percentage))
             sys.stdout.flush()
 
+class DownloadProgressPercentage(ProgressPercentage):
+    def __init__(self, remote_filename):
+        super(DownloadProgressPercentage, self).__init__(remote_filename)
+        assert remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path"
+        bits = filter(None, remote_filename.split('/'))
+        bucket, path = bits[1], "/".join(bits[2:])
+        self._size = int(s3_file(bucket, path)['Contents'][0]['Size'])
 
 def verify_file(filename, bucket, key):
     """{u'MaxKeys': 1000, u'Prefix': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Name': 'elife-app-backups', 'ResponseMetadata': {'HTTPStatusCode': 200, 'HostId': 'ux+6JS8Snw+wKj7wuUpMF3ajq11aVYLjcFNpYhKpv7WOOTAXcZoMo4Nmpf0GdYQKFYrT60nKCwM=', 'RequestId': 'EBC29E161C7FEAF1'}, u'Marker': '', u'IsTruncated': False, u'Contents': [{u'LastModified': datetime.datetime(2015, 7, 29, 10, 37, 11, tzinfo=tzutc()), u'ETag': '"4c5a880597d564134192e812336c3d9e"', u'StorageClass': 'STANDARD', u'Key': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Owner': {u'DisplayName': 'aws', u'ID': '8a202ef63dada93bea1dc89ddcbc0772245e0f9e8d2d818f8c3c66e193065766'}, u'Size': 234278}]}
@@ -103,10 +113,8 @@ def upload_to_s3(bucket, src, dest):
     logger.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
     inst = ProgressPercentage(src)
     s3_conn().upload_file(src, bucket, dest, Callback=inst)
-    if not inst.done:
-        raise ValueError("failed to complete uploading to s3")
-    if not verify_file(src, bucket, dest):
-        raise ValueError("local file doesn't match that one uploaded to s3 (content md5 or content length difference)")
+    assert inst.done, "failed to complete uploading to s3"
+    assert verify_file(src, bucket, dest), "local file doesn't match results uploaded to s3 (content md5 or content length difference)"
     return dest
 
 def upload_backup(bucket, backup_results, project, hostname):
@@ -119,3 +127,16 @@ def upload_backup(bucket, backup_results, project, hostname):
     path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
     remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
     return path_list
+
+##
+
+def download_from_s3(bucket, remote_src, local_dest):
+    "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
+    remote_src = remote_src.lstrip('/')
+    obj = s3_file(bucket, remote_src)
+    
+    msg = "key %r in bucket %r doesn't exist or we have no access to it. cannot download file."
+    assert s3_file_exists(obj), msg % (remote_src, bucket)
+    
+    inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
+    s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
