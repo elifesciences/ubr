@@ -22,11 +22,7 @@ def expand_path(src):
     "files can be described using an extended glob syntax with support for recursive dirs"
     return glob2.glob(src)
 
-def backup(path_list, destination):
-    """embarassingly simple 'copy each of the files specified
-    to new destination, ignoring the common parents'"""
-    logger.debug('given paths %s with destination %s', path_list, destination)
-
+def wrangle_files(path_list):
     # expand any globs and then flatten the resulting nested structure
     new_path_list = utils.flatten(map(expand_path, path_list))
     new_path_list = filter(file_is_valid, new_path_list)
@@ -41,7 +37,14 @@ def backup(path_list, destination):
         if missing:
             msg = "the following files failed validation and were removed from this backup: %s"
             logger.error(msg, ", ".join(missing))
+    return new_path_list
 
+def backup(path_list, destination):
+    """embarassingly simple 'copy each of the files specified
+    to new destination, ignoring the common parents'"""
+    logger.debug('given paths %s with destination %s', path_list, destination)
+
+    new_path_list = wrangle_files(path_list)
     utils.mkdir_p(destination)
 
     # assumes all paths exist and are file and valid etc etc

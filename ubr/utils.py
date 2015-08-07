@@ -24,6 +24,7 @@ def mkdir_p(path):
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
+            logger.error("problem attempting to create path %s", path)
             raise
 
 def dir_exists(p):
@@ -46,7 +47,15 @@ def doall(val, *args):
     return val
 
 def list_paths(d):
+    "returns a list of full paths in the given directory"
     return map(lambda f: os.path.join(d, f), os.listdir(d))
+
+def list_paths_recur(d):
+    from os.path import join
+    file_list = []
+    for root, dirs, files in os.walk(d):
+        file_list.extend(map(lambda f: join(root, f), files))
+    return file_list
 
 # http://rosettacode.org/wiki/Find_common_directory_path#Python
 
