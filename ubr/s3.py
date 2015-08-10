@@ -1,4 +1,5 @@
 import os, sys
+from os.path import join
 from datetime import datetime
 import threading
 import logging
@@ -37,7 +38,9 @@ def s3_key(project, hostname, filename, dt=None):
     if not dt:
         dt = datetime.now()
     ym = dt.strftime("%Y%m")
-    ymdhms = dt.strftime("%Y%m%d_%H%M%S")
+    ymd = dt.strftime("%Y%m%d")
+    hms = dt.strftime("%H%M%S")
+    
     # path, ext = os.path.splitext(filename) # doesn't work for .tar.gz
     fname, ext = os.path.basename(filename), None
     try:
@@ -48,27 +51,51 @@ def s3_key(project, hostname, filename, dt=None):
         # couldn't find a dot
         pass
     if ext:
-        #return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s-%(fname)s.%(ext)s" % locals()
-        return "%(project)s/%(ym)s/%(ymdhms)s_%(hostname)s_%(fname)s.%(ext)s" % locals()
+        return "%(project)s/%(ym)s/%(ymd)s_%(hostname)s_%(hms)s-%(fname)s.%(ext)s" % locals()
     raise ValueError("given file has no extension.")
 
 def s3_project_files(bucket, project, strip=True):
     "returns a list of backups that exist for the given project"
     listing = s3_conn().list_objects(Bucket=bucket, Prefix=project)
-    print 'received',listing
     if strip:
-        return map(lambda i: i['Key'], listing['Contents'])
+        if listing.has_key('Contents'):
+            return map(lambda i: i['Key'], listing['Contents'])
+        return [] # nothing exists!
     return listing
 
-def parse_s3_project_files(bucket, project):
-    "returns a nested OrderedDict instance that lets you traverse backups using the naming scheme in `s3_key`"
+def s3_delete_folder_contents(bucket, path_to_folder):
+    assert path_to_folder and path_to_folder.strip(), "prefix cannot be empty"
+    assert path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted"
+    paths = []
+    listing = s3_conn().list_objects(Bucket=bucket, Prefix=path_to_folder)
+    if listing.has_key('Contents'):
+        paths = [{'Key': item['Key']} for item in listing['Contents']]
+        s3_conn().delete_objects(Bucket=bucket, Delete={'Objects': paths})
+    return paths
+
+"""
+# totally works but is too difficult to work with
+# going with the filtering-on-filename approach
+def parse_path_list(path_list):
     def grouper(item):
         bits = item.split('/', 1)
         if len(bits) == 1:
             # try splitting by underscore
             return item.split('_', 1)
         return bits
-    return utils.group(s3_project_files(bucket, project), grouper)[project]
+    return utils.group(path_list, grouper)
+
+def parse_s3_project_files(bucket, project):
+    "returns a nested OrderedDict instance that lets you traverse backups using the naming scheme in `s3_key`"
+    return parse_path_list(s3_project_files(bucket, project))[project]
+"""
+
+def filterasf(file_list, project, host, filename):
+    import re
+    regex = "%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
+    cregex = re.compile(regex)
+    return filter(cregex.match, file_list)
+    
 
 class ProgressPercentage(object):
     def __init__(self, filename):
@@ -159,13 +186,68 @@ def download_from_s3(bucket, remote_src, local_dest):
     assert s3_file_exists(obj), msg % (remote_src, bucket)
     
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
+    utils.mkdir_p(os.path.dirname(local_dest))
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
 
 
-# download elife-app-backups elife-lax localhost mysql foodb 2015-01-01
-def download_backup(bucket, project, hostname, target=None, path=None, date=None):
-    """downloads a backup made to s3 given the name of the project (to find the descriptor)
-    the hostname (to differentiate between application backups on different machines) an
-    optional target (like mysql, tar-gzipped, etc) and an optional path (or it will just
-    download the latest)"""
+def backups(bucket, project, hostname, target, path=None):
+    "further filtering of the available backups for a given project"
+    # TODO: merge this into `s3_project_files` ?
+    available_backups = s3_project_files(bucket, project)
 
+    # FIXME: this sort of logic shouldn't live here.
+    lu = {
+        'tar-gzipped': 'archive.tar.gz',
+        'mysql': '.+-mysql.gz',
+    }
+    filename = lu[target]
+    if path and target == 'mysql':
+        filename = path + '-mysql.gz'    
+    # /FIXME
+
+    # get a raw list of all of the backups we have
+    backups = filterasf(available_backups, project, hostname, filename)
+    if not backups:
+        msg = "no backups found for project %r on host %r (using target %r and path %r)"
+        logger.warning(msg, project, hostname, target, path)
+        return []
+
+    # we have potentially many files at this point
+    # we only want to download the latest ones
+    
+    if path:
+        # a specific file is wanted, easy
+        backups = [backups[-1]]
+
+    # get the date of the last upload and filter everything else out
+    most_recent = backups[-1]
+    prefix = most_recent[:most_recent.index('_')]
+    return filter(lambda p: p.startswith(prefix), backups)
+
+def latest_backups(bucket, project, hostname, target, path=None):
+    # it's rare, but there may have been multiple backups that day.
+    # /sigh
+    # figure out the distinct files and return the latest of each
+    backup_list = backups(bucket, project, hostname, target, path)
+    mmap = {}
+    for p in backup_list:
+        key = p.split('_')[2].split('-')[1]
+        if not mmap.has_key(key):
+            mmap[key] = []
+        mmap[key].append(p)
+
+    # we should now have something like {'archive.tar.gz': [
+    #    'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
+    #    '...']
+    # }
+
+    return [(backuptype, sorted(filelist)[-1]) for backuptype, filelist in mmap.items()]
+
+def download_latest_backup(to, bucket, project, hostname, target, path=None):
+    backup_list = latest_backups(bucket, project, hostname, target, path)
+    x = []
+    for backuptype, remote_src in backup_list:
+        local_dest = join(to, backuptype)
+        logger.info("downloading s3 file %r to %r", remote_src, local_dest)
+        x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
+    return x

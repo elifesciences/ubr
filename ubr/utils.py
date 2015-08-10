@@ -5,6 +5,7 @@ from compiler.ast import flatten # deprecated, removed in Python3
 import errno
 from itertools import takewhile
 import hashlib
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -103,8 +104,8 @@ def rename_keys(data, keypairs):
     return rename_keys(data, keypairs[1:])
 
 
-from collections import OrderedDict
-        
+"""
+# works but not being used
 def group(item_list, grouper):
     "the best my tired brain can do on a friday evening. sorry."
     def _group(item, grouper, store):
@@ -120,3 +121,4 @@ def group(item_list, grouper):
     _store = OrderedDict({})
     map(lambda i: _group(i, grouper, _store), item_list)
     return _store
+"""
