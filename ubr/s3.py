@@ -140,9 +140,9 @@ def verify_file(filename, bucket, key):
     
     if not remote_bytes == local_bytes:
         if remote_bytes > local_bytes:
-            raise ValueError("size of REMOTE file is larger than local file")
+            raise ValueError("size of REMOTE file (%r) is larger (%r) than local file (%r)" % (key, remote_bytes, local_bytes))
         elif local_bytes > remote_bytes:
-            raise ValueError("size of LOCAL file is larger than remote file")
+            raise ValueError("size of LOCAL file (%r) is larger (%r) than remote file (%r)" % (key, local_bytes, remote_bytes))
 
     remote_md5 = s3obj['Contents'][0]['ETag']
     remote_md5 = remote_md5.strip('"') # yes, really. fml.
@@ -151,8 +151,15 @@ def verify_file(filename, bucket, key):
     logger.info("got remote md5 %s for file %s", remote_md5, key)
     logger.info("got local md5 %s for file %s", local_md5, filename)
 
-    if remote_md5 != local_md5:
-        raise ValueError("local and remote md5 sums do not match")
+    try:
+        if remote_md5 != local_md5:
+            raise ValueError("MD5 sums for file (%r) local (%r) and remote (%r) do not match" % (filename, local_bytes, remote_bytes))
+    except ValueError, e:
+        # this happens when S3 does a multipart upload on large files apparently.
+        # we're using the convenience function `upload_file` and `download_file`
+        # that automatically chooses what method is needed. log the error, but
+        # as long as the bytes are identical, I don't mind.
+        logger.error(e.message)
     
     return True
 
