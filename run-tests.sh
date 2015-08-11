@@ -14,7 +14,7 @@ else
         echo "no config file given for testing. I'll be using the system defaults! beware!"
     fi
 fi
-pylint2 -E *.py ubr/*.py ubr/tests/*.py
+`which pylint2 pylint` -E *.py ubr/*.py ubr/tests/*.py
 echo 'passed pylint'
 #python2 -m unittest discover -s ubr/tests/ -p s3_upload_tests.py 
 python2 -m unittest discover -s ubr/tests/ -p *_tests.py
