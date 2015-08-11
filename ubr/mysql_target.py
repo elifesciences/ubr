@@ -77,7 +77,7 @@ def load(db, dump_path, dropdb=False, **kwargs):
     if dump_path.endswith('.gz'):
         logger.info("dealing with a gzipped file")
         cmd = "zcat %(path)s | mysql -u %(user)s %(dbname)s" % args
-    return utils.system(cmd)
+    return 0 == utils.system(cmd)
 
 def dumpname(db):
     "generates a filename for the given db"
