@@ -5,6 +5,7 @@ source install.sh 2&> /dev/null
 
 CONFIG=$1
 if [ -f "$CONFIG" ]; then
+    echo "using config $CONFIG"
     set -a; source $CONFIG; set +a;
 else
     if [ -f "test-config" ]; then
@@ -15,5 +16,5 @@ else
 fi
 pylint2 -E *.py ubr/*.py ubr/tests/*.py
 echo 'passed pylint'
-#python2 -m unittest discover -s ubr/tests/ -p tgz_target_tests.py
+#python2 -m unittest discover -s ubr/tests/ -p s3_upload_tests.py 
 python2 -m unittest discover -s ubr/tests/ -p *_tests.py
