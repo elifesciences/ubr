@@ -16,7 +16,7 @@ class TestUploadToS3(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/foo'
         self.s3_backup_bucket = 'elife-app-backups'
-        self.project_name = '-test'
+        self.project_name = '_test'
         self.hostname = 'testmachine'
 
     def tearDown(self):
