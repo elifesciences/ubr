@@ -13,4 +13,4 @@ else
 fi
 
 # call ubr
-python ubr/main.py /etc/ubr/
+python -m ubr.main /etc/ubr/
