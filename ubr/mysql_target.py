@@ -119,8 +119,7 @@ def _restore(db, backup_dir):
     try:
         dump_path = os.path.join(backup_dir, dumpname(db))
         assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
-        retcode = load(db, dump_path, dropdb=True)
-        return (db, retcode == 0)
+        return (db, load(db, dump_path, dropdb=True))
     except:
         logger.exception("unhandled unexception attempting to restore database %r", db)
         return (db, False)
