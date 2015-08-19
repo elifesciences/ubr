@@ -5,7 +5,6 @@ from compiler.ast import flatten # deprecated, removed in Python3
 import errno
 from itertools import takewhile
 import hashlib
-from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
