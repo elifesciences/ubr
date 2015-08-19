@@ -190,3 +190,6 @@ class TestDownloadFromS3(BaseCase):
         self.assertFalse(os.path.exists(fixture))
         self.assertFalse(os.path.exists(fixture2))
         results = main.restore(descriptor, backup_dir=expected_download_dir)
+        self.assertTrue(os.path.exists(fixture))
+        self.assertTrue(os.path.exists(fixture2))
+        
