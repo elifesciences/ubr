@@ -8,6 +8,10 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.level = logging.INFO
 
+BUCKET = 'elife-app-backups'
+CONFIG_DIR = '/etc/ubr/'
+RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
+
 #logger.addHandler(logging.StreamHandler())
 
 def valid_descriptor(descriptor):
@@ -32,6 +36,16 @@ def find_descriptors(descriptor_dir):
     location_list = map(expandtoabs, utils.list_paths(descriptor_dir))
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
 
+def pname(filename):
+    try:
+        filename = os.path.basename(filename)
+        return filename[:filename.index('-backup.yaml')]
+    except ValueError:
+        msg = """the given backup descriptor isn't suffixed with '-backup.yaml' -
+        I don't know where the project name starts and ends!"""
+        logger.warning(msg)
+        return None
+
 def load_descriptor(descriptor):
     return yaml.load(open(descriptor, "r"))
 
@@ -44,14 +58,13 @@ def targets():
                         'tar-gzipped': tgz_target.restore,
                         'mysql-database': mysql_target.restore}}
 
-
 # looks like: backup('file', ['/tmp/foo', '/tmp/bar'], 'file:///tmp/foo.tar.gz')
 def _backup(target, args, destination):
     "a descriptor is a set of targets and inputs to the target functions."
-    try:
-        return targets()['backup'][target](args, destination)
-    except KeyError:
-        pass
+    _targets = targets()
+    if _targets['backup'].has_key(target):
+        return _targets['backup'][target](args, destination)
+    logger.warning("can't handle a %r target. We only know about %r", target, ", ".join(_targets['backup'].keys()))
 
 # looks like: backup({'file': ['/tmp/foo']}, 'file://')
 def backup(descriptor, output_dir=None):
@@ -78,36 +91,74 @@ def restore(descriptor, backup_dir):
         restore_targets[target] = _restore(target, args, backup_dir)
     return restore_targets
 
-def s3_backup():
-    pass
+def s3_backup(config_dir=CONFIG_DIR):
+    logger.info("backing up ...")
+    for descriptor in find_descriptors(config_dir):
+        project = pname(descriptor)
+        if not project:
+            logger.warning("no project name, skipping given descriptor %r", descriptor)
+            continue
+        backup_results = backup(load_descriptor(descriptor))
+        s3.upload_backup(BUCKET, backup_results, project, utils.hostname())
 
-def s3_restore():
-    pass
+def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
+    logger.info("restoring ...")
+    for descriptor in find_descriptors(config_dir):
+        project = pname(descriptor)
+        if not project:
+            logger.warning("no project name, skipping given descriptor %r", descriptor)
+            continue
+
+        descriptor = load_descriptor(descriptor)
+
+        download_dir = os.path.join(RESTORE_DIR, project)
+        utils.mkdir_p(download_dir)
+
+        # FIX: ... why do I have to download individually when I can upload all at once?
+        for target, path_list in descriptor.items():
+            s3.download_latest_backup(download_dir, \
+                                      BUCKET, \
+                                      project, \
+                                      hostname, \
+                                      target)
+        
+        restore(descriptor, download_dir)
 
 #
 # bootstrap
 #
 
+def init():
+    utils.mkdir_p(RESTORE_DIR)
+
 def main(args):
+    init()
 
-    def pname(filename):
-        try:
-            filename = os.path.basename(filename)
-            return filename[:filename.index('-backup.yaml')]
-        except ValueError:
-            msg = """the given backup descriptor isn't suffixed with '-backup.yaml' -
-            I don't know where the project name starts and ends!"""
-            logger.warning(msg)
-            return None
+    # usage: ubr <backup|restore> <dir|s3> [target] [path]
+    config = args[0]
+    action = args[1] if len(args) > 1 else "backup"
+    fromloc = args[2] if len(args) > 2 else "s3"
+    #target = args[3] if len(args) > 3 else None
+    #path_list = args[4] if len(args) > 4 else []
 
-    given_dir = args[0]
-    bucket = 'elife-app-backups'
-    for descriptor in find_descriptors(given_dir):
-        project = pname(descriptor)
-        if not project:
-            logger.warning("no project name, skipping given descriptor %r", descriptor)
-            continue
-        s3.upload_backup(bucket, backup(load_descriptor(descriptor)), project, utils.hostname())
+    x = {
+        'backup': {
+            's3': s3_backup,
+            'file': backup,
+        },
+        'restore': {
+            's3': s3_restore,
+            'file': restore,
+        },
+    }
+
+    kwargs = {
+        'config_dir': config,
+        #'target': target,
+        #'path_list': path_list
+    }
+    
+    return x[action][fromloc](**kwargs)
 
 if __name__ == '__main__':
     main(sys.argv[1:])
