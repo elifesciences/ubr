@@ -205,7 +205,7 @@ def backups(bucket, project, hostname, target, path=None):
     # FIXME: this sort of logic shouldn't live here.
     lu = {
         'tar-gzipped': 'archive.tar.gz',
-        'mysql': '.+-mysql.gz',
+        'mysql-database': '.+-mysql.gz',
     }
     filename = lu[target]
     if path and target == 'mysql':
@@ -238,7 +238,7 @@ def latest_backups(bucket, project, hostname, target, path=None):
     backup_list = backups(bucket, project, hostname, target, path)
     mmap = {}
     for p in backup_list:
-        key = p.split('_')[2].split('-')[1]
+        key = p.split('_', 2)[2].split('-', 1)[1]
         if not mmap.has_key(key):
             mmap[key] = []
         mmap[key].append(p)
