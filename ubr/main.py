@@ -91,7 +91,8 @@ def restore(descriptor, backup_dir):
         restore_targets[target] = _restore(target, args, backup_dir)
     return restore_targets
 
-def s3_backup(config_dir=CONFIG_DIR):
+def s3_backup(config_dir=CONFIG_DIR, hostname=None):
+    """hostname is ignored (for now? remote backups in future??)"""
     logger.info("backing up ...")
     for descriptor in find_descriptors(config_dir):
         project = pname(descriptor)
@@ -102,6 +103,11 @@ def s3_backup(config_dir=CONFIG_DIR):
         s3.upload_backup(BUCKET, backup_results, project, utils.hostname())
 
 def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
+    """
+    by specifying a different hostname, you can download a backup
+    from a different machine. Of course you will need that other
+    machine's descriptor in /etc/ubr/ ... otherwise it won't know
+    what to download and where to restore"""
     logger.info("restoring ...")
     for descriptor in find_descriptors(config_dir):
         project = pname(descriptor)
@@ -138,6 +144,7 @@ def main(args):
     config = args[0]
     action = args[1] if len(args) > 1 else "backup"
     fromloc = args[2] if len(args) > 2 else "s3"
+    hostname = args[3] if len(args) > 3 else utils.hostname()
     #target = args[3] if len(args) > 3 else None
     #path_list = args[4] if len(args) > 4 else []
 
@@ -154,6 +161,7 @@ def main(args):
 
     kwargs = {
         'config_dir': config,
+        'hostname': hostname,
         #'target': target,
         #'path_list': path_list
     }
