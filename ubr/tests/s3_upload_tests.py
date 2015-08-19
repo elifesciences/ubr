@@ -80,9 +80,13 @@ class TestDownloadFromS3(BaseCase):
         self.expected_output_dir = '/tmp/foo'
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
         
+        mysql_target.create('_test')
+        mysql_target.load('_test', os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
+        
     def tearDown(self):
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
-
+        mysql_target.drop('_test')
+        
     def test_download(self):
         "an uploaded file can be downloaded"
         fixture = os.path.join(self.fixture_dir, 'img1.png')
@@ -132,6 +136,32 @@ class TestDownloadFromS3(BaseCase):
             
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
             self.assertTrue(latest_path.startswith(expected_prefix))
+
+
+    def test_find_latest_mysql(self):
+        "a backup can be uploaded to s3 and then detected as the latest and downloaded"
+        # do the backup
+        fixture = os.path.join(self.fixture_dir, 'img1.png')
+        descriptor = {'mysql-database': ["_test"]}
+        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
+
+        dt = datetime.now(); ym = dt.strftime("%Y%m"); ymd = dt.strftime("%Y%m%d")
+
+        for target, path_list in descriptor.items():            
+            latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
+            self.assertEqual(len(latest), 1)
+
+            filename, latest_path = latest[0]
+
+            expected_filename = '_test-mysql.gz'
+            self.assertEqual(filename, expected_filename)
+            
+            expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
+            self.assertTrue(latest_path.startswith(expected_prefix))
+
+
+
 
 
 

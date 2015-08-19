@@ -29,6 +29,10 @@ class TestDatabaseBackup(BaseCase):
         expected_path = os.path.join(self.expected_output_dir, results['mysql-database']['output'][0])
         self.assertTrue(os.path.isfile(expected_path))
 
+    def test_dump_db_fails_if_db_not_found(self):
+        pass
+
+
 class TestDatabaseRestore(BaseCase):
     def setUp(self):
         self.project_name = '_test'
