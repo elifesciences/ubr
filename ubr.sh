@@ -5,12 +5,12 @@ set -e
 source install.sh
 
 # this script expects config to live in /etc/ubr/
-mkdir -p /etc/ubr/
 if [ -f /etc/ubr/config ]; then
     set -a; source /etc/ubr/config; set +a;
 else
-    echo "* couldn't find /etc/ubr/config.yaml - you had better hope all the defaults work"
+    echo "* couldn't find /etc/ubr/config - you had better hope all the defaults work"
 fi
 
 # call ubr
-python -m ubr.main /etc/ubr/
+# usage: ubr <config-dir> <backup|restore> <dir|s3> [target] [path]
+python -m ubr.main /etc/ubr/ "$@"
