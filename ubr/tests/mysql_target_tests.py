@@ -1,7 +1,5 @@
-import os, shutil, unittest
-from ubr import main, mysql_target, s3, utils
-from datetime import datetime
-from unittest import skip
+import os, shutil
+from ubr import main, mysql_target
 from functools import partial
 
 from ubr.tests.basic_tests import BaseCase
@@ -51,7 +49,7 @@ class TestDatabaseRestore(BaseCase):
         "a database can be backed up, the original database altered, the backup restored."
         descriptor = {'mysql-database': [self.project_name]}
         table_test = partial(mysql_target.fetchone, self.project_name, "select count(*) from table2")
-        
+
         original_expected_result = {u'count(*)': 2}
         self.assertEqual(table_test(), original_expected_result)
 
@@ -69,7 +67,7 @@ class TestDatabaseRestore(BaseCase):
         "a database can be backed up, the original database dropped, the backup restored."
         descriptor = {'mysql-database': [self.project_name]}
         table_test = partial(mysql_target.fetchone, self.project_name, "select count(*) from table2")
-        
+
         original_expected_result = {u'count(*)': 2}
         self.assertEqual(table_test(), original_expected_result)
 
@@ -82,6 +80,6 @@ class TestDatabaseRestore(BaseCase):
         expected_results = {'mysql-database': {'output': [(self.project_name, True)]}}
         results = main.restore(descriptor, backup_dir=self.expected_output_dir)
         self.assertEqual(results, expected_results)
-        
+
         # check data is as it was prior to dump
         self.assertEqual(table_test(), original_expected_result)

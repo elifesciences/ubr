@@ -1,8 +1,5 @@
-import os, shutil, unittest
-from ubr import main, s3, utils
-from ubr.tgz_target import TMP_SUBDIR
-from datetime import datetime
-from unittest import skip
+import os
+from ubr import main
 from basic_tests import BaseCase
 
 class TestTarredGzippedBackup(BaseCase):

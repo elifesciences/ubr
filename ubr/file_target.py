@@ -78,5 +78,5 @@ def restore(path_list, backup_dir):
     return {
         'output': map(lambda p: _restore(p, backup_dir), path_list)
     }
-    
+
 

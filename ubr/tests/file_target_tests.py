@@ -1,8 +1,5 @@
-import os, shutil, unittest
-from ubr import main, s3, utils
-from datetime import datetime
-from unittest import skip
-
+import os, shutil
+from ubr import main, utils
 from basic_tests import BaseCase
 
 class TestFileBackup(BaseCase):
@@ -22,7 +19,7 @@ class TestFileBackup(BaseCase):
         "a simple descriptor of individual file backups can be run"
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'files': [fixture]}
-        
+
         expected_output = {
             'files': {'output_dir': self.expected_output_dir,
                       'output': [self.expected_fixture_path(fixture)]}
@@ -40,7 +37,7 @@ class TestFileBackup(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         descriptor = {'files': [fixture, fixture2]}
-        
+
         expected_output = {
             'files': {
                 'output_dir': self.expected_output_dir,
@@ -62,14 +59,14 @@ class TestFileBackup(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         fixture3 = os.path.join(self.fixture_dir, "subdir", 'img3.jpg')
-        
+
         descriptor = {'files': [fixture, fixture2, fixture3]}
-        
+
         expected_output = {
             'files': {
                 'output_dir': self.expected_output_dir,
                 'output': [
-                    self.expected_fixture_path(fixture),                    
+                    self.expected_fixture_path(fixture),
                     self.expected_fixture_path(fixture2),
                     self.expected_fixture_path(fixture3),
                 ]
@@ -87,7 +84,7 @@ class TestFileBackup(BaseCase):
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         fixture3 = os.path.join(self.fixture_dir, "subdir", 'img3.jpg')
         fixture4 = os.path.join(self.fixture_dir, "subdir", 'subdir2', 'img4.jpg')
-        
+
         descriptor = {'files': [fixture,
                                 fixture2,
                                 os.path.join(self.fixture_dir, '*/**')]}
@@ -147,11 +144,11 @@ class TestFileRestore(BaseCase):
         shutil.copyfile(fixture, fixture_copy)
         self.assertEqual(open(fixture, 'r').read(), open(fixture_copy, 'r').read())
         md5 = utils.generate_file_md5(fixture_copy)
-        
+
         # backup the fixture copy
         descriptor = {'files': [fixture_copy]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        
+
         # overwrite our fixture copy with some garbage
         open(fixture_copy, 'w').write("fooooooooooooooooooobar")
         bad_md5 = utils.generate_file_md5(fixture_copy)

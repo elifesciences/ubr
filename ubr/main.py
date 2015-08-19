@@ -1,4 +1,4 @@
-import os, sys, shutil
+import os, sys
 import yaml
 import logging
 from ubr import utils, s3, mysql_target, file_target, tgz_target
@@ -12,9 +12,8 @@ BUCKET = 'elife-app-backups'
 CONFIG_DIR = '/etc/ubr/'
 RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
 
-#logger.addHandler(logging.StreamHandler())
-
 def valid_descriptor(descriptor):
+    "return True if the given descriptor is correctly structured."
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
     known_targets = targets()['backup'].keys()
     for target_name, target_items in descriptor.items():
@@ -25,7 +24,7 @@ def valid_descriptor(descriptor):
     return True
 
 def is_descriptor(path):
-    "returns true if the given path or filename looks like a backup descriptor"
+    "return True if the given path or filename looks like a descriptor file"
     fname = os.path.basename(path)
     suffix = '-backup.yaml' # descriptors look like: elife-api-backup.yaml or lagotto-backup.yaml
     return fname.endswith(suffix)
@@ -121,13 +120,13 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
         utils.mkdir_p(download_dir)
 
         # FIX: ... why do I have to download individually when I can upload all at once?
-        for target, path_list in descriptor.items():
+        for target, path_list in descriptor.keys():
             s3.download_latest_backup(download_dir, \
                                       BUCKET, \
                                       project, \
                                       hostname, \
                                       target)
-        
+
         restore(descriptor, download_dir)
 
 #
@@ -165,7 +164,7 @@ def main(args):
         #'target': target,
         #'path_list': path_list
     }
-    
+
     return x[action][fromloc](**kwargs)
 
 if __name__ == '__main__':

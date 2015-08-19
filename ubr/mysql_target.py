@@ -81,7 +81,7 @@ def load(db, dump_path, dropdb=False, **kwargs):
 
 def dumpname(db):
     "generates a filename for the given db"
-    return db + "-mysql.gz" # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz 
+    return db + "-mysql.gz" # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz
 
 def dump(db, output_path, **kwargs):
     output_path = dumpname(output_path)
@@ -120,7 +120,7 @@ def _restore(db, backup_dir):
         dump_path = os.path.join(backup_dir, dumpname(db))
         assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
         return (db, load(db, dump_path, dropdb=True))
-    except:
+    except Exception:
         logger.exception("unhandled unexception attempting to restore database %r", db)
         return (db, False)
 

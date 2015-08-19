@@ -21,7 +21,7 @@ def unpack(archive):
     file_listing = tarfile.open(archive, 'r:gz').getnames()
 
     assert 0 == utils.system("tar xvzf %s -C /" % archive), "problem extracting archive"
-    # not great. check modtime as well? 
+    # not great. check modtime as well?
     return [(f, os.path.isfile(f)) for f in filter(os.path.isfile, file_listing)]
 
 def backup(path_list, destination):
@@ -55,7 +55,7 @@ def backup(path_list, destination):
     manifest_path = '/tmp/ubr.manifest'
     #new_path_list.append(manifest_path) # we don't want this file restored
     open(manifest_path, 'w').write("\n".join(new_path_list))
-    
+
     cmd = "cd %(ctd)s && tar cvzf %(output_path)s --files-from %(manifest_path)s --absolute-names" % locals()
     logger.info("running command %r", cmd)
     assert utils.system(cmd) == 0, "failed to create zip"

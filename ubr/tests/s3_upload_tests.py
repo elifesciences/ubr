@@ -1,6 +1,6 @@
-import os, shutil, unittest
+import os, shutil
 from os.path import join
-from ubr import main, mysql_target, s3, utils
+from ubr import main, mysql_target, s3
 from datetime import datetime
 from unittest import skip
 
@@ -34,7 +34,7 @@ class TestUploadToS3(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        
+
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
@@ -65,7 +65,7 @@ class TestUploadToS3(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        
+
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         expected_missing = results['tar-gzipped']['output'][0]
@@ -79,14 +79,14 @@ class TestDownloadFromS3(BaseCase):
         self.hostname = 'testmachine'
         self.expected_output_dir = '/tmp/foo'
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
-        
+
         mysql_target.create('_test')
         mysql_target.load('_test', os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
-        
+
     def tearDown(self):
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
         mysql_target.drop('_test')
-        
+
     def test_download(self):
         "an uploaded file can be downloaded"
         fixture = os.path.join(self.fixture_dir, 'img1.png')
@@ -125,7 +125,7 @@ class TestDownloadFromS3(BaseCase):
 
         dt = datetime.now(); ym = dt.strftime("%Y%m"); ymd = dt.strftime("%Y%m%d")
 
-        for target, path_list in descriptor.items():            
+        for target, path_list in descriptor.items():
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
             self.assertEqual(len(latest), 1)
 
@@ -133,7 +133,7 @@ class TestDownloadFromS3(BaseCase):
 
             expected_filename = 'archive.tar.gz'
             self.assertEqual(filename, expected_filename)
-            
+
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
             self.assertTrue(latest_path.startswith(expected_prefix))
 
@@ -148,7 +148,7 @@ class TestDownloadFromS3(BaseCase):
 
         dt = datetime.now(); ym = dt.strftime("%Y%m"); ymd = dt.strftime("%Y%m%d")
 
-        for target, path_list in descriptor.items():            
+        for target, path_list in descriptor.items():
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
             self.assertEqual(len(latest), 1)
 
@@ -156,7 +156,7 @@ class TestDownloadFromS3(BaseCase):
 
             expected_filename = '_test-mysql.gz'
             self.assertEqual(filename, expected_filename)
-            
+
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
             self.assertTrue(latest_path.startswith(expected_prefix))
 
@@ -201,7 +201,7 @@ class TestDownloadFromS3(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         descriptor = {'tar-gzipped': [fixture, fixture2]}
-        
+
         expected_output_dir = '/tmp/bup/out/'
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
@@ -222,4 +222,3 @@ class TestDownloadFromS3(BaseCase):
         results = main.restore(descriptor, backup_dir=expected_download_dir)
         self.assertTrue(os.path.exists(fixture))
         self.assertTrue(os.path.exists(fixture2))
-        

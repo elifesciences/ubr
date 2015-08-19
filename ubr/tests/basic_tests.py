@@ -1,6 +1,5 @@
 import os, shutil, unittest
-from ubr import main, s3, utils
-from datetime import datetime
+from ubr import main, s3
 from unittest import skip
 
 skiptest = skip("'cuz")
@@ -91,12 +90,12 @@ class UtilsTest(BaseCase):
             'civicrm/201507/20150731_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
             'civicrm/201507/20150731_ip-10-0-2-118_230111-ELIFEDRUPAL-mysql.gz',
             'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
-            
+
             'civicrm/201508/20150801_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
             'civicrm/201508/20150801_ip-10-0-2-118_230112-ELIFEDRUPAL-mysql.gz',
             'civicrm/201508/20150801_ip-10-0-2-118_230115-archive.tar.gz',
         ]
-        
+
         expected_output = [
             ['civicrm', ['201507', ['20150731', ['ip-10-0-2-118', ['230108-ELIFECIVICRM-mysql.gz',
                                                                    '230111-ELIFEDRUPAL-mysql.gz',
@@ -113,7 +112,7 @@ class UtilsTest(BaseCase):
                                 ],
                         ]
             ]
-        ]        
+        ]
         #self.assertEqual(expected_output, s3.parse_path_list(input))
 
     def test_filterer(self):
@@ -121,12 +120,12 @@ class UtilsTest(BaseCase):
             'civicrm/201507/20150731_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
             'civicrm/201507/20150731_ip-10-0-2-118_230111-ELIFEDRUPAL-mysql.gz',
             'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
-            
+
             'civicrm/201508/20150801_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
             'civicrm/201508/20150801_ip-10-0-2-118_230112-ELIFEDRUPAL-mysql.gz',
             'civicrm/201508/20150801_ip-10-0-2-118_230115-archive.tar.gz',
         ]
-        
+
         project = "civicrm"
         host = "ip-10-0-2-118"
         filename = "archive.tar.gz"
@@ -135,11 +134,6 @@ class UtilsTest(BaseCase):
             'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
             'civicrm/201508/20150801_ip-10-0-2-118_230115-archive.tar.gz',
         ]
-        
+
         results = s3.filterasf(input, project, host, filename)
         self.assertEqual(results, expected_results)
-             
-                                       
-
-#if __name__ == '__main__':
-#    unittest.main()

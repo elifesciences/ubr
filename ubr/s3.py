@@ -37,10 +37,11 @@ def s3_file_exists(s3obj):
 def s3_key(project, hostname, filename, dt=None):
     if not dt:
         dt = datetime.now()
+
     ym = dt.strftime("%Y%m")
     ymd = dt.strftime("%Y%m%d")
     hms = dt.strftime("%H%M%S")
-    
+
     # path, ext = os.path.splitext(filename) # doesn't work for .tar.gz
     fname, ext = os.path.basename(filename), None
     try:
@@ -92,10 +93,10 @@ def parse_s3_project_files(bucket, project):
 
 def filterasf(file_list, project, host, filename):
     import re
-    regex = "%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
+    regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
     cregex = re.compile(regex)
     return filter(cregex.match, file_list)
-    
+
 
 class ProgressPercentage(object):
     def __init__(self, filename):
@@ -137,7 +138,7 @@ def verify_file(filename, bucket, key):
 
     logger.info("got remote bytes %s for file %s", remote_bytes, key)
     logger.info("got local bytes %s for file %s", local_bytes, filename)
-    
+
     if not remote_bytes == local_bytes:
         if remote_bytes > local_bytes:
             raise ValueError("size of REMOTE file (%r) is larger (%r) than local file (%r)" % (key, remote_bytes, local_bytes))
@@ -160,7 +161,7 @@ def verify_file(filename, bucket, key):
         # that automatically chooses what method is needed. log the error, but
         # as long as the bytes are identical, I don't mind.
         logger.error(e.message)
-    
+
     return True
 
 def upload_to_s3(bucket, src, dest):
@@ -188,10 +189,10 @@ def download_from_s3(bucket, remote_src, local_dest):
     "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
     remote_src = remote_src.lstrip('/')
     obj = s3_file(bucket, remote_src)
-    
+
     msg = "key %r in bucket %r doesn't exist or we have no access to it. cannot download file."
     assert s3_file_exists(obj), msg % (remote_src, bucket)
-    
+
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     utils.mkdir_p(os.path.dirname(local_dest))
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
@@ -209,7 +210,7 @@ def backups(bucket, project, hostname, target, path=None):
     }
     filename = lu[target]
     if path and target == 'mysql':
-        filename = path + '-mysql.gz'    
+        filename = path + '-mysql.gz'
     # /FIXME
 
     # get a raw list of all of the backups we have
@@ -221,7 +222,7 @@ def backups(bucket, project, hostname, target, path=None):
 
     # we have potentially many files at this point
     # we only want to download the latest ones
-    
+
     if path:
         # a specific file is wanted, easy
         backups = [backups[-1]]

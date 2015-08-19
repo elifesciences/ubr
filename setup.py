@@ -9,10 +9,10 @@ VERSION = '2015.5.27' # some sort of natural ordering key
 DESCRIPTION = 'A small library that reads backup "descriptors" in YAML format.'
 
 
-def groupby(f, l):
+def groupby(func, lst):
     x, y = [], []
-    for v in l:
-        (x if f(v) else y).append(v)        
+    for val in lst:
+        (x if func(val) else y).append(val)
     return x, y
 
 def requirements():

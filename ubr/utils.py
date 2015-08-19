@@ -60,7 +60,7 @@ def list_paths_recur(d):
 # http://rosettacode.org/wiki/Find_common_directory_path#Python
 
 def allnamesequal(name):
-    return all(n==name[0] for n in name[1:])
+    return all(n == name[0] for n in name[1:])
 
 def common_prefix(paths, sep='/'):
     """returns the common directory for a list of given paths.
