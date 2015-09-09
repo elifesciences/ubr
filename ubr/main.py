@@ -90,6 +90,15 @@ def restore(descriptor, backup_dir):
         restore_targets[target] = _restore(target, args, backup_dir)
     return restore_targets
 
+#
+#
+#
+
+def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
+    for descriptor in find_descriptors(config_dir):
+        restore_dir = os.path.join(RESTORE_DIR, hostname, pname(descriptor))
+        return restore(descriptor, restore_dir)
+
 def s3_backup(config_dir=CONFIG_DIR, hostname=None):
     """hostname is ignored (for now? remote backups in future??)"""
     logger.info("backing up ...")
@@ -116,7 +125,7 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
 
         descriptor = load_descriptor(descriptor)
 
-        download_dir = os.path.join(RESTORE_DIR, project)
+        download_dir = os.path.join(RESTORE_DIR, hostname, project)
         utils.mkdir_p(download_dir)
 
         # FIX: ... why do I have to download individually when I can upload all at once?
@@ -154,7 +163,7 @@ def main(args):
         },
         'restore': {
             's3': s3_restore,
-            'file': restore,
+            'file': file_restore,
         },
     }
 
