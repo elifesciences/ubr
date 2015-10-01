@@ -1,3 +1,13 @@
+"""
+usage:
+
+    ubr <configdir> <backup|restore> <dir|s3> [target] [path]
+
+example:
+    ./ubr.sh
+
+"""
+
 import os, sys
 import yaml
 import logging
@@ -96,7 +106,7 @@ def restore(descriptor, backup_dir):
 
 def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
     for descriptor in find_descriptors(config_dir):
-        restore_dir = os.path.join(RESTORE_DIR, hostname, pname(descriptor))
+        restore_dir = os.path.join(RESTORE_DIR, pname(descriptor), hostname)
         return restore(descriptor, restore_dir)
 
 def s3_backup(config_dir=CONFIG_DIR, hostname=None):
@@ -125,7 +135,8 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
 
         descriptor = load_descriptor(descriptor)
 
-        download_dir = os.path.join(RESTORE_DIR, hostname, project)
+        # ll: /tmp/ubr/civicrm/elife.2020media.net.uk/archive.tar.gz
+        download_dir = os.path.join(RESTORE_DIR, project, hostname)
         utils.mkdir_p(download_dir)
 
         # FIX: ... why do I have to download individually when I can upload all at once?
@@ -148,7 +159,7 @@ def init():
 def main(args):
     init()
 
-    # usage: ubr <backup|restore> <dir|s3> [target] [path]
+
     config = args[0]
     action = args[1] if len(args) > 1 else "backup"
     fromloc = args[2] if len(args) > 2 else "s3"
