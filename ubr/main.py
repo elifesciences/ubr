@@ -107,7 +107,7 @@ def restore(descriptor, backup_dir):
 def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
     for descriptor in find_descriptors(config_dir):
         restore_dir = os.path.join(RESTORE_DIR, pname(descriptor), hostname)
-        return restore(descriptor, restore_dir)
+        return restore(load_descriptor(descriptor), restore_dir)
 
 def s3_backup(config_dir=CONFIG_DIR, hostname=None):
     """hostname is ignored (for now? remote backups in future??)"""
