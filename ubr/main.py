@@ -140,7 +140,7 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
         utils.mkdir_p(download_dir)
 
         # FIX: ... why do I have to download individually when I can upload all at once?
-        for target, path_list in descriptor.keys():
+        for target, path_list in descriptor.items():
             s3.download_latest_backup(download_dir, \
                                       BUCKET, \
                                       project, \
