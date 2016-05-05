@@ -29,6 +29,21 @@ RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
 # that's it.
 #
 
+def pname(path):
+    "returns the name of the project given a path to a file"
+    try:
+        filename = os.path.basename(path)
+        return filename[:filename.index('-backup.yaml')]
+    except ValueError:
+        msg = """the given backup descriptor isn't suffixed with '-backup.yaml' -
+        I don't know where the project name starts and ends!"""
+        logger.warning(msg)
+        return None
+
+def is_descriptor(path):
+    "return True if the given path or filename looks like a descriptor file"
+    return pname(path) != None
+
 def valid_descriptor(descriptor):
     "return True if the given descriptor is correctly structured."
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
@@ -40,28 +55,11 @@ def valid_descriptor(descriptor):
         assert target_name in known_targets, msg
     return True
 
-def is_descriptor(path):
-    "return True if the given path or filename looks like a descriptor file"
-    fname = os.path.basename(path)
-    suffix = '-backup.yaml' # descriptors look like: projectname-backup.yaml or elife-api-backup.yaml
-    return fname.endswith(suffix)
-
 def find_descriptors(descriptor_dir):
     "returns a list of descriptors at the given path"
     expandtoabs = lambda path: utils.doall(path, os.path.expanduser, os.path.abspath)
     location_list = map(expandtoabs, utils.list_paths(descriptor_dir))
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
-
-def pname(filename):
-    "given a "
-    try:
-        filename = os.path.basename(filename)
-        return filename[:filename.index('-backup.yaml')]
-    except ValueError:
-        msg = """the given backup descriptor isn't suffixed with '-backup.yaml' -
-        I don't know where the project name starts and ends!"""
-        logger.warning(msg)
-        return None
 
 def load_descriptor(descriptor):
     descriptor = yaml.load(open(descriptor, "r"))
