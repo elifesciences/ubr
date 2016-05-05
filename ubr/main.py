@@ -166,13 +166,9 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
 # bootstrap
 #
 
-def init():
-    utils.mkdir_p(RESTORE_DIR)
-
 def main(args):
-    init()
-
-
+    utils.mkdir_p(RESTORE_DIR)
+    
     config = args[0]
     action = args[1] if len(args) > 1 else "backup"
     fromloc = args[2] if len(args) > 2 else "s3"
@@ -198,6 +194,7 @@ def main(args):
         #'path_list': path_list
     }
 
+    # x[backup][file](**{'config_dir': ..., 'hostname': localhost})
     return x[action][fromloc](**kwargs)
 
 if __name__ == '__main__':
