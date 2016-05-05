@@ -2,11 +2,10 @@ import os, shutil, unittest
 from ubr import main, s3
 from unittest import skip
 
-skiptest = skip("'cuz")
-
 """These examples can be run with:
-   python -m unittest discover -s tests/ -p *_test.py
-
+      ./run-tests.sh
+   or:
+      python -m unittest discover -s tests/ -p *_test.py
 """
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
