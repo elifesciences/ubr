@@ -13,6 +13,7 @@ def defaults(db=None, **overrides):
         'dbname': db,
     }
     args.update(overrides)
+    assert args['user'], "a database username *must* be specified"
     return args
 
 def _pymysql_conn(db=None):
