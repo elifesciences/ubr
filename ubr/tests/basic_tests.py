@@ -45,13 +45,9 @@ class BasicUsage(BaseCase):
         "what we load is what we expect"
         fixture = self.known_backup_fixtures[0]
         expected = {
-            'mysql': [
+            'mysql-database': [
                 'mydb1',
                 'mydb2.table1',
-            ],
-
-            'postgresql': [
-                'dbx',
             ],
 
             'files': [

@@ -22,13 +22,20 @@ BUCKET = 'elife-app-backups'
 CONFIG_DIR = '/etc/ubr/'
 RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
 
+#
+# 'descriptor' wrangling
+# what is a 'descriptor'?
+# a descriptor is a yaml file in /etc/ubr/ that ends with '-backup.yaml'
+# that's it.
+#
+
 def valid_descriptor(descriptor):
     "return True if the given descriptor is correctly structured."
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
     known_targets = targets()['backup'].keys()
     for target_name, target_items in descriptor.items():
         assert isinstance(target_items, list), "a target's list of things to back up must be a list"
-        msg = "we don't recognize what a %r is. known targets: %r" % \
+        msg = "we don't recognize what a %r is. known targets: %s" % \
           (target_name, ', '.join(known_targets))
         assert target_name in known_targets, msg
     return True
@@ -36,7 +43,7 @@ def valid_descriptor(descriptor):
 def is_descriptor(path):
     "return True if the given path or filename looks like a descriptor file"
     fname = os.path.basename(path)
-    suffix = '-backup.yaml' # descriptors look like: elife-api-backup.yaml or lagotto-backup.yaml
+    suffix = '-backup.yaml' # descriptors look like: projectname-backup.yaml or elife-api-backup.yaml
     return fname.endswith(suffix)
 
 def find_descriptors(descriptor_dir):
@@ -46,6 +53,7 @@ def find_descriptors(descriptor_dir):
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
 
 def pname(filename):
+    "given a "
     try:
         filename = os.path.basename(filename)
         return filename[:filename.index('-backup.yaml')]
@@ -56,7 +64,14 @@ def pname(filename):
         return None
 
 def load_descriptor(descriptor):
-    return yaml.load(open(descriptor, "r"))
+    descriptor = yaml.load(open(descriptor, "r"))
+    assert valid_descriptor(descriptor), "the given descriptor isn't structured as expected"
+    return descriptor
+
+
+#
+#
+#
 
 def targets():
     return {'backup': {'files': file_target.backup,
