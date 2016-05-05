@@ -2,11 +2,8 @@ import os, shutil
 from os.path import join
 from ubr import main, mysql_target, s3
 from datetime import datetime
-from unittest import skip
 
 from ubr.tests.basic_tests import BaseCase
-
-s = skip("'cuz")
 
 #
 # uploading backup outputs happens after backups, obviously ;)
