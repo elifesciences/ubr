@@ -1,11 +1,9 @@
 """
 usage:
-
     ubr <configdir> <backup|restore> <dir|s3> [target] [path]
 
 example:
     ./ubr.sh
-
 """
 
 import os, sys
@@ -33,7 +31,7 @@ TARGETS = {
         'tar-gzipped': tgz_target.restore,
         'mysql-database': mysql_target.restore}}
 
-def targets(action, target, args, destination):
+def do(action, target, args, destination):
     if action not in TARGETS.keys():
         logger.warn("unknown action %r - I only know how to do %s", action, ", ".join(TARGETS.keys()))
         return None
@@ -85,7 +83,6 @@ def load_descriptor(descriptor):
     assert valid_descriptor(descriptor), "the given descriptor isn't structured as expected"
     return descriptor
 
-
 #
 #
 #
@@ -95,12 +92,12 @@ def backup(descriptor, output_dir=None):
     "consumes a descriptor and creates backups of each of the target's paths"
     if not output_dir:
         output_dir = utils.ymdhms()
-    return {target: targets('backup', target, args, output_dir) for target, args in descriptor.items()}
+    return {target: do('backup', target, args, output_dir) for target, args in descriptor.items()}
 
 def restore(descriptor, backup_dir):
     """consumes a descriptor, reading replacements from the given backup_dir
     or the most recent datestamped directory"""
-    return {target: targets('restore', target, args, backup_dir) for target, args in descriptor.items()}
+    return {target: do('restore', target, args, backup_dir) for target, args in descriptor.items()}
 
 #
 #
