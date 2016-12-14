@@ -104,12 +104,14 @@ def restore(descriptor, backup_dir):
 #
 
 def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
+    "restore backups from local files using descriptors"
     for descriptor in find_descriptors(config_dir):
         restore_dir = os.path.join(RESTORE_DIR, pname(descriptor), hostname)
         return restore(load_descriptor(descriptor), restore_dir)
 
 def s3_backup(config_dir=CONFIG_DIR, hostname=None):
-    """hostname is ignored (for now? remote backups in future??)"""
+    "create backups using descriptors and then upload to s3"
+    # hostname is ignored (for now? remote backups in future??)
     logger.info("backing up ...")
     for descriptor in find_descriptors(config_dir):
         project = pname(descriptor)

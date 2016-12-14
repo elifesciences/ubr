@@ -97,7 +97,7 @@ def dump(db, output_path, **kwargs):
 
 def _backup(path, destination):
     "'path' in this case is either 'db' or 'db.table'"
-    # looks like: /tmp/foo/_test.gzip or /tmp/foo/_test.table1.gzip
+    # looks like: /tmp/foo/test.gzip or /tmp/foo/test.table1.gzip
     output_path = os.path.join(destination, path)
     return dump(path, output_path)
 
