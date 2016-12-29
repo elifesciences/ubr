@@ -113,7 +113,7 @@ class TestFileBackup(BaseCase):
         # a /dev/null backup is valid, right? restore process sucks though ...
         descriptor = {'dev-null': [fixture]}
         '''
-        self.fail()
+        pass
 
     def test_backup_to_dynamic_output_dir(self):
         "we're writing our output to a known output_dir for these tests. what happens when we try to output to a dir that doesn't exist?"

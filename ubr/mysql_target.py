@@ -1,7 +1,6 @@
 import os
 from ubr import utils
 import pymysql.cursors
-
 import logging
 
 logger = logging.getLogger(__name__)
