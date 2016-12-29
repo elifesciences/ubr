@@ -1,3 +1,4 @@
 #!/bin/bash
 set -e
-pylint -E *.py ubr/*.py ubr/tests/*.py
+pyflakes ubr/
+pylint -E ubr/* 2> /dev/null

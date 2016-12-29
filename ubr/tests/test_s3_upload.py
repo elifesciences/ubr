@@ -2,8 +2,7 @@ import os, shutil
 from os.path import join
 from ubr import main, mysql_target, s3
 from datetime import datetime
-
-from ubr.tests.basic_tests import BaseCase
+from base import BaseCase
 
 #
 # uploading backup outputs happens after backups, obviously ;)
@@ -138,7 +137,6 @@ class TestDownloadFromS3(BaseCase):
     def test_find_latest_mysql(self):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
         # do the backup
-        fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'mysql-database': ["_test"]}
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
@@ -199,7 +197,7 @@ class TestDownloadFromS3(BaseCase):
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         descriptor = {'tar-gzipped': [fixture, fixture2]}
 
-        expected_output_dir = '/tmp/bup/out/'
+        #expected_output_dir = '/tmp/bup/out/'
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 

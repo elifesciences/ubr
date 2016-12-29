@@ -1,8 +1,7 @@
 import os, shutil
 from ubr import main, mysql_target
 from functools import partial
-
-from ubr.tests.basic_tests import BaseCase
+from base import BaseCase
 
 class TestDatabaseBackup(BaseCase):
     def setUp(self):

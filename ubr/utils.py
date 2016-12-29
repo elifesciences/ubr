@@ -1,12 +1,14 @@
 import os
 import logging
 from datetime import datetime
-from compiler.ast import flatten # deprecated, removed in Python3
 import errno
 from itertools import takewhile
+import compiler.ast
 import hashlib
 
 logger = logging.getLogger(__name__)
+
+flatten = compiler.ast.flatten # deprecated, removed in Python3
 
 def env(nom):
     return os.environ.get(nom, None)

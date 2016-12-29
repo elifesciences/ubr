@@ -1,20 +1,12 @@
-import os, shutil, unittest
+import os, shutil
 from ubr import main, s3
-from unittest import skip
+from base import BaseCase
 
 """These examples can be run with:
       ./run-tests.sh
    or:
       python -m unittest discover -s tests/ -p *_test.py
 """
-
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-
-class BaseCase(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super(BaseCase, self).__init__(*args, **kwargs)
-        self.maxDiff = 1024
-        self.fixture_dir = THIS_DIR # I might have a dedicated fixtures dir in future. /shrug
 
 class BasicUsage(BaseCase):
     def setUp(self):
@@ -79,6 +71,7 @@ class UtilsTest(BaseCase):
         pass
 
 
+    '''
     @skip("looks nice, works, but is a bastard to work with")
     def test_grouper(self):
         input = [
@@ -109,7 +102,8 @@ class UtilsTest(BaseCase):
             ]
         ]
         #self.assertEqual(expected_output, s3.parse_path_list(input))
-
+    '''
+    
     def test_filterer(self):
         input = [
             'civicrm/201507/20150731_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',

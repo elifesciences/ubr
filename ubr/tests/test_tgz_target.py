@@ -1,6 +1,6 @@
 import os
 from ubr import main
-from basic_tests import BaseCase
+from base import BaseCase
 
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
@@ -41,6 +41,7 @@ class TestTarredGzippedRestore(BaseCase):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture]}
         output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        print output
         # ensure an archive was created
         self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'archive.tar.gz')))
 
