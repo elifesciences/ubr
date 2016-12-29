@@ -1,15 +1,14 @@
 #!/bin/bash
+# calls the command line interface to the universal backup/restore script
+# assumes script is being run from directory it lives in
 set -e
-source install.sh 2&> /dev/null
+. install.sh
 
-CONFIG=$1
-if [ -f "$CONFIG" ]; then
-    set -a; source $CONFIG; set +a;
+# this script expects config to live in /etc/ubr/
+if [ -f /etc/ubr/config ]; then
+    set -a; source /etc/ubr/config; set +a;
 else
-    if [ -f "test-config" ]; then
-        set -a; source "test-config"; set +a;
-    else
-        echo "no config file given for testing. I'll be using the system defaults! beware!"
-    fi
+    echo "* couldn't find /etc/ubr/config - you had better hope all the defaults work"
 fi
-ipython2
+
+ipython
