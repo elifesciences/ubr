@@ -8,5 +8,4 @@ if [ ! -e test-config ]; then
     cp example.config test-config
 fi
 set -a; source test-config; set +a;
-nosetests ubr/tests"$module" --config .noserc
-coverage report
+green ubr/ --run-coverage --processes 1 -vv

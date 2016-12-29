@@ -150,8 +150,7 @@ class TestFileRestore(BaseCase):
 
         # backup the fixture copy
         descriptor = {'files': [fixture_copy]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
-        print results
+        main.backup(descriptor, output_dir=self.expected_output_dir)
 
         # overwrite our fixture copy with some garbage
         open(fixture_copy, 'w').write("fooooooooooooooooooobar")

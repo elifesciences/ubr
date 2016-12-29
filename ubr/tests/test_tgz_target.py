@@ -40,8 +40,7 @@ class TestTarredGzippedRestore(BaseCase):
         "tar-gzipped target unpacks the backup and restores the files"
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture]}
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
-        print output
+        main.backup(descriptor, output_dir=self.expected_output_dir)
         # ensure an archive was created
         self.assertTrue(os.path.isfile(os.path.join(self.expected_output_dir, 'archive.tar.gz')))
 
