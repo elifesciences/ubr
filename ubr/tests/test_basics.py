@@ -1,5 +1,5 @@
 import os, shutil
-from ubr import main, s3
+from ubr import main
 from base import BaseCase
 
 """These examples can be run with:

@@ -1,11 +1,4 @@
-"""
-usage:
-    ubr <configdir> <backup|restore> <dir|s3> [target] [path]
-
-example:
-    ./ubr.sh
-"""
-
+import argparse
 import os, sys
 import yaml
 import logging
@@ -24,12 +17,15 @@ TARGETS = {
     'backup': {
         'files': file_target.backup,
         'tar-gzipped': tgz_target.backup,
-        'mysql-database': mysql_target.backup},
+        'mysql-database': mysql_target.backup
+    },
 
     'restore': {
         'files': file_target.restore,
         'tar-gzipped': tgz_target.restore,
-        'mysql-database': mysql_target.restore}}
+        'mysql-database': mysql_target.restore
+    }
+}
 
 def do(action, target, args, destination):
     if action not in TARGETS.keys():
@@ -40,11 +36,19 @@ def do(action, target, args, destination):
         return None
     return TARGETS[action][target](args, destination)
 
+# looks like: backup({'file': ['/tmp/foo']}, 'file://...')
+def backup(descriptor, output_dir=None):
+    "consumes a descriptor and creates backups of each of the target's paths"
+    return {target: do('backup', target, args, output_dir or utils.ymdhms()) for target, args in descriptor.items()}
+
+def restore(descriptor, backup_dir):
+    """consumes a descriptor, reading replacements from the given `backup_dir`
+    or the most recent datestamped directory"""
+    return {target: do('restore', target, args, backup_dir) for target, args in descriptor.items()}
+
 #
 # 'descriptor' wrangling
-# what is a 'descriptor'?
 # a descriptor is a yaml file in /etc/ubr/ that ends with '-backup.yaml'
-# that's it.
 #
 
 def pname(path):
@@ -61,6 +65,7 @@ def is_descriptor(path):
     "return True if the given path or filename looks like a descriptor file"
     return pname(path) != None
 
+# TODO: replace with json-schema or something
 def valid_descriptor(descriptor):
     "return True if the given descriptor is correctly structured."
     assert isinstance(descriptor, dict), "the descriptor must be a dictionary"
@@ -87,21 +92,8 @@ def load_descriptor(descriptor):
 #
 #
 
-# looks like: backup({'file': ['/tmp/foo']}, 'file://')
-def backup(descriptor, output_dir=None):
-    "consumes a descriptor and creates backups of each of the target's paths"
-    if not output_dir:
-        output_dir = utils.ymdhms()
-    return {target: do('backup', target, args, output_dir) for target, args in descriptor.items()}
-
-def restore(descriptor, backup_dir):
-    """consumes a descriptor, reading replacements from the given backup_dir
-    or the most recent datestamped directory"""
-    return {target: do('restore', target, args, backup_dir) for target, args in descriptor.items()}
-
-#
-#
-#
+def file_backup(config_dir=CONFIG_DIR, hostname=utils.hostname()):
+    return [backup(load_descriptor(descriptor)) for descriptor in find_descriptors(config_dir)]
 
 def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
     "restore backups from local files using descriptors"
@@ -152,15 +144,19 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
 #
 # bootstrap
 #
-
+        
 def parseargs(args):
-    config = args[0]
-    action = args[1] if len(args) > 1 else "backup"
-    fromloc = args[2] if len(args) > 2 else "s3"
-    hostname = args[3] if len(args) > 3 else utils.hostname()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config', help='path to a directory where I can find *-backup.yaml files (descriptors)')
+    parser.add_argument('action', nargs='?', default='backup', choices=['backup', 'restore'], help='am I backing things up or restoring them?')
+    parser.add_argument('location', nargs='?', default='s3', choices=['s3', 'file'], help='am I doing this action from the file system or from S3?')
+    parser.add_argument('hostname', nargs='?', default=utils.hostname(), help='if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment')
+    
     #target = args[3] if len(args) > 3 else None
     #path_list = args[4] if len(args) > 4 else []
-    return config, action, fromloc, hostname
+
+    args = parser.parse_args(args)
+    return [getattr(args, key, None) for key in ['config', 'action', 'location', 'hostname']]
 
 def main(args):
     utils.mkdir_p(RESTORE_DIR)
@@ -168,7 +164,7 @@ def main(args):
     decision_tree = {
         'backup': {
             's3': s3_backup,
-            'file': backup,
+            'file': file_backup,
         },
         'restore': {
             's3': s3_restore,
