@@ -50,14 +50,3 @@ class BasicUsage(BaseCase):
 
         }
         self.assertEqual(expected, main.load_descriptor(fixture))
-
-    def test_descriptor_correctness(self):
-        self.assertTrue(main.valid_descriptor, main.load_descriptor(self.known_backup_fixtures[0]))
-
-    def test_descriptor_invalid(self):
-        bad_descriptors = [
-            {'foo': 'bar'}, # target items must be a list
-            {'foo': ['baz', 'bar']}, # unknown target 'foo'
-        ]
-        for bad_descriptor in bad_descriptors:
-            self.assertRaises(AssertionError, main.valid_descriptor, bad_descriptor)
