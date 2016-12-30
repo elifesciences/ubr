@@ -153,17 +153,19 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname()):
 # bootstrap
 #
 
-def main(args):
-    utils.mkdir_p(RESTORE_DIR)
-    
+def parseargs(args):
     config = args[0]
     action = args[1] if len(args) > 1 else "backup"
     fromloc = args[2] if len(args) > 2 else "s3"
     hostname = args[3] if len(args) > 3 else utils.hostname()
     #target = args[3] if len(args) > 3 else None
     #path_list = args[4] if len(args) > 4 else []
+    return config, action, fromloc, hostname
 
-    x = {
+def main(args):
+    utils.mkdir_p(RESTORE_DIR)
+    config, action, fromloc, hostname = parseargs(args)
+    decision_tree = {
         'backup': {
             's3': s3_backup,
             'file': backup,
@@ -173,16 +175,11 @@ def main(args):
             'file': file_restore,
         },
     }
-
-    kwargs = {
+    # x[backup][file](**{'config_dir': ..., 'hostname': 'localhost'})
+    return decision_tree[action][fromloc](**{
         'config_dir': config,
         'hostname': hostname,
-        #'target': target,
-        #'path_list': path_list
-    }
-
-    # x[backup][file](**{'config_dir': ..., 'hostname': localhost})
-    return x[action][fromloc](**kwargs)
+    })
 
 if __name__ == '__main__':
     main(sys.argv[1:])
