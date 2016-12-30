@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 flatten = compiler.ast.flatten # deprecated, removed in Python3
 
+def unique(lst):
+    # http://stackoverflow.com/questions/13757835/make-python-list-unique-in-functional-way-map-reduce-filter
+    return reduce(lambda x,y: x+[y] if not y in x else x, lst, [])
+
+def ensure(assertion, msg, ExceptionClass=AssertionError):
+    """intended as a convenient replacement for `assert` statements that
+    get compiled away with -O flags"""
+    if not assertion:
+        raise ExceptionClass(msg)
+
 def env(nom):
     return os.environ.get(nom, None)
 
