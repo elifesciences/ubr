@@ -48,8 +48,8 @@ def restore(descriptor, backup_dir):
 #
 #
 
-def file_backup(config_dir=CONFIG_DIR, hostname=utils.hostname()):
-    return [backup(load_descriptor(descriptor)) for descriptor in find_descriptors(config_dir)]
+def file_backup(config_dir=CONFIG_DIR, hostname=utils.hostname(), path_list=None):
+    return [backup(load_descriptor(descriptor, path_list)) for descriptor in find_descriptors(config_dir)]
 
 def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname(), path_list=None):
     "restore backups from local files using descriptors"
@@ -58,7 +58,7 @@ def file_restore(config_dir=CONFIG_DIR, hostname=utils.hostname(), path_list=Non
         return restore(load_descriptor(descriptor, path_list), restore_dir)
     return map(_do, find_descriptors(config_dir))
 
-def s3_backup(config_dir=CONFIG_DIR, hostname=None):
+def s3_backup(config_dir=CONFIG_DIR, hostname=None, path_list=None):
     "create backups using descriptors and then upload to s3"
     # hostname is ignored (for now? remote backups in future??)
     LOG.info("backing up ...")
@@ -67,7 +67,7 @@ def s3_backup(config_dir=CONFIG_DIR, hostname=None):
         if not project:
             LOG.warning("no project name, skipping given descriptor %r", descriptor)
             continue
-        backup_results = backup(load_descriptor(descriptor))
+        backup_results = backup(load_descriptor(descriptor, path_list))
         s3.upload_backup(BUCKET, backup_results, project, utils.hostname())
 
 def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname(), path_list=None):
@@ -132,6 +132,7 @@ def main(args):
     return decision_tree[action][fromloc](**{
         'config_dir': config,
         'hostname': hostname,
+        'path_list': paths,
     })
 
 if __name__ == '__main__':
