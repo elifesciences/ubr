@@ -10,6 +10,16 @@ logger = logging.getLogger(__name__)
 
 flatten = compiler.ast.flatten # deprecated, removed in Python3
 
+def unique(lst):
+    # http://stackoverflow.com/questions/13757835/make-python-list-unique-in-functional-way-map-reduce-filter
+    return reduce(lambda x,y: x+[y] if not y in x else x, lst, [])
+
+def ensure(assertion, msg, ExceptionClass=AssertionError):
+    """intended as a convenient replacement for `assert` statements that
+    get compiled away with -O flags"""
+    if not assertion:
+        raise ExceptionClass(msg)
+
 def env(nom):
     return os.environ.get(nom, None)
 
@@ -103,23 +113,3 @@ def rename_keys(data, keypairs):
         data[new] = data[old]
     del data[old]
     return rename_keys(data, keypairs[1:])
-
-
-"""
-# works but not being used
-def group(item_list, grouper):
-    "the best my tired brain can do on a friday evening. sorry."
-    def _group(item, grouper, store):
-        "grouped func should return a pair of match and rest"
-        bits = grouper(item)
-        first = bits[0]
-        if not store.has_key(first):
-            store[first] = OrderedDict({})
-        rest = bits[1:]
-        if rest:
-            store[first] =  _group(rest[0], grouper, store[first])
-        return store
-    _store = OrderedDict({})
-    map(lambda i: _group(i, grouper, _store), item_list)
-    return _store
-"""
