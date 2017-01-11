@@ -11,7 +11,7 @@ from base import BaseCase
 class TestUploadToS3(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/foo'
-        self.s3_backup_bucket = 'elife-app-backups'
+        self.s3_backup_bucket = 'elife-app-backups-test'
         self.project_name = '_test'
         self.hostname = 'testmachine'
 
@@ -71,7 +71,7 @@ class TestUploadToS3(BaseCase):
 class TestDownloadFromS3(BaseCase):
     def setUp(self):
         self.project_name = '-test'
-        self.s3_backup_bucket = 'elife-app-backups'
+        self.s3_backup_bucket = 'elife-app-backups-test'
         self.hostname = 'testmachine'
         self.expected_output_dir = '/tmp/foo'
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
