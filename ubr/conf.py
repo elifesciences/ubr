@@ -1,7 +1,7 @@
 import logging
 from pythonjsonlogger import jsonlogger
-from ubr import utils
-
+#from ubr import utils # DONT!
+        
 ROOTLOG = logging.getLogger("")
 _supported_keys = [
     #'asctime',
@@ -29,14 +29,31 @@ _formatter = jsonlogger.JsonFormatter(_log_format)
 
 # output to stderr
 _handler = logging.StreamHandler()
-_handler.setLevel(logging.INFO)
+_handler.setLevel(logging.DEBUG)
 _handler.setFormatter(logging.Formatter('%(levelname)s - %(asctime)s - %(message)s'))
 
 ROOTLOG.addHandler(_handler)
 ROOTLOG.setLevel(logging.DEBUG)
 
+# tell boto to pipe down
+import boto3
+boto3.set_stream_logger('', logging.CRITICAL)
+
 BUCKET = 'elife-app-backups'
 CONFIG_DIR = '/etc/ubr/'
 
 RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
-utils.mkdir_p(RESTORE_DIR)
+
+# duplicated from utils
+def mkdir_p(path):
+    import os, errno
+    try:
+        os.makedirs(path)
+    except OSError as err:
+        if err.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            ROOTLOG.error("problem attempting to create path %s: %s", path, err)
+            raise
+
+mkdir_p(RESTORE_DIR)

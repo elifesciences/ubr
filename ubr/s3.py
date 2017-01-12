@@ -2,10 +2,10 @@ import os, sys
 from os.path import join
 from datetime import datetime
 import threading
-import logging
+from conf import logging
 from ubr import utils
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 def remove_targets(path_list, rooted_at="/tmp/"):
     "deletes the list of given paths if the path starts with the given root (default /tmp/)."
@@ -136,8 +136,8 @@ def verify_file(filename, bucket, key):
     remote_bytes = int(s3obj['Contents'][0]['Size'])
     local_bytes = os.path.getsize(filename)
 
-    logger.info("got remote bytes %s for file %s", remote_bytes, key)
-    logger.info("got local bytes %s for file %s", local_bytes, filename)
+    LOG.info("got remote bytes %s for file %s", remote_bytes, key)
+    LOG.info("got local bytes %s for file %s", local_bytes, filename)
 
     if not remote_bytes == local_bytes:
         if remote_bytes > local_bytes:
@@ -149,8 +149,8 @@ def verify_file(filename, bucket, key):
     remote_md5 = remote_md5.strip('"') # yes, really. fml.
     local_md5 = utils.generate_file_md5(filename)
 
-    logger.info("got remote md5 %s for file %s", remote_md5, key)
-    logger.info("got local md5 %s for file %s", local_md5, filename)
+    LOG.info("got remote md5 %s for file %s", remote_md5, key)
+    LOG.info("got local md5 %s for file %s", local_md5, filename)
 
     try:
         if remote_md5 != local_md5:
@@ -160,12 +160,12 @@ def verify_file(filename, bucket, key):
         # we're using the convenience function `upload_file` and `download_file`
         # that automatically chooses what method is needed. log the error, but
         # as long as the bytes are identical, I don't mind.
-        logger.error(e.message)
+        LOG.error(e.message)
 
     return True
 
 def upload_to_s3(bucket, src, dest):
-    logger.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
+    LOG.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
     inst = ProgressPercentage(src)
     s3_conn().upload_file(src, bucket, dest, Callback=inst)
     assert inst.done, "failed to complete uploading to s3"
@@ -204,8 +204,9 @@ def backups(bucket, project, hostname, target, path=None):
     available_backups = s3_project_files(bucket, project)
 
     # FIXME: this sort of logic shouldn't live here.
+    # FUTURELUKE: uh huh. where then, past-Luke?
     lu = {
-        'tar-gzipped': 'archive.tar.gz',
+        'tar-gzipped': 'archive-.+.tar.gz',
         'mysql-database': '.+-mysql.gz',
     }
     filename = lu[target]
@@ -217,7 +218,7 @@ def backups(bucket, project, hostname, target, path=None):
     backups = filterasf(available_backups, project, hostname, filename)
     if not backups:
         msg = "no backups found for project %r on host %r (using target %r and path %r)"
-        logger.warning(msg, project, hostname, target, path)
+        LOG.warning(msg, project, hostname, target, path)
         return []
 
     # we have potentially many files at this point
@@ -233,16 +234,23 @@ def backups(bucket, project, hostname, target, path=None):
     return filter(lambda p: p.startswith(prefix), backups)
 
 def latest_backups(bucket, project, hostname, target, path=None):
-    # it's rare, but there may have been multiple backups that day.
-    # /sigh
+    # there may have been multiple backups
     # figure out the distinct files and return the latest of each
     backup_list = backups(bucket, project, hostname, target, path)
+    print 'got backups',backup_list
     mmap = {}
-    for p in backup_list:
-        key = p.split('_', 2)[2].split('-', 1)[1]
+    for path in backup_list:
+        # path ll: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
+        
+        # ll: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
+        key = path.split('_', 2)
+
+        # ll: u'archive-2a4c0db0.tar.gz'
+        key = key[2].split('-', 1)[1]
+
         if not mmap.has_key(key):
             mmap[key] = []
-        mmap[key].append(p)
+        mmap[key].append(path)
 
     # we should now have something like {'archive.tar.gz': [
     #    'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
@@ -256,6 +264,6 @@ def download_latest_backup(to, bucket, project, hostname, target, path=None):
     x = []
     for backuptype, remote_src in backup_list:
         local_dest = join(to, backuptype)
-        logger.info("downloading s3 file %r to %r", remote_src, local_dest)
+        LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
         x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
     return x

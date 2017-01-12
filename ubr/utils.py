@@ -1,12 +1,12 @@
 import os
-import logging
 from datetime import datetime
 import errno
 from itertools import takewhile
 import compiler.ast
 import hashlib
+from conf import logging
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 flatten = compiler.ast.flatten # deprecated, removed in Python3
 
@@ -24,9 +24,9 @@ def env(nom):
     return os.environ.get(nom, None)
 
 def system(cmd):
-    logger.info(cmd)
+    LOG.info(cmd)
     retval = os.system(cmd)
-    logger.info("return status %s", retval)
+    LOG.info("return status %s", retval)
     return retval
 
 def mkdir_p(path):
@@ -36,7 +36,7 @@ def mkdir_p(path):
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
-            logger.error("problem attempting to create path %s", path)
+            LOG.error("problem attempting to create path %s", path)
             raise
 
 def dir_exists(p):
