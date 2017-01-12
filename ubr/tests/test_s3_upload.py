@@ -1,6 +1,6 @@
-import os, shutil
+import os, shutil, time
 from os.path import join
-from ubr import main, mysql_target, s3
+from ubr import main, mysql_target, s3, tgz_target
 from datetime import datetime
 from base import BaseCase
 
@@ -115,7 +115,10 @@ class TestDownloadFromS3(BaseCase):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
         # do the backup
         fixture = os.path.join(self.fixture_dir, 'img1.png')
-        descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
+        fixture2 = os.path.join(self.fixture_dir, '*/**')
+        paths = [fixture, fixture2]
+        descriptor = {'tar-gzipped': paths}
+
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
@@ -127,7 +130,7 @@ class TestDownloadFromS3(BaseCase):
 
             filename, latest_path = latest[0]
 
-            expected_filename = 'archive.tar.gz'
+            expected_filename = tgz_target.filename_for_paths(path_list) + '.tar.gz'
             self.assertEqual(filename, expected_filename)
 
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
@@ -155,29 +158,29 @@ class TestDownloadFromS3(BaseCase):
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
             self.assertTrue(latest_path.startswith(expected_prefix))
 
-
-
-
-
-
     def test_find_latest_file_when_multiple_on_same_day(self):
-        "many backups can be uploaded to s3 on the same day and only the latest is detected and downloaded"
-        # do backup1
+        "many backups can be uploaded to s3 on the same day and only the latest is detected and downloaded"        
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
+
+        # do backup1
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
+        # we keep second resolution in the generated file filename.
+        # we should be fine but wait a second just in case
+        time.sleep(1)
+        
         # do backup2
-        fixture = os.path.join(self.fixture_dir, 'img2.png')
-        descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
         results2 = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results2, self.project_name, self.hostname)
 
+        # find latest backup
         for target, path_list in descriptor.items():
             # we should know about TWO backups
             known = s3.backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
-            self.assertEqual(len(known), 2)
+            expected_backups = 2
+            self.assertEqual(len(known), expected_backups)
 
             # and the most recent one should be the last in the list
             expected_latest_path = known[-1]
@@ -185,17 +188,18 @@ class TestDownloadFromS3(BaseCase):
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
             self.assertEqual(len(latest), 1)
 
-            filename, latest_path = latest[0]
+            given_filename, latest_path = latest[0]
 
-            expected_filename = 'archive.tar.gz'
-            self.assertEqual(filename, expected_filename)
+            expected_filename = tgz_target.filename_for_paths(path_list) + '.tar.gz'
+            self.assertEqual(given_filename, expected_filename)
 
             self.assertEqual(expected_latest_path, latest_path)
 
     def test_download_latest(self):
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
-        descriptor = {'tar-gzipped': [fixture, fixture2]}
+        paths = [fixture, fixture2]
+        descriptor = {'tar-gzipped': paths}
 
         #expected_output_dir = '/tmp/bup/out/'
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
@@ -208,7 +212,8 @@ class TestDownloadFromS3(BaseCase):
                                   self.hostname, \
                                   descriptor.keys()[0]) # target
 
-        self.assertTrue(os.path.exists(join(expected_download_dir, 'archive.tar.gz')))
+        filename = tgz_target.filename_for_paths(paths)
+        self.assertTrue(os.path.exists(join(expected_download_dir, filename + '.tar.gz')))
 
         os.system("rm %s" % os.path.abspath(fixture))
         os.system("rm %s" % os.path.abspath(fixture2))

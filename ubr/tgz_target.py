@@ -1,12 +1,21 @@
 import os, tarfile
 from ubr import utils, file_target
+from conf import logging
+import hashlib
+from ubr.utils import ensure
 
-import logging
-
-logger = logging.getLogger(__name__)
-logger.level = logging.DEBUG
+LOG = logging.getLogger(__name__)
+LOG.level = logging.DEBUG
 
 TMP_SUBDIR = '.tgz-tmp'
+
+def filename_for_paths(path_list):
+    "given a list of filenames, return a predictable string that can be used as a filename"
+    return 'archive-' + hashlib.sha1('|'.join(path_list)).hexdigest()[:8]
+
+#
+#
+#
 
 def integral(archive):
     "return True if gunzip determines the integrity to be ok"
@@ -14,13 +23,17 @@ def integral(archive):
 
 def unpack(archive):
     msg = "will not unpack given archive %r - it doesn't look like an archive"
-    assert archive.endswith('.gz'), msg % archive
+    ensure(archive.endswith('.gz'), msg % archive)
+
+    msg = "cannot unpack given archive %r - file does not exist!"
+    ensure(os.path.exists(archive), msg % archive)
+    
     msg = "will not unpack given archive %r - gunzip doesn't seem to like it"
-    assert integral(archive), msg % archive
+    ensure(integral(archive), msg % archive)
 
     file_listing = tarfile.open(archive, 'r:gz').getnames()
+    ensure(0 == utils.system("tar xvzf %s -C /" % archive), "problem extracting archive")
 
-    assert 0 == utils.system("tar xvzf %s -C /" % archive), "problem extracting archive"
     # not great. check modtime as well?
     return [(f, os.path.isfile(f)) for f in filter(os.path.isfile, file_listing)]
 
@@ -33,40 +46,40 @@ def backup(path_list, destination):
     original_destination = destination
     destination = os.path.join(destination, TMP_SUBDIR) # /tmp/foo/.tgz-tmp
 
-    new_path_list = map(os.path.abspath, file_target.wrangle_files(path_list))
+    # this will expand any globs (/home/foo/*.jpg), remove any unreadable files, etc
+    expanded_path_list = map(os.path.abspath, file_target.wrangle_files(path_list))
 
     utils.mkdir_p(destination)
-    assert new_path_list, "files to backup are empty"
+    ensure(expanded_path_list, "no files to backup")
 
-    ctd = destination # change to directory
-    #targets = " ".join(new_path_list)
-    filename = os.path.basename(original_destination) # this needs to change...!
-    filename = 'archive'
+    # ll: archive-19928a48
+    filename = filename_for_paths(path_list)
+    LOG.debug('filename: %s', filename)
+
+    # ll: 2016-01-01-23-59-59/archive-19928a48.tar.gz
     output_path = '%s/%s.tar.gz' % (original_destination, filename)
+    LOG.debug("output path: %s", output_path)
 
-    # cd 2015-07-27--15-41-36/.tgz-tmp && tar cvzf 2015-07-27--15-41-36/archive.tar.gz *
-    # cd /tmp/foo/.tgz-tmp && tar -P -cvzf /tmp/foo/archive.tar.gz *
-    #cmd = "cd %(ctd)s && tar cvzf %(output_path)s %(targets)s --absolute-names" % locals()
-
-    # ok - why the manifest file? turns out there is only so many characters a shell allows,
+    # ok - why the manifest file? turns out there are only so many characters a shell allows,
     # dictated by the kernal. in directories with lots of files, this length is exceeded
     # quickly and returns a mysterious 32517 (or 127 mod 8) return code, which is documented
-    # as 'command not found', which is not the case at all.
+    # as 'command not found', which *is not* the case at all.
     manifest_path = '/tmp/ubr.manifest'
-    #new_path_list.append(manifest_path) # we don't want this file restored
-    open(manifest_path, 'w').write("\n".join(new_path_list))
+    open(manifest_path, 'w').write("\n".join(expanded_path_list))
 
-    cmd = "cd %(ctd)s && tar cvzf %(output_path)s --files-from %(manifest_path)s --absolute-names" % locals()
-    logger.info("running command %r", cmd)
-    assert utils.system(cmd) == 0, "failed to create zip"
+    # now when we create the archive file, we tell it to pull the paths from the manifest
+    cmd = "cd %(destination)s && tar cvzf %(output_path)s --files-from %(manifest_path)s --absolute-names" % locals()
+    ensure(utils.system(cmd) == 0, "failed to create zip")
 
     return {
         'output': [output_path]
     }
 
 def restore(path_list, backup_dir):
-    "assumes a file called 'archive.tar.gz' is in the given directory and that all the paths to the files within that tar.gz file are "
-    archive = os.path.join(backup_dir, "archive.tar.gz")
+    """assumes a file called 'archive.tar.gz' is in the given directory and that all 
+    the paths to the files within that tar.gz file are """
+    filename = filename_for_paths(path_list)
+    archive = os.path.join(backup_dir, filename + ".tar.gz")
     return {
         'output': unpack(archive)
     }
