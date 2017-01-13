@@ -11,7 +11,7 @@ from base import BaseCase
 class TestUploadToS3(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/foo'
-        self.s3_backup_bucket = 'elife-app-backups'
+        self.s3_backup_bucket = 'elife-app-backups-test'
         self.project_name = '_test'
         self.hostname = 'testmachine'
 
@@ -71,7 +71,7 @@ class TestUploadToS3(BaseCase):
 class TestDownloadFromS3(BaseCase):
     def setUp(self):
         self.project_name = '-test'
-        self.s3_backup_bucket = 'elife-app-backups'
+        self.s3_backup_bucket = 'elife-app-backups-test'
         self.hostname = 'testmachine'
         self.expected_output_dir = '/tmp/foo'
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
@@ -180,13 +180,13 @@ class TestDownloadFromS3(BaseCase):
             # we should know about TWO backups
             known = s3.backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
             expected_backups = 2
-            self.assertEqual(len(known), expected_backups)
+            self.assertEqual(len(known), expected_backups, "We know about %s" % known)
 
             # and the most recent one should be the last in the list
             expected_latest_path = known[-1]
 
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
-            self.assertEqual(len(latest), 1)
+            self.assertEqual(len(latest), 1, "Latest is %s" % latest)
 
             given_filename, latest_path = latest[0]
 
