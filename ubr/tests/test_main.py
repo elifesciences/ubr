@@ -1,6 +1,8 @@
 import mock
+from ubr.conf import logging
 from ubr import main
 from base import BaseCase
+from logger_test import LogTestCase
 
 class Main(BaseCase):
     def setUp(self):
@@ -50,3 +52,23 @@ class Main(BaseCase):
             'mysql-database.mydb2',
         ]]
         self.assertEqual(main.parseargs(given), expected)
+
+class Logging(BaseCase, LogTestCase):
+    def setUp(self):
+        pass
+        
+    def tearDown(self):
+        pass
+
+    def test_failure_is_logged_1(self):
+        "calling the app with bad arguments issues a warning"
+        with self.assertLogs(main.__name__, level=logging.INFO) as log:
+            try:
+                main.main("asdfasdfasdfsafsda") # I don't understand, Dave
+            except SystemExit:
+                pass
+
+            expected = [
+                ('WARNING', 'invalid arguments')
+            ]
+            self.assertEqual(expected, log.output)
