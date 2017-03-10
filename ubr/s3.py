@@ -57,12 +57,18 @@ def s3_key(project, hostname, filename, dt=None):
 
 def s3_project_files(bucket, project, strip=True):
     "returns a list of backups that exist for the given project"
-    listing = s3_conn().list_objects(Bucket=bucket, Prefix=project)
-    if strip:
-        if listing.has_key('Contents'):
-            return map(lambda i: i['Key'], listing['Contents'])
-        return [] # nothing exists!
-    return listing
+    #listing = s3_conn().list_objects(Bucket=bucket, Prefix=project)
+    paginator = s3_conn().get_paginator('list_objects')
+    iterator = paginator.paginate(**{
+        'Bucket': bucket,
+        'Prefix': project
+    })
+    results = []
+    for page in iterator:
+        if strip:
+            if page.has_key('Contents'):
+                results.extend(map(lambda i: i['Key'], page['Contents']))
+    return results
 
 def s3_delete_folder_contents(bucket, path_to_folder):
     assert path_to_folder and path_to_folder.strip(), "prefix cannot be empty"
@@ -267,3 +273,20 @@ def download_latest_backup(to, bucket, project, hostname, target, path=None):
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
         x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
     return x
+
+#
+#
+#
+
+def main():
+    import conf, json
+    args = {
+        'project': 'civicrm',
+        'hostname': 'production.crm.elifesciences.org',
+        'bucket': conf.BUCKET,
+        'target': 'mysql-database',
+    }
+    print json.dumps(latest_backups(**args), indent=4)
+
+if __name__ == '__main__':
+    main()
