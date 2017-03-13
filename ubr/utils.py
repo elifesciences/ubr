@@ -20,9 +20,6 @@ def ensure(assertion, msg, ExceptionClass=AssertionError):
     if not assertion:
         raise ExceptionClass(msg)
 
-def env(nom):
-    return os.environ.get(nom, None)
-
 def system(cmd):
     LOG.info(cmd)
     retval = os.system(cmd)
