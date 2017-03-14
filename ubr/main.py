@@ -104,17 +104,21 @@ def s3_restore(config_dir=CONFIG_DIR, hostname=utils.hostname(), path_list=None)
         
 def parseargs(args):
     "accepts a list of arguments and returns a list of validated ones"
-    parser = argparse.ArgumentParser()
-    parser.add_argument('config', help='path to a directory where I can find *-backup.yaml files (descriptors)')
-    parser.add_argument('action', nargs='?', default='backup', choices=['backup', 'restore'], help='am I backing things up or restoring them?')
-    parser.add_argument('location', nargs='?', default='s3', choices=['s3', 'file'], help='am I doing this action from the file system or from S3?')
-    parser.add_argument('hostname', nargs='?', default=utils.hostname(), help='if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment')
+    try:
+        parser = argparse.ArgumentParser()
+        parser.add_argument('config', help='path to a directory where I can find *-backup.yaml files (descriptors)')
+        parser.add_argument('action', nargs='?', default='backup', choices=['backup', 'restore'], help='am I backing things up or restoring them?')
+        parser.add_argument('location', nargs='?', default='s3', choices=['s3', 'file'], help='am I doing this action from the file system or from S3?')
+        parser.add_argument('hostname', nargs='?', default=utils.hostname(), help='if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment')
 
-    # some overlap with the `config` arg: config specifies the set of targets, paths specify which ones.
-    parser.add_argument('paths', nargs='*', default=[], help='dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1')
+        # some overlap with the `config` arg: config specifies the set of targets, paths specify which ones.
+        parser.add_argument('paths', nargs='*', default=[], help='dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1')
 
-    args = parser.parse_args(args)
-    return [getattr(args, key, None) for key in ['config', 'action', 'location', 'hostname', 'paths']]
+        args = parser.parse_args(args)
+        return [getattr(args, key, None) for key in ['config', 'action', 'location', 'hostname', 'paths']]
+    except SystemExit:
+        LOG.warn("invalid arguments")
+        raise
 
 def main(args):
     config, action, fromloc, hostname, paths = parseargs(args)
