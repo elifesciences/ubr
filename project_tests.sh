@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# new-style config
-sudo cp /opt/ubr/app.cfg app.cfg
-sudo chmod +r app.cfg
+# new-style config (see libraries formula)
+rm app.cfg
+cp /etc/ubr-test-app.cfg app.cfg
 
 # legacy config
 echo > test-config
