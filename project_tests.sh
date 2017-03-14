@@ -2,7 +2,7 @@
 set -e
 
 # new-style config
-sudo cp /etc/ubr/app.cfg app.cfg
+sudo cp /opt/ubr/app.cfg app.cfg
 
 # legacy config
 echo > test-config
