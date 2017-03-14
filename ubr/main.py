@@ -1,15 +1,15 @@
 import argparse
 import os, sys
-import logging
+from conf import logging
 from ubr import conf, utils, s3, mysql_target, file_target, tgz_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 from ubr.conf import RESTORE_DIR, BUCKET
 
 LOG = logging.getLogger(__name__)
 _handler = logging.FileHandler('ubr.log')
-_handler.setLevel(logging.INFO)
 _handler.setFormatter(conf._formatter)
 LOG.addHandler(_handler)
+LOG.setLevel(logging.INFO)
 
 TARGETS = {
     'backup': {
@@ -26,6 +26,7 @@ TARGETS = {
 }
 
 def do(action, target, args, destination):
+    #print 'doing',action,'on',target,'with',args,'at',destination
     if action not in TARGETS.keys():
         LOG.warn("unknown action %r - I only know how to do %s", action, ", ".join(TARGETS.keys()))
         return None
@@ -53,9 +54,15 @@ def file_backup(hostname=utils.hostname(), path_list=None):
 
 def file_restore(hostname=utils.hostname(), path_list=None):
     "restore backups from local files using descriptors"
-    def _do(descriptor):
-        restore_dir = os.path.join(RESTORE_DIR, pname(descriptor), hostname)
-        return restore(load_descriptor(descriptor, path_list), restore_dir)
+    def _do(descriptor_path):
+        try:
+            restore_dir = os.path.join(RESTORE_DIR, pname(descriptor_path), hostname)
+            return restore(load_descriptor(descriptor_path, path_list), restore_dir)
+        except ValueError as err:
+            if not path_list:
+                raise # this is some other ValueError
+            # descriptor doesn't have given path. happens with multiple descriptors typically
+            LOG.warning("skipping %s: %s" % (descriptor_path, err))
     return map(_do, find_descriptors(conf.CONFIG_DIR))
 
 def s3_backup(hostname=None, path_list=None):
@@ -76,26 +83,28 @@ def s3_download(hostname=utils.hostname(), path_list=None):
     machine's descriptor in /etc/ubr/ ... otherwise it won't know
     what to download and where to restore"""
     LOG.info("restoring ...")
-    for descriptor in find_descriptors(conf.CONFIG_DIR):
-        project = pname(descriptor)
+    results = []
+    for descriptor_path in find_descriptors(conf.CONFIG_DIR):
+        project = pname(descriptor_path)
         if not project:
-            LOG.warning("no project name, skipping given descriptor %r", descriptor)
+            LOG.warning("no project name, skipping given descriptor %r", descriptor_path)
             continue
 
-        descriptor = load_descriptor(descriptor, path_list)
+        descriptor = load_descriptor(descriptor_path, path_list)
 
         # ll: /tmp/ubr/civicrm/elife.2020media.net.uk/archive.tar.gz
         download_dir = os.path.join(RESTORE_DIR, project, hostname)
         utils.mkdir_p(download_dir)
 
-        # FIX: ... why do I have to download individually when I can upload all at once?
-        results = []
-        for target, path_list in descriptor.items():
-            s3.download_latest_backup(download_dir, \
-                                      BUCKET, \
-                                      project, \
-                                      hostname, \
-                                      target)
+        for target, remote_path_list in descriptor.items():
+            for path in remote_path_list:
+                s3.download_latest_backup(download_dir, *(
+                    BUCKET,
+                    project,
+                    hostname,
+                    target,
+                    path))
+
         results.append((descriptor, download_dir))
 
     return results
