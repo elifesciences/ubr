@@ -4,7 +4,7 @@ from ubr.utils import ensure
 import pymysql.cursors
 import logging
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 def defaults(db=None, **overrides):
     "default mysql args"
@@ -63,7 +63,7 @@ def create(db, **kwargs):
     return 0 == mysql_cli_cmd('create database if not exists %s;' % db, **kwargs)
 
 def load(db, dump_path, dropdb=False, **kwargs):
-    logger.info("loading dump %r into db %r. dropdb=%s", dump_path, db, dropdb)
+    LOG.info("loading dump %r into db %r. dropdb=%s", dump_path, db, dropdb)
     args = defaults(db, path=dump_path, **kwargs)
     if dropdb:
         # reset the database before loading the fixture
@@ -72,10 +72,10 @@ def load(db, dump_path, dropdb=False, **kwargs):
                     not dbexists(db), \
                     create(db, **kwargs), \
                     dbexists(db)]), msg
-        logger.info("passed assertion check!")
+        LOG.info("passed assertion check!")
     cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s %(dbname)s < %(path)s" % args
     if dump_path.endswith('.gz'):
-        logger.info("dealing with a gzipped file")
+        LOG.info("dealing with a gzipped file")
         cmd = "zcat %(path)s | mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s --database %(dbname)s" % args
     return 0 == utils.system(cmd)
 
@@ -121,7 +121,8 @@ def _restore(db, backup_dir):
         assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
         return (db, load(db, dump_path, dropdb=True))
     except Exception:
-        logger.exception("unhandled unexception attempting to restore database %r", db)
+        LOG.exception("unhandled unexception attempting to restore database %r", db)
+        #raise # this is what we should be doing
         return (db, False)
 
 def restore(db_list, backup_dir):
