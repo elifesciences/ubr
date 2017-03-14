@@ -1,5 +1,7 @@
 # ubr
 
+[![Code Climate](https://codeclimate.com/github/elifesciences/ubr/badges/gpa.svg)](https://codeclimate.com/github/elifesciences/ubr)
+
 I don't ever want to write another backup script __ever again__.
 
 They are so damn tedious and every time I write one it's just ever so slightly
