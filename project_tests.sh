@@ -2,7 +2,7 @@
 set -e
 
 # new-style config (see libraries formula)
-rm app.cfg
+rm -f app.cfg
 cp /etc/ubr-test-app.cfg app.cfg
 
 # legacy config
