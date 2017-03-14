@@ -243,7 +243,6 @@ def latest_backups(bucket, project, hostname, target, path=None):
     # there may have been multiple backups
     # figure out the distinct files and return the latest of each
     backup_list = backups(bucket, project, hostname, target, path)
-    print 'got backups',backup_list
     mmap = {}
     for path in backup_list:
         # path ll: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
