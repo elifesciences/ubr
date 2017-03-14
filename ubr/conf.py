@@ -95,7 +95,7 @@ MYSQL = {
     'user': cfg('mysql.user'),
     'pass': cfg('mysql.pass'),
     'host': cfg('mysql.host', 'localhost'),
-    'port': cfg('mysql.port', 3306),
+    'port': int(cfg('mysql.port', 3306)), # pymysql absolutely cannot handle a stringified port
 }
 
 '''
