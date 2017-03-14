@@ -2,15 +2,7 @@
 # calls the command line interface to the universal backup/restore script
 # assumes script is being run from directory it lives in
 set -e
-source install.sh > /dev/null
+. install.sh > /dev/null
 
-# this script expects config to live in /etc/ubr/
-if [ -f /etc/ubr/config ]; then
-    set -a; source /etc/ubr/config; set +a;
-else
-    echo "* couldn't find /etc/ubr/config - you had better hope all the defaults work"
-fi
-
-# call ubr
 # usage: ubr <config-dir> <backup|restore> <dir|s3> [target] [path]
 python -m ubr.main /etc/ubr/ "$@"

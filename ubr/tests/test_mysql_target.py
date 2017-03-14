@@ -34,11 +34,12 @@ class TestDatabaseRestore(BaseCase):
     def setUp(self):
         self.project_name = '_test'
         self.expected_output_dir = '/tmp/baz/'
+        mysql_target.drop(self.project_name)
         mysql_target.create(self.project_name)
         mysql_target.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
 
     def tearDown(self):
-        mysql_target.drop(self.project_name)
+        pass
 
     # NOTE: if tests are being run in parallel, this test modifies a database that
     # another test may be attempting to read from

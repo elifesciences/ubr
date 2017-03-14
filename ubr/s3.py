@@ -1,9 +1,10 @@
 import os, sys
+import boto3
 from os.path import join
 from datetime import datetime
 import threading
-from conf import logging
-from ubr import utils
+from ubr.conf import logging
+from ubr import utils, conf
 
 LOG = logging.getLogger(__name__)
 
@@ -17,8 +18,7 @@ def remove_targets(path_list, rooted_at="/tmp/"):
 #
 
 def s3_conn():
-    import boto3
-    return boto3.client("s3")
+    return boto3.client("s3", **conf.AWS)
 
 # TODO: cachable
 def s3_buckets():
