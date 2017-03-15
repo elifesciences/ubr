@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 import errno
-from itertools import takewhile
+from itertools import takewhile, izip
 import compiler.ast
 import hashlib
 from conf import logging
@@ -111,3 +111,9 @@ def rename_keys(data, keypairs):
         data[new] = data[old]
     del data[old]
     return rename_keys(data, keypairs[1:])
+
+def pairwise(lst):
+    # very clever lazy pairwise traversal:
+    # taken from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
+    iterator = iter(lst)
+    return izip(iterator, iterator)

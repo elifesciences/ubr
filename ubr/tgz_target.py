@@ -22,11 +22,11 @@ def integral(archive):
     return 0 == utils.system("gunzip --test %s" % archive)
 
 def unpack(archive):
-    msg = "will not unpack given archive %r - it doesn't look like an archive"
-    ensure(archive.endswith('.gz'), msg % archive)
-
     msg = "cannot unpack given archive %r - file does not exist!"
     ensure(os.path.exists(archive), msg % archive)
+
+    msg = "will not unpack given archive %r - it doesn't look like an archive"
+    ensure(archive.endswith('.gz'), msg % archive)
 
     msg = "will not unpack given archive %r - gunzip doesn't seem to like it"
     ensure(integral(archive), msg % archive)
