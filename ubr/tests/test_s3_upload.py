@@ -23,7 +23,7 @@ class TestUploadToS3(BaseCase):
         "we can talk to s3 about the existence of files"
         s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
         self.assertTrue(isinstance(s3obj, dict))
-        self.assertTrue(s3obj.has_key('Contents'))
+        self.assertTrue('Contents' in s3obj)
 
     def test_backup_is_copied_to_s3(self):
         "the results of a backup are uploaded to s3"
@@ -34,7 +34,7 @@ class TestUploadToS3(BaseCase):
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
-        self.assertTrue(s3obj.has_key('Contents'))
+        self.assertTrue('Contents' in s3obj)
 
     def test_multiple_backups_are_copied_to_s3(self):
         mysql_target.create(self.project_name)
@@ -54,7 +54,7 @@ class TestUploadToS3(BaseCase):
         # the keys we expect exist
         for path in uploaded_keys:
             s3obj = s3.s3_file(self.s3_backup_bucket, path)
-            self.assertTrue(s3obj.has_key('Contents'))
+            self.assertTrue('Contents' in s3obj)
 
     def test_backup_is_removed_after_upload(self):
         "after a successful upload to s3, whatever was uploaded is removed"
@@ -122,7 +122,9 @@ class TestDownloadFromS3(BaseCase):
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
-        dt = datetime.now(); ym = dt.strftime("%Y%m"); ymd = dt.strftime("%Y%m%d")
+        dt = datetime.now()
+        ym = dt.strftime("%Y%m")
+        ymd = dt.strftime("%Y%m%d")
 
         for target, path_list in descriptor.items():
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
@@ -136,7 +138,6 @@ class TestDownloadFromS3(BaseCase):
             expected_prefix = join(self.project_name, ym, "%s_%s" % (ymd, self.hostname))
             self.assertTrue(latest_path.startswith(expected_prefix))
 
-
     def test_find_latest_mysql(self):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
         # do the backup
@@ -144,7 +145,9 @@ class TestDownloadFromS3(BaseCase):
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
-        dt = datetime.now(); ym = dt.strftime("%Y%m"); ymd = dt.strftime("%Y%m%d")
+        dt = datetime.now()
+        ym = dt.strftime("%Y%m")
+        ymd = dt.strftime("%Y%m%d")
 
         for target, path_list in descriptor.items():
             latest = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target)
@@ -159,7 +162,7 @@ class TestDownloadFromS3(BaseCase):
             self.assertTrue(latest_path.startswith(expected_prefix))
 
     def test_find_latest_file_when_multiple_on_same_day(self):
-        "many backups can be uploaded to s3 on the same day and only the latest is detected and downloaded"        
+        "many backups can be uploaded to s3 on the same day and only the latest is detected and downloaded"
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         descriptor = {'tar-gzipped': [fixture, os.path.join(self.fixture_dir, '*/**')]}
 
@@ -170,7 +173,7 @@ class TestDownloadFromS3(BaseCase):
         # we keep second resolution in the generated file filename.
         # we should be fine but wait a second just in case
         time.sleep(1)
-        
+
         # do backup2
         results2 = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results2, self.project_name, self.hostname)
@@ -206,10 +209,10 @@ class TestDownloadFromS3(BaseCase):
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
         expected_download_dir = '/tmp/bup/down/'
-        s3.download_latest_backup(expected_download_dir, \
-                                  self.s3_backup_bucket, \
-                                  self.project_name, \
-                                  self.hostname, \
+        s3.download_latest_backup(expected_download_dir,
+                                  self.s3_backup_bucket,
+                                  self.project_name,
+                                  self.hostname,
                                   descriptor.keys()[0]) # target
 
         filename = tgz_target.filename_for_paths(paths)

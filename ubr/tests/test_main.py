@@ -72,8 +72,25 @@ class Main(BaseCase):
 
     def test_download_bad_args(self):
         bad_cases = [
-            # downloading a file from filesystem? 
+            # downloading a file from filesystem?
             (['download', 'file'], ['download', 'file', 'test-machine', []]),
         ]
         for given, expected in bad_cases:
+            self.assertRaises(SystemExit, main.parseargs, given)
+
+    def test_download_adhoc_args(self):
+        cases = [
+            (['download', 's3', 'adhoc', '/path/to/uploaded/file.gz'], ['download', 's3', 'adhoc', ['/path/to/uploaded/file.gz']]),
+            (['download', 's3', 'adhoc', '/a/b/c.gz', '/a/b/c/d.gz'], ['download', 's3', 'adhoc', ['/a/b/c.gz', '/a/b/c/d.gz']]),
+        ]
+        for given, expected in cases:
+            actual = main.parseargs(given)
+            self.assertEqual(actual, expected, "given %r I expected %r but got %r" % (given, expected, actual))
+
+    def test_download_adhoc_bad_args(self):
+        cases = [
+            # adhoc download without specifying what to download
+            ['download', 's3', 'adhoc']
+        ]
+        for given in cases:
             self.assertRaises(SystemExit, main.parseargs, given)

@@ -11,8 +11,8 @@ class TestFileBackup(BaseCase):
             shutil.rmtree(self.expected_output_dir)
 
     def expected_fixture_path(self, fixture_path):
-        return os.path.join(self.expected_output_dir, \
-                            os.path.dirname(fixture_path).lstrip('/'), \
+        return os.path.join(self.expected_output_dir,
+                            os.path.dirname(fixture_path).lstrip('/'),
                             os.path.basename(fixture_path))
 
     def test_backup_single_file(self):
@@ -129,7 +129,6 @@ class TestFileBackup(BaseCase):
     def test_backup_of_no_files(self):
         "what happens when the path we specify in the descriptor doesn't yield any files?"
         pass
-
 
 
 class TestFileRestore(BaseCase):

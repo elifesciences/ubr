@@ -27,7 +27,7 @@ def unpack(archive):
 
     msg = "cannot unpack given archive %r - file does not exist!"
     ensure(os.path.exists(archive), msg % archive)
-    
+
     msg = "will not unpack given archive %r - gunzip doesn't seem to like it"
     ensure(integral(archive), msg % archive)
 
@@ -76,7 +76,7 @@ def backup(path_list, destination):
     }
 
 def restore(path_list, backup_dir):
-    """assumes a file called 'archive.tar.gz' is in the given directory and that all 
+    """assumes a file called 'archive.tar.gz' is in the given directory and that all
     the paths to the files within that tar.gz file are """
     filename = filename_for_paths(path_list)
     archive = os.path.join(backup_dir, filename + ".tar.gz")

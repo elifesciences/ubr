@@ -5,6 +5,7 @@ from functools import partial
 import yaml
 from schema import Schema, SchemaError
 from conf import logging
+from functools import reduce
 
 LOG = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ LOG = logging.getLogger(__name__)
 #
 
 def _subdesc(desc, path):
-    """a path looks like: <type>.<target> 
+    """a path looks like: <type>.<target>
     for example: `file./opt/thing/` or `mysql-database.mydb1"""
     bits = path.split('.', 1)
     ensure(len(bits) == 2, "expecting just two bits, got %s bits: %s" % (len(bits), path), ValueError)
@@ -55,11 +56,12 @@ def pname(path):
 
 def is_descriptor(path):
     "return True if the given path or filename looks like a descriptor file"
-    return pname(path) != None
+    return pname(path) is not None
 
 def find_descriptors(descriptor_dir):
     "returns a list of descriptors at the given path"
-    expandtoabs = lambda path: utils.doall(path, os.path.expanduser, os.path.abspath)
+    def expandtoabs(path):
+        return utils.doall(path, os.path.expanduser, os.path.abspath)
     location_list = map(expandtoabs, utils.list_paths(descriptor_dir))
     return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
 

@@ -44,7 +44,6 @@ class TestDatabaseRestore(BaseCase):
     # NOTE: if tests are being run in parallel, this test modifies a database that
     # another test may be attempting to read from
 
-
     def test_restore_modified_db(self):
         "a database can be backed up, the original database altered, the backup restored."
         descriptor = {'mysql-database': [self.project_name]}
@@ -61,7 +60,6 @@ class TestDatabaseRestore(BaseCase):
         # restore the db, run the test
         main.restore(descriptor, backup_dir=self.expected_output_dir)
         self.assertEqual(table_test(), original_expected_result)
-
 
     def test_restore_missing_db(self):
         "a database can be backed up, the original database dropped, the backup restored."

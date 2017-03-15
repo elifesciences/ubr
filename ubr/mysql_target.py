@@ -48,12 +48,12 @@ def dbexists(db):
     args = [db]
     cursor = mysql_query(None, sql, args)
     result = cursor.fetchone()
-    return result != None and result.has_key('SCHEMA_NAME') and result['SCHEMA_NAME'] == db
+    return result is not None and 'SCHEMA_NAME' in result and result['SCHEMA_NAME'] == db
 
 def mysql_cli_cmd(mysqlcmd, **kwargs):
     "runs very simple commands from the command line against mysql. doesn't handle quoting at all. totally insecure."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd ="mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s -e '%(mysqlcmd)s'" % args
+    cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s -e '%(mysqlcmd)s'" % args
     return utils.system(cmd)
 
 def drop(db, **kwargs):
@@ -68,9 +68,9 @@ def load(db, dump_path, dropdb=False, **kwargs):
     if dropdb:
         # reset the database before loading the fixture
         msg = "failed to drop+create the database prior to loading fixture."
-        assert all([drop(db, **kwargs), \
-                    not dbexists(db), \
-                    create(db, **kwargs), \
+        assert all([drop(db, **kwargs),
+                    not dbexists(db),
+                    create(db, **kwargs),
                     dbexists(db)]), msg
         LOG.info("passed assertion check!")
     cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s %(dbname)s < %(path)s" % args
@@ -88,7 +88,7 @@ def dump(db, output_path, **kwargs):
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
-    cmd ="mysqldump -u %(user)s -h %(host)s -P %(port)s -p%(pass)s --databases %(dbname)s --single-transaction --skip-dump-date | gzip > %(path)s" % args
+    cmd = "mysqldump -u %(user)s -h %(host)s -P %(port)s -p%(pass)s --databases %(dbname)s --single-transaction --skip-dump-date | gzip > %(path)s" % args
     retval = utils.system(cmd)
     if not retval == 0:
         raise OSError("bad dump. got return value %s" % retval)
@@ -122,7 +122,7 @@ def _restore(db, backup_dir):
         return (db, load(db, dump_path, dropdb=True))
     except Exception:
         LOG.exception("unhandled unexception attempting to restore database %r", db)
-        #raise # this is what we should be doing
+        # raise # this is what we should be doing
         return (db, False)
 
 def restore(db_list, backup_dir):
