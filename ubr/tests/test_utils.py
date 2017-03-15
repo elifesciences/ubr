@@ -1,5 +1,6 @@
-from ubr import s3
+from ubr import s3, utils
 from base import BaseCase
+
 
 class UtilsTest(BaseCase):
     def setUp(self):
@@ -8,6 +9,16 @@ class UtilsTest(BaseCase):
     def tearDown(self):
         pass
 
+    def test_pairwise(self):
+        cases = [
+            ([1], []),
+            ([1,2], [(1,2)]),
+            ([1,2,3], [(1,2)]),
+            ([1,2,3,4], [(1,2), (3,4)]),
+        ]
+        for given, expected in cases:
+            self.assertEqual(list(utils.pairwise(given)), expected)
+    
     def test_filterer(self):
         input = [
             'civicrm/201507/20150731_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
