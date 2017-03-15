@@ -1,7 +1,5 @@
 ---
 engines:
-  shellcheck:
-    enabled: true
   duplication:
     enabled: true
     config:
