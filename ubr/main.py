@@ -1,5 +1,6 @@
 import argparse
 import os, sys
+from os.path import join
 from conf import logging
 from ubr import conf, utils, s3, mysql_target, file_target, tgz_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
@@ -77,11 +78,24 @@ def s3_backup(hostname=None, path_list=None):
         backup_results = backup(load_descriptor(descriptor, path_list))
         s3.upload_backup(BUCKET, backup_results, project, utils.hostname())
 
+def s3_adhoc_download(path_list):
+    "connect to s3 and download stuff :)"
+    def download(path):
+        try:
+            fname = os.path.basename(path)
+            return s3.download_from_s3(conf.BUCKET, path, join(conf.RESTORE_DIR, fname))
+        except AssertionError as err:
+            LOG.warning(err)
+    return map(download, path_list)
+
 def s3_download(hostname=utils.hostname(), path_list=None):
     """by specifying a different hostname, you can download a backup
     from a different machine. Of course you will need that other
     machine's descriptor in /etc/ubr/ ... otherwise it won't know
     what to download and where to restore"""
+    if hostname == 'adhoc':
+        # FIXME: this is beginning to smell. shift this logic into `main()`
+        return s3_adhoc_download(path_list)
     LOG.info("restoring ...")
     results = []
     for descriptor_path in find_descriptors(conf.CONFIG_DIR):
@@ -127,13 +141,16 @@ def parseargs(args):
     parser.add_argument('action', nargs='?', default='backup', choices=['backup', 'restore', 'download'], help='am I backing things up or restoring them?')
     parser.add_argument('location', nargs='?', default='s3', choices=['s3', 'file'], help='am I doing this action from the file system or from S3?')
     parser.add_argument('hostname', nargs='?', default=utils.hostname(), help='if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment')
-
     parser.add_argument('paths', nargs='*', default=[], help='dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1')
 
     args = parser.parse_args(args)
 
     if args.action == 'download' and args.location == 'file':
-        parser.error("use 's3' for location when downloading")
+        parser.error("you can only 'download' when location is 's3'")
+
+    if args.action == 'download' and args.location == 's3' and args.hostname == 'adhoc':
+        if not args.paths:
+            parser.error("ad-hoc s3 downloads *must* supply at least one path")
 
     return [getattr(args, key, None) for key in ['action', 'location', 'hostname', 'paths']]
 

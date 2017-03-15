@@ -5,6 +5,7 @@ from datetime import datetime
 import threading
 from ubr.conf import logging
 from ubr import utils, conf
+from ubr.utils import ensure
 
 LOG = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ def download_from_s3(bucket, remote_src, local_dest):
     obj = s3_file(bucket, remote_src)
 
     msg = "key %r in bucket %r doesn't exist or we have no access to it. cannot download file."
-    assert s3_file_exists(obj), msg % (remote_src, bucket)
+    ensure(s3_file_exists(obj), msg % (remote_src, bucket))
 
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     utils.mkdir_p(os.path.dirname(local_dest))
@@ -273,21 +274,3 @@ def download_latest_backup(to, bucket, project, hostname, target, path=None):
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
         x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
     return x
-
-#
-#
-#
-
-def main():
-    import conf, json
-    args = {
-        'project': 'civicrm',
-        'hostname': 'production.crm.elifesciences.org',
-        'bucket': conf.BUCKET,
-        'target': 'mysql-database',
-    }
-    print json.dumps(latest_backups(**args), indent=4)
-
-
-if __name__ == '__main__':
-    main()
