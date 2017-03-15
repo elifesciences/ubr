@@ -55,7 +55,6 @@ def backup(path_list, destination):
             'output': results}
 
 
-
 def _restore(path, backup_dir):
     LOG.debug("received path %s and input dir %s", path, backup_dir)
     data = {
@@ -77,5 +76,3 @@ def restore(path_list, backup_dir):
     return {
         'output': map(lambda p: _restore(p, backup_dir), path_list)
     }
-
-

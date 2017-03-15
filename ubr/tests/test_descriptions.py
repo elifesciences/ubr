@@ -66,7 +66,7 @@ class LoadDescriptor(BaseCase):
         ]
         for bad_descriptor in bad_descriptors:
             self.assertRaises(AssertionError, descr.validate_descriptor, bad_descriptor)
-    
+
     def test_subdesc(self):
         desc = {
             'mysql-databases': [

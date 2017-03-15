@@ -26,7 +26,7 @@ TARGETS = {
 }
 
 def do(action, target, args, destination):
-    #print 'doing',action,'on',target,'with',args,'at',destination
+    # print 'doing',action,'on',target,'with',args,'at',destination
     if action not in TARGETS.keys():
         LOG.warn("unknown action %r - I only know how to do %s", action, ", ".join(TARGETS.keys()))
         return None
@@ -120,7 +120,7 @@ def s3_restore(hostname=utils.hostname(), path_list=None):
 #
 # bootstrap
 #
-        
+
 def parseargs(args):
     "accepts a list of arguments and returns a list of validated ones"
     parser = argparse.ArgumentParser()
@@ -157,6 +157,7 @@ def main(args):
         'hostname': hostname,
         'path_list': paths,
     })
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

@@ -72,7 +72,7 @@ class Main(BaseCase):
 
     def test_download_bad_args(self):
         bad_cases = [
-            # downloading a file from filesystem? 
+            # downloading a file from filesystem?
             (['download', 'file'], ['download', 'file', 'test-machine', []]),
         ]
         for given, expected in bad_cases:

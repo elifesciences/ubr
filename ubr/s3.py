@@ -32,7 +32,7 @@ def s3_file(bucket, path):
     return s3_conn().list_objects(Bucket=bucket, Prefix=path)
 
 def s3_file_exists(s3obj):
-    return s3obj.has_key('Contents')
+    return 'Contents' in s3obj
 
 def s3_key(project, hostname, filename, dt=None):
     if not dt:
@@ -66,7 +66,7 @@ def s3_project_files(bucket, project, strip=True):
     results = []
     for page in iterator:
         if strip:
-            if page.has_key('Contents'):
+            if 'Contents' in page:
                 results.extend(map(lambda i: i['Key'], page['Contents']))
     return results
 
@@ -75,10 +75,11 @@ def s3_delete_folder_contents(bucket, path_to_folder):
     assert path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted"
     paths = []
     listing = s3_conn().list_objects(Bucket=bucket, Prefix=path_to_folder)
-    if listing.has_key('Contents'):
+    if 'Contents' in listing:
         paths = [{'Key': item['Key']} for item in listing['Contents']]
         s3_conn().delete_objects(Bucket=bucket, Delete={'Objects': paths})
     return paths
+
 
 """
 # totally works but is too difficult to work with
@@ -120,7 +121,7 @@ class ProgressPercentage(object):
             percentage = (self._seen_so_far / self._size) * 100
             self.done = percentage == 100
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)        " % \
+                "\r%s  %s / %s  (%.2f%%)        " %
                 (self._filename, self._seen_so_far,
                  self._size, percentage))
             sys.stdout.flush()
@@ -161,7 +162,7 @@ def verify_file(filename, bucket, key):
     try:
         if remote_md5 != local_md5:
             raise ValueError("MD5 sums for file (%r) local (%r) and remote (%r) do not match" % (filename, local_bytes, remote_bytes))
-    except ValueError, e:
+    except ValueError as e:
         # this happens when S3 does a multipart upload on large files apparently.
         # we're using the convenience function `upload_file` and `download_file`
         # that automatically chooses what method is needed. log the error, but
@@ -246,14 +247,14 @@ def latest_backups(bucket, project, hostname, target, path=None):
     mmap = {}
     for path in backup_list:
         # path ll: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
-        
+
         # ll: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
         key = path.split('_', 2)
 
         # ll: u'archive-2a4c0db0.tar.gz'
         key = key[2].split('-', 1)[1]
 
-        if not mmap.has_key(key):
+        if key not in mmap:
             mmap[key] = []
         mmap[key].append(path)
 
@@ -286,6 +287,7 @@ def main():
         'target': 'mysql-database',
     }
     print json.dumps(latest_backups(**args), indent=4)
+
 
 if __name__ == '__main__':
     main()

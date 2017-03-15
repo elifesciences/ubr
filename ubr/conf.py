@@ -2,8 +2,8 @@ import os, configparser
 from os.path import join
 import logging
 from pythonjsonlogger import jsonlogger
-#from ubr import utils # DONT!
-        
+# from ubr import utils # DONT!
+
 ROOTLOG = logging.getLogger("")
 _supported_keys = [
     #'asctime',
@@ -58,6 +58,7 @@ def mkdir_p(path):
             ROOTLOG.error("problem attempting to create path %s: %s", path, err)
             raise
 
+
 PROJECT_DIR = os.getcwdu() # ll: /path/to/adaptor/
 
 CFG_NAME = 'app.cfg'
@@ -79,6 +80,7 @@ def cfg(path, default=0xDEADBEEF):
         return default
     except Exception:
         raise
+
 
 mkdir_p(RESTORE_DIR)
 
@@ -104,7 +106,7 @@ POSTGRESQL = {
     # you can't use passwords in connections to postgresql.
     # ubr relies on a /root/.pgpass file existing:
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
-    #'pass': 
+    #'pass':
     'host': cfg('postgresql.hostname', 'localhost'),
     'port': cfg('postgresql.port', 5432),
 }
