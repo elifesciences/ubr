@@ -1,10 +1,7 @@
-mysql:
+mysql-database:
     - mydb1
     - mydb2.table1
-    
-postgresql:
-    - dbx
-    
+
 files:
     - /opt/thing/logs/
     - /opt/thing/

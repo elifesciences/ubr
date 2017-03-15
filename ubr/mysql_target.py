@@ -1,27 +1,27 @@
-import os
-from ubr import utils
+import os, copy
+from ubr import utils, conf
+from ubr.utils import ensure
 import pymysql.cursors
-
 import logging
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 def defaults(db=None, **overrides):
     "default mysql args"
-    args = {
-        'user': utils.env('MYSQL_USER'),
-        'dbname': db,
-    }
+    args = copy.deepcopy(conf.MYSQL)
+    args['dbname'] = db
     args.update(overrides)
+    ensure(args['user'], "a database username *must* be specified")
     return args
 
 def _pymysql_conn(db=None):
-    config = defaults(db, \
-                      password=utils.env('MYSQL_PWD'), \
-                      host='localhost', \
-                      charset='utf8mb4', \
-                      cursorclass=pymysql.cursors.DictCursor)
-    config = utils.rename_keys(config, [('dbname', 'db')])
+    "returns a database connection to the given db"
+    config = defaults(db, **{
+        'charset': 'utf8mb4',
+        'cursorclass': pymysql.cursors.DictCursor
+    })
+    # pymysql-specific wrangling
+    config = utils.rename_keys(config, [('dbname', 'db'), ('pass', 'password')])
     return pymysql.connect(**config)
 
 def mysql_query(db, sql, args=()):
@@ -51,9 +51,9 @@ def dbexists(db):
     return result != None and result.has_key('SCHEMA_NAME') and result['SCHEMA_NAME'] == db
 
 def mysql_cli_cmd(mysqlcmd, **kwargs):
-    "runs very simple commands from the command line against mysql. doesn't handle quoting at all."
+    "runs very simple commands from the command line against mysql. doesn't handle quoting at all. totally insecure."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd ="mysql -u %(user)s -e '%(mysqlcmd)s'" % args
+    cmd ="mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s -e '%(mysqlcmd)s'" % args
     return utils.system(cmd)
 
 def drop(db, **kwargs):
@@ -63,7 +63,7 @@ def create(db, **kwargs):
     return 0 == mysql_cli_cmd('create database if not exists %s;' % db, **kwargs)
 
 def load(db, dump_path, dropdb=False, **kwargs):
-    logger.info("loading dump %r into db %r. dropdb=%s", dump_path, db, dropdb)
+    LOG.info("loading dump %r into db %r. dropdb=%s", dump_path, db, dropdb)
     args = defaults(db, path=dump_path, **kwargs)
     if dropdb:
         # reset the database before loading the fixture
@@ -72,11 +72,11 @@ def load(db, dump_path, dropdb=False, **kwargs):
                     not dbexists(db), \
                     create(db, **kwargs), \
                     dbexists(db)]), msg
-        logger.info("passed assertion check!")
-    cmd = "mysql -u %(user)s %(dbname)s < %(path)s" % args
+        LOG.info("passed assertion check!")
+    cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s %(dbname)s < %(path)s" % args
     if dump_path.endswith('.gz'):
-        logger.info("dealing with a gzipped file")
-        cmd = "zcat %(path)s | mysql -u %(user)s %(dbname)s" % args
+        LOG.info("dealing with a gzipped file")
+        cmd = "zcat %(path)s | mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s --database %(dbname)s" % args
     return 0 == utils.system(cmd)
 
 def dumpname(db):
@@ -88,7 +88,7 @@ def dump(db, output_path, **kwargs):
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
-    cmd ="mysqldump -u %(user)s %(dbname)s --single-transaction --skip-dump-date | gzip > %(path)s" % args
+    cmd ="mysqldump -u %(user)s -h %(host)s -P %(port)s -p%(pass)s --databases %(dbname)s --single-transaction --skip-dump-date | gzip > %(path)s" % args
     retval = utils.system(cmd)
     if not retval == 0:
         raise OSError("bad dump. got return value %s" % retval)
@@ -96,7 +96,7 @@ def dump(db, output_path, **kwargs):
 
 def _backup(path, destination):
     "'path' in this case is either 'db' or 'db.table'"
-    # looks like: /tmp/foo/_test.gzip or /tmp/foo/_test.table1.gzip
+    # looks like: /tmp/foo/test.gzip or /tmp/foo/test.table1.gzip
     output_path = os.path.join(destination, path)
     return dump(path, output_path)
 
@@ -121,7 +121,8 @@ def _restore(db, backup_dir):
         assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
         return (db, load(db, dump_path, dropdb=True))
     except Exception:
-        logger.exception("unhandled unexception attempting to restore database %r", db)
+        LOG.exception("unhandled unexception attempting to restore database %r", db)
+        #raise # this is what we should be doing
         return (db, False)
 
 def restore(db_list, backup_dir):

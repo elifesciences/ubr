@@ -1,6 +1,6 @@
 import os, shutil
 from ubr import main, utils
-from basic_tests import BaseCase
+from base import BaseCase
 
 class TestFileBackup(BaseCase):
     def setUp(self):
@@ -108,9 +108,12 @@ class TestFileBackup(BaseCase):
 
     def test_unknown_backup(self):
         "an unknown target is reported"
+        '''
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         # a /dev/null backup is valid, right? restore process sucks though ...
         descriptor = {'dev-null': [fixture]}
+        '''
+        pass
 
     def test_backup_to_dynamic_output_dir(self):
         "we're writing our output to a known output_dir for these tests. what happens when we try to output to a dir that doesn't exist?"
@@ -147,7 +150,7 @@ class TestFileRestore(BaseCase):
 
         # backup the fixture copy
         descriptor = {'files': [fixture_copy]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        main.backup(descriptor, output_dir=self.expected_output_dir)
 
         # overwrite our fixture copy with some garbage
         open(fixture_copy, 'w').write("fooooooooooooooooooobar")

@@ -1,8 +1,7 @@
 import os, shutil, glob2
 from ubr import utils
-
-import logging
-logger = logging.getLogger(__name__)
+from conf import logging
+LOG = logging.getLogger(__name__)
 
 def copy_file(src, dest):
     "a wrapper around shutil.copyfile that will create the dest dirs if necessary"
@@ -36,13 +35,13 @@ def wrangle_files(path_list):
         missing = filter(lambda p: '*' not in p, set(path_list) - set(new_path_list))
         if missing:
             msg = "the following files failed validation and were removed from this backup: %s"
-            logger.error(msg, ", ".join(missing))
+            LOG.error(msg, ", ".join(missing))
     return new_path_list
 
 def backup(path_list, destination):
     """embarassingly simple 'copy each of the files specified
     to new destination, ignoring the common parents'"""
-    logger.debug('given paths %s with destination %s', path_list, destination)
+    LOG.debug('given paths %s with destination %s', path_list, destination)
 
     new_path_list = wrangle_files(path_list)
     utils.mkdir_p(destination)
@@ -58,7 +57,7 @@ def backup(path_list, destination):
 
 
 def _restore(path, backup_dir):
-    logger.debug("received path %s and input dir %s", path, backup_dir)
+    LOG.debug("received path %s and input dir %s", path, backup_dir)
     data = {
         'backup_src': os.path.join(backup_dir, path.lstrip('/')),
         'broken_dest': path}

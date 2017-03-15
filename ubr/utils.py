@@ -1,20 +1,29 @@
 import os
-import logging
 from datetime import datetime
-from compiler.ast import flatten # deprecated, removed in Python3
 import errno
 from itertools import takewhile
+import compiler.ast
 import hashlib
+from conf import logging
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
-def env(nom):
-    return os.environ.get(nom, None)
+flatten = compiler.ast.flatten # deprecated, removed in Python3
+
+def unique(lst):
+    # http://stackoverflow.com/questions/13757835/make-python-list-unique-in-functional-way-map-reduce-filter
+    return reduce(lambda x,y: x+[y] if not y in x else x, lst, [])
+
+def ensure(assertion, msg, ExceptionClass=AssertionError):
+    """intended as a convenient replacement for `assert` statements that
+    get compiled away with -O flags"""
+    if not assertion:
+        raise ExceptionClass(msg)
 
 def system(cmd):
-    logger.info(cmd)
+    LOG.info(cmd)
     retval = os.system(cmd)
-    logger.info("return status %s", retval)
+    LOG.info("return status %s", retval)
     return retval
 
 def mkdir_p(path):
@@ -24,7 +33,7 @@ def mkdir_p(path):
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
-            logger.error("problem attempting to create path %s", path)
+            LOG.error("problem attempting to create path %s", path)
             raise
 
 def dir_exists(p):
@@ -101,23 +110,3 @@ def rename_keys(data, keypairs):
         data[new] = data[old]
     del data[old]
     return rename_keys(data, keypairs[1:])
-
-
-"""
-# works but not being used
-def group(item_list, grouper):
-    "the best my tired brain can do on a friday evening. sorry."
-    def _group(item, grouper, store):
-        "grouped func should return a pair of match and rest"
-        bits = grouper(item)
-        first = bits[0]
-        if not store.has_key(first):
-            store[first] = OrderedDict({})
-        rest = bits[1:]
-        if rest:
-            store[first] =  _group(rest[0], grouper, store[first])
-        return store
-    _store = OrderedDict({})
-    map(lambda i: _group(i, grouper, _store), item_list)
-    return _store
-"""

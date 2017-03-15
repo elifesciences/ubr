@@ -3,3 +3,6 @@
 *.py~
 venv
 test-config
+.coverage
+htmlcov/*
+app.cfg
