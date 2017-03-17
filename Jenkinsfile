@@ -7,4 +7,9 @@ elifeLibrary({
         elifeLocalTests "./project_tests.sh"
     }
 
+    elifeMainlineOnly {
+        stage 'Publishing to master', {
+            elifeGitMoveToBranch commit, 'master'
+        }
+    }
 })
