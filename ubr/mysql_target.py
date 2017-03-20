@@ -22,6 +22,12 @@ def _pymysql_conn(db=None):
     })
     # pymysql-specific wrangling
     config = utils.rename_keys(config, [('dbname', 'db'), ('pass', 'password')])
+    # while you can connect to mysqld via mysql fine with the above config, you can't via pymysql.
+    # both mysql and pymysql are doing stupid magic tricks behind the scenes when 'localhost' or
+    # '127.0.0.1' are encountered.
+    if config['host'] in ['localhost', '127.0.0.1']:
+        config['unix_socket'] = '/var/run/mysqld/mysqld.sock'
+    LOG.debug("connecting with: %r", config)
     return pymysql.connect(**config)
 
 def mysql_query(db, sql, args=()):
