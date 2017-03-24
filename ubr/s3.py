@@ -9,7 +9,7 @@ from ubr.utils import ensure
 
 LOG = logging.getLogger(__name__)
 
-def remove_targets(path_list, rooted_at="/tmp/"):
+def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
     "deletes the list of given paths if the path starts with the given root (default /tmp/)."
     return map(os.unlink, filter(lambda p: p.startswith(rooted_at), filter(os.path.isfile, path_list)))
 

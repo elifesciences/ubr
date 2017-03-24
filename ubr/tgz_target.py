@@ -1,5 +1,5 @@
 import os, tarfile
-from ubr import utils, file_target
+from ubr import utils, file_target, conf
 from conf import logging
 import hashlib
 from ubr.utils import ensure
@@ -7,7 +7,7 @@ from ubr.utils import ensure
 LOG = logging.getLogger(__name__)
 LOG.level = logging.DEBUG
 
-TMP_SUBDIR = '.tgz-tmp'
+TMP_SUBDIR = '.tgz-tmp' # this smells
 
 def filename_for_paths(path_list):
     "given a list of filenames, return a predictable string that can be used as a filename"
@@ -64,7 +64,7 @@ def backup(path_list, destination):
     # dictated by the kernal. in directories with lots of files, this length is exceeded
     # quickly and returns a mysterious 32517 (or 127 mod 8) return code, which is documented
     # as 'command not found', which *is not* the case at all.
-    manifest_path = '/tmp/ubr.manifest'
+    manifest_path = os.path.join(conf.WORKING_DIR, 'ubr.manifest')
     open(manifest_path, 'w').write("\n".join(expanded_path_list))
 
     # now when we create the archive file, we tell it to pull the paths from the manifest

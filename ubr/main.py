@@ -4,7 +4,7 @@ from os.path import join
 from conf import logging
 from ubr import conf, utils, s3, mysql_target, file_target, tgz_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
-from ubr.conf import RESTORE_DIR, BUCKET
+from ubr.conf import WORKING_DIR, BUCKET
 
 LOG = logging.getLogger(__name__)
 _handler = logging.FileHandler('ubr.log')
@@ -52,26 +52,26 @@ def restore(descriptor, backup_dir):
 #
 
 def file_backup(hostname=utils.hostname(), path_list=None):
-    return [backup(load_descriptor(descriptor, path_list)) for descriptor in find_descriptors(conf.CONFIG_DIR)]
+    return [backup(load_descriptor(descriptor, path_list)) for descriptor in find_descriptors(conf.DESCRIPTOR_DIR)]
 
 def file_restore(hostname=utils.hostname(), path_list=None):
     "restore backups from local files using descriptors"
     def _do(descriptor_path):
         try:
-            restore_dir = os.path.join(RESTORE_DIR, pname(descriptor_path), hostname)
+            restore_dir = os.path.join(WORKING_DIR, pname(descriptor_path), hostname)
             return restore(load_descriptor(descriptor_path, path_list), restore_dir)
         except ValueError as err:
             if not path_list:
                 raise # this is some other ValueError
             # descriptor doesn't have given path. happens with multiple descriptors typically
             LOG.warning("skipping %s: %s" % (descriptor_path, err))
-    return map(_do, find_descriptors(conf.CONFIG_DIR))
+    return map(_do, find_descriptors(conf.DESCRIPTOR_DIR))
 
 def s3_backup(hostname=None, path_list=None):
     "create backups using descriptors and then upload to s3"
     # hostname is ignored (for now? remote backups in future??)
     LOG.info("backing up ...")
-    for descriptor in find_descriptors(conf.CONFIG_DIR):
+    for descriptor in find_descriptors(conf.DESCRIPTOR_DIR):
         project = pname(descriptor)
         if not project:
             LOG.warning("no project name, skipping given descriptor %r", descriptor)
@@ -86,7 +86,7 @@ def s3_download(hostname=utils.hostname(), path_list=None):
     what to download and where to restore"""
     LOG.info("restoring ...")
     results = []
-    for descriptor_path in find_descriptors(conf.CONFIG_DIR):
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         project = pname(descriptor_path)
         if not project:
             LOG.warning("no project name, skipping given descriptor %r", descriptor_path)
@@ -95,7 +95,7 @@ def s3_download(hostname=utils.hostname(), path_list=None):
         descriptor = load_descriptor(descriptor_path, path_list)
 
         # ll: /tmp/ubr/civicrm/elife.2020media.net.uk/archive.tar.gz
-        download_dir = os.path.join(RESTORE_DIR, project, hostname)
+        download_dir = os.path.join(WORKING_DIR, project, hostname)
         utils.mkdir_p(download_dir)
 
         for target, remote_path_list in descriptor.items():
@@ -128,7 +128,7 @@ def adhoc_s3_download(path_list):
     def download(path):
         try:
             fname = os.path.basename(path)
-            return s3.download_from_s3(conf.BUCKET, path, join(conf.RESTORE_DIR, fname))
+            return s3.download_from_s3(conf.BUCKET, path, join(conf.WORKING_DIR, fname))
         except AssertionError as err:
             LOG.warning(err)
     return map(download, path_list)

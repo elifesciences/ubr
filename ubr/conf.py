@@ -4,6 +4,10 @@ import logging
 from pythonjsonlogger import jsonlogger
 # from ubr import utils # DONT!
 
+#
+# logging
+#
+
 ROOTLOG = logging.getLogger("")
 _supported_keys = [
     #'asctime',
@@ -41,10 +45,9 @@ ROOTLOG.setLevel(logging.DEBUG)
 import boto3
 boto3.set_stream_logger('', logging.CRITICAL)
 
-BUCKET = 'elife-app-backups'
-CONFIG_DIR = '/etc/ubr/'
-
-RESTORE_DIR = '/tmp/ubr/' # which dir to download files to and restore from
+#
+# utils
+#
 
 # duplicated from utils
 def mkdir_p(path):
@@ -58,8 +61,11 @@ def mkdir_p(path):
             ROOTLOG.error("problem attempting to create path %s: %s", path, err)
             raise
 
+#
+# config parsing
+#
 
-PROJECT_DIR = os.getcwdu() # ll: /path/to/adaptor/
+PROJECT_DIR = os.getcwdu() # ll: /path/to/ubr/
 
 CFG_NAME = 'app.cfg'
 DYNCONFIG = configparser.SafeConfigParser(**{
@@ -81,8 +87,20 @@ def cfg(path, default=0xDEADBEEF):
     except Exception:
         raise
 
+#
+# config
+#
 
-mkdir_p(RESTORE_DIR)
+# which S3 bucket should ubr upload backups to/restore backups from?
+BUCKET = 'elife-app-backups'
+
+# where should ubr look for backup descriptions?
+DESCRIPTOR_DIR = '/etc/ubr/'
+
+# where should ubr do it's work? /tmp/ubr/ by default
+WORKING_DIR = join(cfg('general.working_dir', '/tmp'), 'ubr')
+
+mkdir_p(WORKING_DIR)
 
 # we used to pick these up from wherever boto could find them
 # now a machine may have several sets of credentials for different tasks
