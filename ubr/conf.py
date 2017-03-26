@@ -65,6 +65,7 @@ def mkdir_p(path):
 # config parsing
 #
 
+
 PROJECT_DIR = os.getcwdu() # ll: /path/to/ubr/
 
 CFG_NAME = 'app.cfg'
@@ -90,6 +91,7 @@ def cfg(path, default=0xDEADBEEF):
 #
 # config
 #
+
 
 # which S3 bucket should ubr upload backups to/restore backups from?
 BUCKET = 'elife-app-backups'
