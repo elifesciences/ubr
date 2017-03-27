@@ -59,7 +59,7 @@ def load(dbname, path_to_dump):
         'path_to_dump': path_to_dump
     })
     return utils.system(cmd % kwargs) == 0
-    
+
 
 #
 #

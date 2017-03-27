@@ -34,7 +34,7 @@ class Two(BaseCase):
         # fixture has drop+create statements
         psql.load(self.dbname, fixture)
         self.assertTrue(psql.dbexists(self.dbname))
-    
+
     def test_backup(self):
         psql.backup(self.dbname)
         expected_path = join(conf.WORKING_DIR, self.dbname + "-psql.gz")
