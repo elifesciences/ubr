@@ -2,6 +2,9 @@ from ubr import conf, utils
 from ubr.utils import ensure
 import os, copy
 from os.path import join
+from ubr.conf import logging
+
+LOG = logging.getLogger(__name__)
 
 def defaults(db=None, **overrides):
     args = copy.deepcopy(conf.POSTGRESQL)
@@ -77,7 +80,9 @@ def _backup(dbname, destination):
     # tolerated (or even expected), but shouldn't lead to data loss (except owners)
     # when automated
 
-    cmd = """pg_dump \
+    cmd = """
+    set -o pipefail
+    pg_dump \
     --username %(user)s \
     --no-password \
     --host %(host)s \
@@ -89,4 +94,23 @@ def _backup(dbname, destination):
 def backup(path_list, destination=conf.WORKING_DIR):
     if not isinstance(path_list, list):
         path_list = [path_list]
-    return [_backup(dbname, destination) for dbname in path_list]
+    return {
+        'output_dir': destination,
+        'output': [_backup(dbname, destination) for dbname in path_list]
+    }
+
+def _restore(dbname, backup_dir):
+    "look for a backup of $dbname in $backup_dir and restore it"
+    try:
+        dump_path = join(backup_dir, backup_name(dbname))
+        ensure(os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path)
+        return (dbname, drop(dbname) and load(dbname, dump_path))
+    except Exception:
+        LOG.exception("unhandled unexception attempting to restore database %r", dbname)
+        # raise # this is what we should be doing
+        return (dbname, False)
+
+def restore(path_list, backup_dir):
+    return {
+        'output': [_restore(db, backup_dir) for db in path_list]
+    }

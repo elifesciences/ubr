@@ -2,7 +2,7 @@ import argparse
 import os, sys
 from os.path import join
 from conf import logging
-from ubr import conf, utils, s3, mysql_target, file_target, tgz_target
+from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 from ubr.conf import WORKING_DIR, BUCKET
 
@@ -16,13 +16,15 @@ TARGETS = {
     'backup': {
         'files': file_target.backup,
         'tar-gzipped': tgz_target.backup,
-        'mysql-database': mysql_target.backup
+        'mysql-database': mysql_target.backup,
+        'postgresql-database': psql_target.backup,
     },
 
     'restore': {
         'files': file_target.restore,
         'tar-gzipped': tgz_target.restore,
-        'mysql-database': mysql_target.restore
+        'mysql-database': mysql_target.restore,
+        'postgresql-database': psql_target.restore,
     }
 }
 

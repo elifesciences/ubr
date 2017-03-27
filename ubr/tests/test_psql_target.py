@@ -27,15 +27,29 @@ class One(BaseCase):
             self.assertRaises(ValueError, psql.backup_name, given)
 
 
-class Two(BaseCase):
+class Backup(BaseCase):
     def setUp(self):
         self.dbname = '_ubr_testdb'
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
+        self.backup_dir = conf.WORKING_DIR # change this temp dir
         # fixture has drop+create statements
         psql.load(self.dbname, fixture)
         self.assertTrue(psql.dbexists(self.dbname))
 
     def test_backup(self):
+        "test a simple backup happens"
         psql.backup(self.dbname)
-        expected_path = join(conf.WORKING_DIR, self.dbname + "-psql.gz")
+        expected_path = join(self.backup_dir, self.dbname + "-psql.gz")
         self.assertTrue(os.path.exists(expected_path))
+
+    def test_backup_db_doesnt_exist(self):
+        self.assertFalse(psql.backup("foo")['output'][0]) # urgh.
+        
+        
+class Restore(BaseCase):
+    def setUp(self):
+        pass
+        
+    def test_restore_when_db_exists(self):
+        "a database is created and the dump restored to it"
+        #psql.restore(self.dbname, )
