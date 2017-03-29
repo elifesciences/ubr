@@ -32,6 +32,18 @@ class TestTarredGzippedBackup(BaseCase):
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         self.assertEqual(1, len(results['tar-gzipped']['output']))
 
+    def test_bad_backup_target_doesnt_prevent_subsequent(self):
+        "if a backup target fails to create it's backup, it shouldn't stop other targets from being backed up"
+        descriptor = {
+            'tar-gzipped': [
+                '/does/not/exist/',
+            ]
+        }
+        results = main.backup(descriptor)
+        expected = []
+        self.assertEqual(expected, results['tar-gzipped']['output'])
+
+
 class TestTarredGzippedRestore(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/baz'
