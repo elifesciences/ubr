@@ -15,4 +15,4 @@ read -p "$*"
 pip-review --auto --pre # update everything
 
 # run the tests
-source .unittest.sh
+source .test.sh
