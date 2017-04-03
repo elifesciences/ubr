@@ -122,5 +122,5 @@ class Restore(BaseCase):
 
         # we've modified the existing database
 
-        psql.restore([self.db, self.fixture_dir])
-        self.assertEqual(2, list(psql.runsql(self.db, "select * from table1")))
+        psql.restore([self.db], self.fixture_dir)
+        self.assertEqual(2, len(list(psql.runsql(self.db, "select * from table1"))))

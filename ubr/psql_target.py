@@ -81,6 +81,7 @@ def drop_if_exists(dbname):
 def pg8k_conn(dbname, **overrides):
     # http://pythonhosted.org/pg8000/dbapi.html#pg8000.paramstyle
     pg8000.paramstyle = 'pyformat' # Python format codes, eg. WHERE name=%(paramname)s
+    pg8000.autocommit = True # not working ..?
     kwargs = defaults(dbname, **overrides)
     kwargs = utils.rename_keys(kwargs, [('dbname', 'database')])
     return pg8000.connect(**kwargs)
@@ -98,6 +99,7 @@ def runsql(dbname, sql, params=None):
     try:
         cursor = conn.cursor()
         cursor.execute(sql, params)
+        conn.commit() # autocommit is on, I shouldn't need this
         return _dictfetchall(cursor)
     except pg8000.ProgrammingError as err:
         msg = err.args[3]
