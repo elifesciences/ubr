@@ -3,6 +3,7 @@ from ubr.utils import ensure
 import os, copy
 from os.path import join
 from ubr.conf import logging
+import pg8000
 
 LOG = logging.getLogger(__name__)
 
@@ -63,6 +64,51 @@ def load(dbname, path_to_dump):
     })
     return utils.system(cmd % kwargs) == 0
 
+def create_if_not_exists(dbname):
+    if not dbexists(dbname):
+        return create(dbname)
+    return True
+
+def drop_if_exists(dbname):
+    if dbexists(dbname):
+        return drop(dbname)
+    return True 
+
+#
+#
+#
+
+def pg8k_conn(dbname, **overrides):
+    # http://pythonhosted.org/pg8000/dbapi.html#pg8000.paramstyle
+    pg8000.paramstyle = 'pyformat' # Python format codes, eg. WHERE name=%(paramname)s
+    kwargs = defaults(dbname, **overrides)
+    kwargs = utils.rename_keys(kwargs, [('dbname', 'database')])
+    return pg8000.connect(**kwargs)
+
+# kajuberdut, https://github.com/mfenniak/pg8000/issues/112
+def _dictfetchall(cursor):
+    "lazily returns query results as list of dictionaries."
+    cols = [a[0].decode("utf-8") for a in cursor.description]
+    for row in cursor.fetchall():
+        yield {a: b for a, b in zip(cols, row)}
+
+def runsql(dbname, sql, params=None):
+    params = params or {}
+    conn = pg8k_conn(dbname)
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql, params)
+        return _dictfetchall(cursor)
+    except pg8000.ProgrammingError as err:
+        msg = err.args[3]
+        if msg.startswith('database "') and msg.endswith('" does not exist'):
+            # raise a better exception
+            raise pg8000.DatabaseError("no such database %r" % dbname)
+
+        raise
+    
+    finally:
+        conn.close()
 
 #
 #
@@ -103,8 +149,8 @@ def _restore(dbname, backup_dir):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
         dump_path = join(backup_dir, backup_name(dbname))
-        ensure(os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path)
-        return (dbname, drop(dbname) and load(dbname, dump_path))
+        ensure(os.path.exists(dump_path), "expected path %r does not exist or is not a file." % dump_path)
+        return (dbname, all([drop_if_exists(dbname), create(dbname), load(dbname, dump_path)]))
     except Exception:
         LOG.exception("unhandled unexception attempting to restore database %r", dbname)
         # raise # this is what we should be doing
