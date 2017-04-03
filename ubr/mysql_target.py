@@ -59,7 +59,12 @@ def dbexists(db):
 def mysql_cli_cmd(mysqlcmd, **kwargs):
     "runs very simple commands from the command line against mysql. doesn't handle quoting at all. totally insecure."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s -e '%(mysqlcmd)s'" % args
+    cmd = """mysql \
+    -u %(user)s \
+    -p%(pass)s \
+    -h %(host)s \
+    -P %(port)s \
+    -e '%(mysqlcmd)s'""" % args
     return utils.system(cmd)
 
 def drop(db, **kwargs):
@@ -69,8 +74,9 @@ def create(db, **kwargs):
     return 0 == mysql_cli_cmd('create database if not exists %s;' % db, **kwargs)
 
 def load(db, dump_path, dropdb=False, **kwargs):
-    LOG.info("loading dump %r into db %r. dropdb=%s", dump_path, db, dropdb)
+    LOG.info("loading dump %r into db %r (dropdb=%s)", dump_path, db, dropdb)
     args = defaults(db, path=dump_path, **kwargs)
+    # TODO: consider dropping this convenience function
     if dropdb:
         # reset the database before loading the fixture
         msg = "failed to drop+create the database prior to loading fixture."
@@ -78,12 +84,25 @@ def load(db, dump_path, dropdb=False, **kwargs):
                     not dbexists(db),
                     create(db, **kwargs),
                     dbexists(db)]), msg
-        LOG.info("passed assertion check!")
-    cmd = "mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s %(dbname)s < %(path)s" % args
+        LOG.debug("passed assertion check!")
+
+    cmd = """mysql \
+    -u %(user)s \
+    -p%(pass)s \
+    -h %(host)s \
+    -P %(port)s \
+    %(dbname)s < %(path)s""" % args
+
     if dump_path.endswith('.gz'):
         LOG.info("dealing with a gzipped file")
-        cmd = "zcat %(path)s | mysql -u %(user)s -p%(pass)s -h %(host)s -P %(port)s --database %(dbname)s" % args
-    return 0 == utils.system(cmd)
+        cmd = """zcat %(path)s | mysql \
+        -u %(user)s \
+        -p%(pass)s \
+        -h %(host)s \
+        -P %(port)s \
+        %(dbname)s""" % args
+
+    return utils.system(cmd) == 0
 
 def dumpname(db):
     "generates a filename for the given db"
@@ -94,9 +113,18 @@ def dump(db, output_path, **kwargs):
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
-    cmd = "mysqldump -u %(user)s -h %(host)s -P %(port)s -p%(pass)s --databases %(dbname)s --single-transaction --skip-dump-date | gzip > %(path)s" % args
+    cmd = """set -o pipefail
+    mysqldump \
+    -u %(user)s \
+    -h %(host)s \
+    -P %(port)s \
+    -p%(pass)s \
+    --single-transaction \
+    --skip-dump-date \
+    %(dbname)s | gzip > %(path)s""" % args
     retval = utils.system(cmd)
     if not retval == 0:
+        # not the best error to be throwing. perhaps a CommandError ?
         raise OSError("bad dump. got return value %s" % retval)
     return output_path
 

@@ -48,9 +48,13 @@ def backup(path_list, destination):
 
     # this will expand any globs (/home/foo/*.jpg), remove any unreadable files, etc
     expanded_path_list = map(os.path.abspath, file_target.wrangle_files(path_list))
+    if not expanded_path_list:
+        LOG.warn("no files to backup for %r" % path_list)
+        return {
+            'output': []
+        }
 
     utils.mkdir_p(destination)
-    ensure(expanded_path_list, "no files to backup")
 
     # ll: archive-19928a48
     filename = filename_for_paths(path_list)

@@ -1,5 +1,5 @@
-import os, shutil
-from ubr import main, utils
+import os, shutil, tempfile
+from ubr import main, utils, file_target
 from base import BaseCase
 
 class TestFileBackup(BaseCase):
@@ -129,6 +129,29 @@ class TestFileBackup(BaseCase):
     def test_backup_of_no_files(self):
         "what happens when the path we specify in the descriptor doesn't yield any files?"
         pass
+
+    def test_wrangle_files_dne(self):
+        "wrangle_files removes directories and non-existant files"
+        temp = tempfile.NamedTemporaryFile()
+        cases = [
+            '/tmp/',
+            temp.name,
+            '/dne/'
+        ]
+        expected = [
+            temp.name,
+        ]
+        self.assertEqual(expected, file_target.wrangle_files(cases))
+
+    def test_wrangle_files_all_dne(self):
+        "when all givens paths do not exist, wrangle_files returns an empty list"
+        cases = [
+            '/does/not/exist1',
+            '/does/not/exist2',
+            '/dne3',
+        ]
+        expected = []
+        self.assertEqual(file_target.wrangle_files(cases), expected)
 
 
 class TestFileRestore(BaseCase):
