@@ -1,4 +1,4 @@
-import os
+import os, subprocess
 from datetime import datetime
 import errno
 from itertools import takewhile, izip
@@ -21,11 +21,24 @@ def ensure(assertion, msg, ExceptionClass=AssertionError):
     if not assertion:
         raise ExceptionClass(msg)
 
-def system(cmd):
+
+def system1(cmd):
     LOG.info(cmd)
     retval = os.system(cmd)
     LOG.info("return status %s", retval)
     return retval
+
+def system2(cmd):
+    args = ['/bin/bash', '-c', cmd]
+    process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    # return process.returncode, stdout
+    LOG.info(stdout)
+    LOG.warn(stderr)
+    return process.returncode
+
+
+system = system2
 
 def mkdir_p(path):
     try:

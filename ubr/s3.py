@@ -232,6 +232,7 @@ def backups(bucket, project, hostname, target, path=None):
     # we have potentially many files at this point
     # we only want to download the latest ones
 
+    # BUG HERE
     if path:
         # a specific file is wanted, easy
         backups = [backups[-1]]

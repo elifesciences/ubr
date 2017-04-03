@@ -27,7 +27,8 @@ class TestDatabaseBackup(BaseCase):
         self.assertTrue(os.path.isfile(expected_path))
 
     def test_dump_db_fails_if_db_not_found(self):
-        pass
+        descriptor = {'mysql-database': ['pants-party']}
+        self.assertRaises(OSError, main.backup, descriptor)
 
 
 class TestDatabaseRestore(BaseCase):
