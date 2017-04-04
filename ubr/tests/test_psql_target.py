@@ -33,10 +33,10 @@ class Two(BaseCase):
         self.db1, self.db2 = '_ubr_testdb', '_pants-party'
         psql.create_if_not_exists(self.db1)
         psql.drop_if_exists(self.db2)
-        
+
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
         psql.load(self.db1, fixture)
-        
+
     def test_dbexists(self):
         self.assertTrue(psql.dbexists(self.db1))
 
@@ -64,20 +64,19 @@ class Two(BaseCase):
         for row in results:
             self.assertTrue(isinstance(row, dict)) # each row in result is a dictionary
             self.assertItemsEqual(row.keys(), expected_fields)
-        
+
     def test_runsql_fails_on_missing_database(self):
         "running a query against a missing database raises a error"
         self.assertRaises(pg8k.DatabaseError, psql.runsql, self.db2, "asrf")
-    
 
-        
+
 class Backup(BaseCase):
     def setUp(self):
         self.dbname = '_ubr_testdb'
         psql.create_if_not_exists(self.dbname)
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
         psql.load(self.dbname, fixture)
-        
+
         self.backup_dir = conf.WORKING_DIR # TODO: change this temp.dir
         self.assertTrue(psql.dbexists(self.dbname))
 
@@ -90,7 +89,7 @@ class Backup(BaseCase):
     def test_backup_db_doesnt_exist(self):
         "a backup request for a database that doesn't exist, never happens"
         self.assertFalse(psql.backup("foo")['output'][0]) # urgh.
-        
+
 class Restore(BaseCase):
     def setUp(self):
         self.db = '_ubr_testdb'
@@ -111,7 +110,7 @@ class Restore(BaseCase):
         }
         self.assertEqual(expected, psql.restore([self.db], self.fixture_dir))
         self.assertTrue(psql.dbexists(self.db))
-        
+
     def test_restore_when_db_exists(self):
         "restoring a database drops any existing one"
         psql.create(self.db)

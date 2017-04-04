@@ -39,7 +39,7 @@ class TestTarredGzippedBackup(BaseCase):
                 '/does/not/exist/',
             ]
         }
-        results = main.backup(descriptor)
+        results = main.backup(descriptor, '/never/reached/')
         expected = []
         self.assertEqual(expected, results['tar-gzipped']['output'])
 

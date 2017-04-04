@@ -72,7 +72,7 @@ def create_if_not_exists(dbname):
 def drop_if_exists(dbname):
     if dbexists(dbname):
         return drop(dbname)
-    return True 
+    return True
 
 #
 #
@@ -108,7 +108,7 @@ def runsql(dbname, sql, params=None):
             raise pg8000.DatabaseError("no such database %r" % dbname)
 
         raise
-    
+
     finally:
         conn.close()
 
@@ -139,7 +139,10 @@ def _backup(dbname, destination):
     --dbname %(dbname)s | gzip > %(output_path)s""" % kwargs
     return utils.system(cmd) == 0
 
-def backup(path_list, destination=conf.WORKING_DIR):
+def backup(path_list, destination=None):
+    destination = destination or conf.WORKING_DIR
+    destination = os.path.abspath(destination)
+    utils.system("mkdir -p %s" % destination)
     if not isinstance(path_list, list):
         path_list = [path_list]
     return {
@@ -150,6 +153,7 @@ def backup(path_list, destination=conf.WORKING_DIR):
 def _restore(dbname, backup_dir):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
+        backup_dir = backup_dir or conf.WORKING_DIR
         dump_path = join(backup_dir, backup_name(dbname))
         ensure(os.path.exists(dump_path), "expected path %r does not exist or is not a file." % dump_path)
         return (dbname, all([drop_if_exists(dbname), create(dbname), load(dbname, dump_path)]))
