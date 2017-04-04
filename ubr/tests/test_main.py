@@ -1,6 +1,6 @@
 import os, mock
 from os.path import join
-from ubr import main, utils, psql_target as psql, conf
+from ubr import main, utils, psql_target as psql
 from base import BaseCase
 
 class One(BaseCase):
@@ -48,7 +48,7 @@ class One(BaseCase):
         psql.drop(self.db1)
         self.assertFalse(psql.dbexists(self.db1))
 
-        restore_results = main.main(['restore', 'file'])
+        main.main(['restore', 'file'])
         self.assertTrue(psql.dbexists(self.db1))
 
 
