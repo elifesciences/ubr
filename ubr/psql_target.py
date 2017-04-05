@@ -83,7 +83,18 @@ def pg8k_conn(dbname, **overrides):
     pg8000.paramstyle = 'pyformat' # Python format codes, eg. WHERE name=%(paramname)s
     pg8000.autocommit = True # not working ..?
     kwargs = defaults(dbname, **overrides)
+
+    # argh! pg8k doesn't support the effing .pgpass file.
+    # reason enough to swap it out when I have the time
+
+    # https://github.com/gmr/pgpasslib/blob/master/pgpasslib.py#L46
+    import pgpasslib
+    password = pgpasslib.getpass(**kwargs)
+    if not password:
+        raise ValueError('Did not find a password in the .pgpass file')
+
     kwargs = utils.rename_keys(kwargs, [('dbname', 'database')])
+    kwargs['password'] = password
     return pg8000.connect(**kwargs)
 
 # kajuberdut, https://github.com/mfenniak/pg8000/issues/112
