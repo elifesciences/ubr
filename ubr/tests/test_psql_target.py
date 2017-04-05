@@ -37,6 +37,9 @@ class Two(BaseCase):
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
         psql.load(self.db1, fixture)
 
+    def tearDown(self):
+        map(psql.drop_if_exists, [self.db1, self.db2])
+
     def test_dbexists(self):
         self.assertTrue(psql.dbexists(self.db1))
 
@@ -79,6 +82,9 @@ class Backup(BaseCase):
 
         self.backup_dir = conf.WORKING_DIR # TODO: change this temp.dir
         self.assertTrue(psql.dbexists(self.dbname))
+
+    def tearDown(self):
+        psql.drop_if_exists(self.dbname)
 
     def test_backup(self):
         "a simple dump of the database happens"
