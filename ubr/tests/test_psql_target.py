@@ -94,7 +94,8 @@ class Backup(BaseCase):
 
     def test_backup_db_doesnt_exist(self):
         "a backup request for a database that doesn't exist, never happens"
-        self.assertFalse(psql.backup("foo")['output'][0]) # urgh.
+        expected = [] # nothing backed up
+        self.assertEqual(expected, psql.backup("foo")['output'])
 
 class Restore(BaseCase):
     def setUp(self):

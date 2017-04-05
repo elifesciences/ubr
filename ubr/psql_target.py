@@ -123,12 +123,7 @@ def runsql(dbname, sql, params=None):
     finally:
         conn.close()
 
-#
-#
-#
-
-def _backup(dbname, destination):
-    output_path = join(destination, backup_name(dbname))
+def dump(dbname, output_path):
     kwargs = defaults(dbname)
     kwargs.update({
         'output_path': output_path
@@ -150,6 +145,16 @@ def _backup(dbname, destination):
     --dbname %(dbname)s | gzip > %(output_path)s""" % kwargs
     return utils.system(cmd) == 0
 
+#
+#
+#
+
+def _backup(dbname, destination):
+    "thin wrapper around `dump()` to raise hell if db failed to backup"
+    output_path = join(destination, backup_name(dbname))
+    ensure(dump(dbname, output_path), "postgresql database %r backup failed" % dbname)
+    return output_path
+
 def backup(path_list, destination=None):
     destination = destination or conf.WORKING_DIR
     destination = os.path.abspath(destination)
@@ -158,7 +163,7 @@ def backup(path_list, destination=None):
         path_list = [path_list]
     return {
         'output_dir': destination,
-        'output': [_backup(dbname, destination) for dbname in path_list]
+        'output': [_backup(dbname, destination) for dbname in path_list if dbexists(dbname)]
     }
 
 def _restore(dbname, backup_dir):

@@ -82,11 +82,13 @@ def restore_from_file(hostname, path_list=None):
 def backup_to_s3(hostname=None, path_list=None):
     "creates backups using descriptors and then uploads to s3"
     LOG.info("backing up ...")
+    results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         project = pname(descriptor_path)
         backupdir = machinedir(hostname, descriptor_path)
         backup_results = backup(load_descriptor(descriptor_path, path_list), backupdir)
-        s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname())
+        results.append(s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname()))
+    return results
 
 def download_from_s3(hostname=utils.hostname(), path_list=None):
     """by specifying a different hostname, you can download a backup
@@ -119,8 +121,7 @@ def restore_from_s3(hostname=utils.hostname(), path_list=None):
     # download everything first ...
     results = download_from_s3(hostname, path_list)
     # ... then restore
-    for descriptor, download_dir in results:
-        restore(descriptor, download_dir)
+    return [restore(descriptor, download_dir) for descriptor, download_dir in results]
 
 #
 # adhoc

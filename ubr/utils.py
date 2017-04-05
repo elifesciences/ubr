@@ -30,7 +30,7 @@ def system1(cmd):
 
 def system2(cmd):
     args = ['/bin/bash', '-c', cmd]
-    #print args
+    # print args
     process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     # return process.returncode, stdout
