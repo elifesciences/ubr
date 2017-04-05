@@ -121,11 +121,11 @@ MYSQL = {
 }
 
 POSTGRESQL = {
-    'user': cfg('postgresql.username', 'root'),
-    # you can't use passwords in connections to postgresql.
-    # ubr relies on a /root/.pgpass file existing:
+    'user': cfg('postgresql.user'),
+    # you can't use passwords in cli connections to postgresql. it's also not good practice.
+    # ubr relies on a ~/.pgpass file existing:
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
     #'pass':
-    'host': cfg('postgresql.hostname', 'localhost'),
+    'host': cfg('postgresql.host', 'localhost'),
     'port': cfg('postgresql.port', 5432),
 }
