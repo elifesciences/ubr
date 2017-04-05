@@ -1,21 +1,18 @@
-import os, shutil
-from ubr import main, mysql_target
+import os
+from ubr import main, mysql_target, conf, utils
 from functools import partial
 from base import BaseCase
 
 class TestDatabaseBackup(BaseCase):
     def setUp(self):
-        self.expected_output_dir = '/tmp/bar'
+        self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         self.project_name = '_test'
         mysql_target.create(self.project_name)
         mysql_target.load(self.project_name, os.path.join(self.fixture_dir, 'mysql_test_table.sql'))
 
     def tearDown(self):
+        self.rmtmpdir()
         mysql_target.drop(self.project_name)
-        assert self.expected_output_dir.startswith('/tmp'), "cowardly refusing to recursively delete anything outside /tmp ..."
-        if os.path.exists(self.expected_output_dir):
-            # not all tests create the expected output dir
-            shutil.rmtree(self.expected_output_dir)
 
     def test_dump_db(self):
         "a compressed dump of the test database is created at the expected destination"
@@ -28,7 +25,7 @@ class TestDatabaseBackup(BaseCase):
 
     def test_dump_db_fails_if_db_not_found(self):
         descriptor = {'mysql-database': ['pants-party']}
-        self.assertRaises(OSError, main.backup, descriptor)
+        self.assertRaises(OSError, main.backup, descriptor, conf.WORKING_DIR)
 
 
 class TestDatabaseRestore(BaseCase):

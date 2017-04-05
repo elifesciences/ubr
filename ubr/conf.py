@@ -120,7 +120,6 @@ MYSQL = {
     'port': int(cfg('mysql.port', 3306)), # pymysql absolutely cannot handle a stringified port
 }
 
-'''
 POSTGRESQL = {
     'user': cfg('postgresql.username', 'root'),
     # you can't use passwords in connections to postgresql.
@@ -130,4 +129,3 @@ POSTGRESQL = {
     'host': cfg('postgresql.hostname', 'localhost'),
     'port': cfg('postgresql.port', 5432),
 }
-'''

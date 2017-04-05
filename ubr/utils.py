@@ -30,6 +30,7 @@ def system1(cmd):
 
 def system2(cmd):
     args = ['/bin/bash', '-c', cmd]
+    # print args
     process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     # return process.returncode, stdout
@@ -130,3 +131,20 @@ def pairwise(lst):
     # taken from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
     iterator = iter(lst)
     return izip(iterator, iterator)
+
+
+from contextlib import contextmanager
+import tempfile
+import shutil
+
+@contextmanager
+def TemporaryDirectory():
+    name = tempfile.mkdtemp()
+    try:
+        yield name
+    finally:
+        shutil.rmtree(name)
+
+def tempdir():
+    name = tempfile.mkdtemp()
+    return (name, lambda: shutil.rmtree(name))

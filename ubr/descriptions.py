@@ -69,7 +69,7 @@ def validate_descriptor(descriptor):
     "return True if the given descriptor is correctly structured."
     try:
         descr_schema = Schema(
-            {lambda v: v in ['files', 'tar-gzipped', 'mysql-database']: [str]})
+            {lambda v: v in ['files', 'tar-gzipped', 'mysql-database', 'postgresql-database']: [str]})
         return descr_schema.validate(descriptor)
     except SchemaError as err:
         raise AssertionError(str(err))

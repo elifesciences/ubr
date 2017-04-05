@@ -2,9 +2,8 @@ import argparse
 import os, sys
 from os.path import join
 from conf import logging
-from ubr import conf, utils, s3, mysql_target, file_target, tgz_target
+from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
-from ubr.conf import WORKING_DIR, BUCKET
 
 LOG = logging.getLogger(__name__)
 _handler = logging.FileHandler('ubr.log')
@@ -16,13 +15,15 @@ TARGETS = {
     'backup': {
         'files': file_target.backup,
         'tar-gzipped': tgz_target.backup,
-        'mysql-database': mysql_target.backup
+        'mysql-database': mysql_target.backup,
+        'postgresql-database': psql_target.backup,
     },
 
     'restore': {
         'files': file_target.restore,
         'tar-gzipped': tgz_target.restore,
-        'mysql-database': mysql_target.restore
+        'mysql-database': mysql_target.restore,
+        'postgresql-database': psql_target.restore,
     }
 }
 
@@ -36,29 +37,40 @@ def do(action, target, args, destination):
         return None
     return TARGETS[action][target](args, destination)
 
-# looks like: backup({'file': ['/tmp/foo']}, 'file://...')
-def backup(descriptor, output_dir=None):
+def backup(descriptor, output_dir):
     "consumes a descriptor and creates backups of each of the target's paths"
-    return {target: do('backup', target, args, output_dir or utils.ymdhms()) for target, args in descriptor.items()}
+    return {target: do('backup', target, args, output_dir) for target, args in descriptor.items()}
 
 def restore(descriptor, backup_dir):
     """consumes a descriptor, reading replacements from the given `backup_dir`
     or the most recent datestamped directory"""
-    # ll:  {'files':do('restore', 'files', ['/some/path/'], '/tmp/ubr/pname/.../'
     return {target: do('restore', target, args, backup_dir) for target, args in descriptor.items()}
 
 #
 #
 #
 
-def file_backup(hostname=utils.hostname(), path_list=None):
-    return [backup(load_descriptor(descriptor, path_list)) for descriptor in find_descriptors(conf.DESCRIPTOR_DIR)]
+def machinedir(hostname, descriptor_path):
+    "returns a path where this machine can deal with this descriptor"
+    # ll: /tmp/ubr/civicrm/crm--prod/
+    # ll: /tmp/ubr/lax/lax--ci/
+    return os.path.join(conf.WORKING_DIR, pname(descriptor_path), hostname)
 
-def file_restore(hostname=utils.hostname(), path_list=None):
+def backup_to_file(hostname, path_list=None):
+    results = []
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+        descriptor = load_descriptor(descriptor_path, path_list)
+        # ll: /tmp/project-name/hostname/somefile.tar.gz
+        # ll: /tmp/civicrm/crm--prod/archive-5ea4f412.tar.gz
+        backupdir = machinedir(hostname, descriptor_path)
+        results.append(backup(descriptor, backupdir))
+    return results
+
+def restore_from_file(hostname, path_list=None):
     "restore backups from local files using descriptors"
     def _do(descriptor_path):
         try:
-            restore_dir = os.path.join(WORKING_DIR, pname(descriptor_path), hostname)
+            restore_dir = machinedir(hostname, descriptor_path)
             return restore(load_descriptor(descriptor_path, path_list), restore_dir)
         except ValueError as err:
             if not path_list:
@@ -67,19 +79,18 @@ def file_restore(hostname=utils.hostname(), path_list=None):
             LOG.warning("skipping %s: %s" % (descriptor_path, err))
     return map(_do, find_descriptors(conf.DESCRIPTOR_DIR))
 
-def s3_backup(hostname=None, path_list=None):
-    "create backups using descriptors and then upload to s3"
-    # hostname is ignored (for now? remote backups in future??)
+def backup_to_s3(hostname=None, path_list=None):
+    "creates backups using descriptors and then uploads to s3"
     LOG.info("backing up ...")
-    for descriptor in find_descriptors(conf.DESCRIPTOR_DIR):
-        project = pname(descriptor)
-        if not project:
-            LOG.warning("no project name, skipping given descriptor %r", descriptor)
-            continue
-        backup_results = backup(load_descriptor(descriptor, path_list))
-        s3.upload_backup(BUCKET, backup_results, project, utils.hostname())
+    results = []
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+        project = pname(descriptor_path)
+        backupdir = machinedir(hostname, descriptor_path)
+        backup_results = backup(load_descriptor(descriptor_path, path_list), backupdir)
+        results.append(s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname()))
+    return results
 
-def s3_download(hostname=utils.hostname(), path_list=None):
+def download_from_s3(hostname=utils.hostname(), path_list=None):
     """by specifying a different hostname, you can download a backup
     from a different machine. Of course you will need that other
     machine's descriptor in /etc/ubr/ ... otherwise it won't know
@@ -88,20 +99,14 @@ def s3_download(hostname=utils.hostname(), path_list=None):
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         project = pname(descriptor_path)
-        if not project:
-            LOG.warning("no project name, skipping given descriptor %r", descriptor_path)
-            continue
-
         descriptor = load_descriptor(descriptor_path, path_list)
-
-        # ll: /tmp/ubr/civicrm/elife.2020media.net.uk/archive.tar.gz
-        download_dir = os.path.join(WORKING_DIR, project, hostname)
+        download_dir = machinedir(hostname, descriptor_path)
         utils.mkdir_p(download_dir)
 
         for target, remote_path_list in descriptor.items():
             for path in remote_path_list:
                 s3.download_latest_backup(download_dir, *(
-                    BUCKET,
+                    conf.BUCKET,
                     project,
                     hostname,
                     target,
@@ -111,13 +116,12 @@ def s3_download(hostname=utils.hostname(), path_list=None):
 
     return results
 
-def s3_restore(hostname=utils.hostname(), path_list=None):
+def restore_from_s3(hostname=utils.hostname(), path_list=None):
     "same as the download action, but then restores the files/databases/whatever to where they came from"
     # download everything first ...
-    results = s3_download(hostname, path_list)
+    results = download_from_s3(hostname, path_list)
     # ... then restore
-    for descriptor, download_dir in results:
-        restore(descriptor, download_dir)
+    return [restore(descriptor, download_dir) for descriptor, download_dir in results]
 
 #
 # adhoc
@@ -125,10 +129,11 @@ def s3_restore(hostname=utils.hostname(), path_list=None):
 
 def adhoc_s3_download(path_list):
     "connect to s3 and download stuff :)"
-    def download(path):
+    def download(remote_path):
         try:
-            fname = os.path.basename(path)
-            return s3.download_from_s3(conf.BUCKET, path, join(conf.WORKING_DIR, fname))
+            # being adhoc, we can't manage a machinename() call
+            download_dir = join(conf.WORKING_DIR, os.path.basename(remote_path))
+            return s3.download_from_s3(conf.BUCKET, remote_path, download_dir)
         except AssertionError as err:
             LOG.warning(err)
     return map(download, path_list)
@@ -188,15 +193,15 @@ def main(args):
 
     decisions = {
         'backup': {
-            's3': s3_backup,
-            'file': file_backup,
+            's3': backup_to_s3,
+            'file': backup_to_file,
         },
         'restore': {
-            's3': s3_restore,
-            'file': file_restore,
+            's3': restore_from_s3,
+            'file': restore_from_file,
         },
         'download': {
-            's3': s3_download,
+            's3': download_from_s3,
         }
     }
     return decisions[action][fromloc](hostname, paths)

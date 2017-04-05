@@ -1,6 +1,68 @@
-import mock
-from ubr import main
+import os, mock
+from os.path import join
+from ubr import main, utils, psql_target as psql, s3
 from base import BaseCase
+
+class One(BaseCase):
+    def setUp(self):
+        self.db1 = '_ubr_testdb'
+        psql.create_if_not_exists(self.db1)
+        fixture = join(self.fixture_dir, '_ubr_testdb-psql.gz')
+        psql.load(self.db1, fixture)
+
+        self.tempdir, self.rmtempdir = utils.tempdir()
+        self.s3_backup_bucket = 'elife-app-backups-test'
+
+        self.patchers = [
+            mock.patch('ubr.utils.hostname', return_value='localhost'),
+            mock.patch('ubr.conf.DESCRIPTOR_DIR', self.tempdir),
+            mock.patch('ubr.conf.WORKING_DIR', self.tempdir),
+            mock.patch('ubr.conf.BUCKET', self.s3_backup_bucket),
+        ]
+        [p.start() for p in self.patchers]
+
+    def tearDown(self):
+        [p.stop() for p in self.patchers]
+        self.rmtempdir()
+
+    def test_backup_psql(self):
+        # write a descriptor
+        # ask to back up to a file
+        descriptor = "postgresql-database: [_ubr_testdb]"
+        open(join(self.tempdir, 'testmachine-backup.yaml'), 'w').write(descriptor)
+        results = main.main(['backup', 'file'])
+        outputdir = results[0]['postgresql-database']['output_dir']
+        expected_backup = join(outputdir, psql.backup_name(self.db1))
+        self.assertTrue(os.path.exists(expected_backup))
+
+    def test_restore_psql(self):
+        # write a descriptor
+        # create a backup
+        # destroy database
+        # restore from backup using same descriptor
+        descriptor = "postgresql-database: [_ubr_testdb]"
+        open(join(self.tempdir, 'testmachine-backup.yaml'), 'w').write(descriptor)
+        results = main.main(['backup', 'file'])
+        outputdir = results[0]['postgresql-database']['output_dir']
+        expected_backup = join(outputdir, psql.backup_name(self.db1))
+        self.assertTrue(os.path.exists(expected_backup))
+
+        psql.drop(self.db1)
+        self.assertFalse(psql.dbexists(self.db1))
+
+        main.main(['restore', 'file'])
+        self.assertTrue(psql.dbexists(self.db1))
+
+    # to/from s3
+
+    def test_backup_psql_to_s3(self):
+        # write a descriptor
+        # ask to back up to a file
+        descriptor = "postgresql-database: [_ubr_testdb]"
+        open(join(self.tempdir, 'testmachine-backup.yaml'), 'w').write(descriptor)
+        results = main.main(['backup', 's3'])
+        s3key = s3.s3_file(self.s3_backup_bucket, results[0][0]) # first path of first target
+        self.assertTrue(s3.s3_file_exists(s3key))
 
 class Main(BaseCase):
     def setUp(self):
