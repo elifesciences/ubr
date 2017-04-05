@@ -188,6 +188,7 @@ def upload_backup(bucket, backup_results, project, hostname):
     upload_targets = [target_results['output'] for target_results in backup_results.values()]
     upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
     path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
+    # TODO: consider moving this into `main`
     remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
     return path_list
 
