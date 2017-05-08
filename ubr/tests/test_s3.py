@@ -8,7 +8,7 @@ from base import BaseCase
 # uploading backup outputs happens after backups, obviously ;)
 #
 
-class TestUploadToS3(BaseCase):
+class Upload(BaseCase):
     def setUp(self):
         self.expected_output_dir = '/tmp/foo'
         self.s3_backup_bucket = 'elife-app-backups-test'
@@ -68,7 +68,7 @@ class TestUploadToS3(BaseCase):
         self.assertTrue(not os.path.exists(expected_missing))
 
 
-class TestDownloadFromS3(BaseCase):
+class Download(BaseCase):
     def setUp(self):
         self.project_name = '-test'
         self.s3_backup_bucket = 'elife-app-backups-test'
