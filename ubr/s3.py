@@ -72,8 +72,8 @@ def s3_project_files(bucket, project, strip=True):
     return results
 
 def s3_delete_folder_contents(bucket, path_to_folder):
-    assert path_to_folder and path_to_folder.strip(), "prefix cannot be empty"
-    assert path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted"
+    ensure(path_to_folder and path_to_folder.strip(), "prefix cannot be empty")
+    ensure(path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted")
     paths = []
     listing = s3_conn().list_objects(Bucket=bucket, Prefix=path_to_folder)
     if 'Contents' in listing:
@@ -130,7 +130,7 @@ class ProgressPercentage(object):
 class DownloadProgressPercentage(ProgressPercentage):
     def __init__(self, remote_filename):
         super(DownloadProgressPercentage, self).__init__(remote_filename)
-        assert remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path"
+        ensure(remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path")
         bits = filter(None, remote_filename.split('/'))
         bucket, path = bits[1], "/".join(bits[2:])
         self._size = int(s3_file(bucket, path)['Contents'][0]['Size'])
@@ -176,20 +176,23 @@ def upload_to_s3(bucket, src, dest):
     LOG.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
     inst = ProgressPercentage(src)
     s3_conn().upload_file(src, bucket, dest, Callback=inst)
-    assert inst.done, "failed to complete uploading to s3"
-    assert verify_file(src, bucket, dest), "local file doesn't match results uploaded to s3 (content md5 or content length difference)"
+    ensure(inst.done, "failed to complete uploading to s3")
+    ensure(verify_file(src, bucket, dest),
+               "local file doesn't match results uploaded to s3 (content md5 or content length difference)")
     return dest
 
-def upload_backup(bucket, backup_results, project, hostname):
+def upload_backup(bucket, backup_results, project, hostname, remove=True):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
     these outputs are what is uploaded to s3"""
     upload_targets = [target_results['output'] for target_results in backup_results.values()]
     upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
+
     path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
     # TODO: consider moving this into `main`
-    remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
+    if remove:
+        remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
     return path_list
 
 ##
@@ -219,15 +222,17 @@ def backups(bucket, project, hostname, target, path=None):
         'mysql-database': '.+-mysql.gz',
     }
     filename = lu[target]
-    if path and target == 'mysql':
+    if path and target == 'mysql': # -database':
         filename = path + '-mysql.gz'
     # /FIXME
 
     # get a raw list of all of the backups we have
     backups = filterasf(available_backups, project, hostname, filename)
+
     if not backups:
-        msg = "no backups found for project %r on host %r (using target %r and path %r)"
-        LOG.warning(msg, project, hostname, target, path)
+        msg = "no backups found for project %r on host %r (using target %r and path %r)" % \
+          (project, hostname, target, path)
+        LOG.warning(msg)
         return []
 
     # we have potentially many files at this point

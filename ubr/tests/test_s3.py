@@ -1,12 +1,60 @@
-import os, time
+import os, time, uuid
 from os.path import join
 from ubr import main, mysql_target, s3, tgz_target, utils
 from datetime import datetime
 from base import BaseCase
 
-#
-# uploading backup outputs happens after backups, obviously ;)
-#
+class One(BaseCase):
+    def setUp(self):
+        self.s3_backup_bucket = 'elife-app-backups-test'
+        self.project_name = "_" + str(uuid.uuid4()) # underscore means 'test'
+        self.hostname = 'testmachine'
+
+    def tearDown(self):
+        # destroy contents of s3 project bucket
+        s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
+
+    def test_foo(self):
+        # upload the same two files N times
+        # find the latest uploaded of one
+
+        fake_backup_result = {
+            'mysql-database': {
+                'output': [
+                    join(self.fixture_dir, 'dummy-db1-mysql.gz'),
+                    join(self.fixture_dir, 'dummy-db2-mysql.gz')
+                ]
+            }
+        }
+        fake_backup_result.get('asdf')
+
+        # upload two lots
+        s3.upload_backup(self.s3_backup_bucket, fake_backup_result, self.project_name, self.hostname, remove=False)
+        latest_resp = s3.upload_backup(self.s3_backup_bucket, fake_backup_result, self.project_name, self.hostname, remove=False)
+
+        # we use the latest resp as our expectation
+
+        names = ['dummy-db1-mysql.gz', 'dummy-db2-mysql.gz']
+        latest_resp_idx = dict(zip(names, sorted(latest_resp)))
+        
+        print 'latest resp idx',latest_resp_idx
+
+        # latest_resp ll:
+        # ['_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165224-dummy-db1-mysql.gz',
+        #  '_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165227-dummy-db2-mysql.gz']
+
+        target = 'mysql-database'
+        for name in names:
+            # ll: [(u'dummy-db2-mysql.gz', u'_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165227-dummy-db2-mysql.gz')]
+            given_name, given_path = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target, name)[0]
+            
+            # we asked for the latest backup for 'db1-mysql.gz', we should be given it back
+            self.assertEqual(name, given_name)
+            
+            # the path to 'db1-mysql.gz' should be the same as what was last uploaded
+            self.assertEqual(latest_resp_idx[name], given_path)
+
+
 
 class Upload(BaseCase):
     def setUp(self):
