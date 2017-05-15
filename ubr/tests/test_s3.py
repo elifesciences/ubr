@@ -1,6 +1,6 @@
-import os, shutil, time
+import os, time
 from os.path import join
-from ubr import main, mysql_target, s3, tgz_target
+from ubr import main, mysql_target, s3, tgz_target, utils
 from datetime import datetime
 from base import BaseCase
 
@@ -10,14 +10,13 @@ from base import BaseCase
 
 class Upload(BaseCase):
     def setUp(self):
-        self.expected_output_dir = '/tmp/foo'
+        self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         self.s3_backup_bucket = 'elife-app-backups-test'
         self.project_name = '_test'
         self.hostname = 'testmachine'
 
     def tearDown(self):
-        if os.path.exists(self.expected_output_dir):
-            shutil.rmtree(self.expected_output_dir)
+        self.rmtmpdir()
 
     def test_s3_file_exists(self):
         "we can talk to s3 about the existence of files"
@@ -73,7 +72,7 @@ class Download(BaseCase):
         self.project_name = '-test'
         self.s3_backup_bucket = 'elife-app-backups-test'
         self.hostname = 'testmachine'
-        self.expected_output_dir = '/tmp/foo'
+        self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
 
         mysql_target.create('_test')
@@ -82,6 +81,7 @@ class Download(BaseCase):
     def tearDown(self):
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
         mysql_target.drop('_test')
+        self.rmtmpdir()
 
     def test_download(self):
         "an uploaded file can be downloaded"
@@ -95,7 +95,7 @@ class Download(BaseCase):
         self.assertTrue(s3.s3_file_exists(s3obj))
 
         # download to local
-        expected_destination = join("/tmp/", filename)
+        expected_destination = join(self.expected_output_dir, filename)
         s3.download_from_s3(self.s3_backup_bucket, key, expected_destination)
         self.assertTrue(os.path.exists(expected_destination))
 
@@ -107,18 +107,18 @@ class Download(BaseCase):
         s3obj = s3.s3_file(self.s3_backup_bucket, key)
         self.assertFalse(s3.s3_file_exists(s3obj))
 
-        # download to local
-        expected_destination = join("/tmp/asdf")
-        self.assertRaises(AssertionError, s3.download_from_s3, self.s3_backup_bucket, key, expected_destination)
+        # attempt to download to local
+        self.assertRaises(AssertionError, s3.download_from_s3, self.s3_backup_bucket, key, self.expected_output_dir)
 
     def test_find_latest_file(self):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
-        # do the backup
+        # create the descriptor
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, '*/**')
         paths = [fixture, fixture2]
         descriptor = {'tar-gzipped': paths}
 
+        # backup+upload
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
@@ -199,16 +199,17 @@ class Download(BaseCase):
             self.assertEqual(expected_latest_path, latest_path)
 
     def test_download_latest(self):
+        # create a descriptor
         fixture = os.path.join(self.fixture_dir, 'img1.png')
         fixture2 = os.path.join(self.fixture_dir, 'img2.jpg')
         paths = [fixture, fixture2]
         descriptor = {'tar-gzipped': paths}
 
-        #expected_output_dir = '/tmp/bup/out/'
+        # backup + upload
         results = main.backup(descriptor, output_dir=self.expected_output_dir)
         s3.upload_backup(self.s3_backup_bucket, results, self.project_name, self.hostname)
 
-        expected_download_dir = '/tmp/bup/down/'
+        expected_download_dir = join(self.expected_output_dir, 'down')
         s3.download_latest_backup(expected_download_dir,
                                   self.s3_backup_bucket,
                                   self.project_name,
