@@ -14,6 +14,32 @@ class One(BaseCase):
         # destroy contents of s3 project bucket
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
 
+    def test_filterer(self):
+        # this test needs more love!
+
+        input = [
+            'civicrm/201507/20150731_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
+            'civicrm/201507/20150731_ip-10-0-2-118_230111-ELIFEDRUPAL-mysql.gz',
+            'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
+
+            'civicrm/201508/20150801_ip-10-0-2-118_230108-ELIFECIVICRM-mysql.gz',
+            'civicrm/201508/20150801_ip-10-0-2-118_230112-ELIFEDRUPAL-mysql.gz',
+            'civicrm/201508/20150801_ip-10-0-2-118_230115-archive.tar.gz',
+        ]
+
+        project = "civicrm"
+        host = "ip-10-0-2-118"
+        filename = "archive.tar.gz"
+
+        expected_results = [
+            'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
+            'civicrm/201508/20150801_ip-10-0-2-118_230115-archive.tar.gz',
+        ]
+
+        target = None
+        results = s3.filterasf(input, project, host, target, filename)
+        self.assertEqual(results, expected_results)
+
     def test_foo(self):
         # upload the same two files N times
         # find the latest uploaded of one
@@ -26,34 +52,46 @@ class One(BaseCase):
                 ]
             }
         }
-        fake_backup_result.get('asdf')
 
         # upload two lots
         s3.upload_backup(self.s3_backup_bucket, fake_backup_result, self.project_name, self.hostname, remove=False)
         latest_resp = s3.upload_backup(self.s3_backup_bucket, fake_backup_result, self.project_name, self.hostname, remove=False)
 
-        # we use the latest resp as our expectation
-
-        names = ['dummy-db1-mysql.gz', 'dummy-db2-mysql.gz']
-        latest_resp_idx = dict(zip(names, sorted(latest_resp)))
-        
-        print 'latest resp idx',latest_resp_idx
-
         # latest_resp ll:
         # ['_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165224-dummy-db1-mysql.gz',
         #  '_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165227-dummy-db2-mysql.gz']
 
+        # we use the latest resp as our expectation
+
+        names = ['dummy-db1-mysql.gz', 'dummy-db2-mysql.gz']
+        latest_resp_idx = dict(zip(names, sorted(latest_resp)))
+
+        # latest_resp_idx ll:
+        # {'dummy-db1-mysql.gz': '_8f123b46-3314-4de6-9884-ed70709e00e9/201706/20170606_testmachine_170127-dummy-db1-mysql.gz',
+        #  'dummy-db2-mysql.gz': '_8f123b46-3314-4de6-9884-ed70709e00e9/201706/20170606_testmachine_170130-dummy-db2-mysql.gz'}
+
+        # ensure that both targets (db1, db2) have the correct file returned
+        # when asking for the latest backup
         target = 'mysql-database'
         for name in names:
-            # ll: [(u'dummy-db2-mysql.gz', u'_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165227-dummy-db2-mysql.gz')]
-            given_name, given_path = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target, name)[0]
-            
-            # we asked for the latest backup for 'db1-mysql.gz', we should be given it back
-            self.assertEqual(name, given_name)
-            
-            # the path to 'db1-mysql.gz' should be the same as what was last uploaded
-            self.assertEqual(latest_resp_idx[name], given_path)
+            # 'dummy-db2-mysql.gz', '_d2f9cfe7-3c9b-417b-a535-2b51cc8eba13/201705/20170515_testmachine_165227-dummy-db2-mysql.gz'
+            res = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target, name)
+            self.assertEqual(len(res), 1)
+            returned_name, returned_path = res[0] # the result is a pair of (filename, remote_path_to_filename)
 
+            # we asked for the latest backup for 'db1-mysql.gz', we should be given it back
+            self.assertEqual(name, returned_name, "name given %r is not equal to name returned %r" % (name, returned_name))
+
+            # the path to 'db1-mysql.gz' should be the same as what was last uploaded
+            self.assertEqual(latest_resp_idx[name], returned_path)
+
+        # ensure both targets (db1, db2) are represented when we don't specify a filename
+        res = s3.latest_backups(self.s3_backup_bucket, self.project_name, self.hostname, target) # no path provided
+        self.assertEqual(len(res), 2)
+        self.assertEqual(len(dict(res)), 2)
+
+        for fname, remote_path in res:
+            self.assertTrue(remote_path.endswith(fname))
 
 
 class Upload(BaseCase):
