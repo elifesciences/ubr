@@ -127,5 +127,5 @@ POSTGRESQL = {
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
     #'pass':
     'host': cfg('postgresql.host', 'localhost'),
-    'port': cfg('postgresql.port', 5432),
+    'port': int(cfg('postgresql.port', 5432)),
 }
