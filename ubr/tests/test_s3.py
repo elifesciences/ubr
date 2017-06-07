@@ -14,7 +14,7 @@ class One(BaseCase):
         # destroy contents of s3 project bucket
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
 
-    def test_filterer(self):
+    def test_filter_listing(self):
         # this test needs more love!
 
         input = [
@@ -37,7 +37,7 @@ class One(BaseCase):
         ]
 
         target = None
-        results = s3.filterasf(input, project, host, target, filename)
+        results = s3.filter_listing(input, project, host, target, filename)
         self.assertEqual(results, expected_results)
 
     def test_foo(self):

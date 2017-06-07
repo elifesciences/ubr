@@ -99,12 +99,12 @@ def parse_s3_project_files(bucket, project):
     return parse_path_list(s3_project_files(bucket, project))[project]
 """
 
-def filterasf(file_list, project, host, target=None, filename=''):
+def filter_listing(file_list, project, host, target=None, filename=''):
     if not filename and target:
         # a specific filename was not given, find all files based on target
         lu = {
-            'tar-gzipped': 'archive-.+.tar.gz',
-            'mysql-database': '.+-mysql.gz',
+            'tar-gzipped': 'archive-.+\.tar\.gz',
+            'mysql-database': '.+\-mysql\.gz',
         }
         filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
@@ -227,7 +227,7 @@ def backups(bucket, project, hostname, target, path=None):
     #  u'_e2df12c6-01f4-4ded-a078-a09ad0d4d1e1/201706/20170606_testmachine_171533-dummy-db2-mysql.gz']
 
     # get a raw list of all of the backups we have
-    backups = filterasf(available_backups, project, hostname, target, path)
+    backups = filter_listing(available_backups, project, hostname, target, path)
 
     # if path:
     # [u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173226-dummy-db1-mysql.gz',
