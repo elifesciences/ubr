@@ -123,7 +123,9 @@ class Restore(BaseCase):
         psql.create(self.db)
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
         psql.load(self.db, fixture)
-        self._empty_db()
+
+        psql.runsql(self.db, "delete from table1")
+        self.assertEqual(0, len(list(psql.runsql(self.db, "select * from table1"))))
 
         psql.restore([self.db], self.fixture_dir)
         self.assertEqual(2, len(list(psql.runsql(self.db, "select * from table1"))))
@@ -133,13 +135,9 @@ class Restore(BaseCase):
         psql.create(self.db)
         fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
         psql.load(self.db, fixture)
-        self._empty_db()
+
+        psql.runsql(self.db, "delete from table1")
+        self.assertEqual(0, len(list(psql.runsql(self.db, "select * from table1"))))
 
         psql.load(self.db, fixture, dropdb=True)
         self.assertEqual(2, len(list(psql.runsql(self.db, "select * from table1"))))
-
-    def _empty_db(self):
-        psql.runsql(self.db, "delete from table1")
-        self.assertEqual(0, len(list(psql.runsql(self.db, "select * from table1"))))
-        # we've modified the existing database
-
