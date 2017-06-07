@@ -153,7 +153,7 @@ def adhoc_file_restore(path_list):
         elif target == 'postgresql-database':
             psql_target.load(path, source_file, dropdb=True)
         else:
-            message = "only adhoc mysql file restores are currently handled, not `%s`"
+            message = "only adhoc database restores are currently handled, not `%s`"
             LOG.error(message, target)
             raise RuntimeError(message % target)
 
