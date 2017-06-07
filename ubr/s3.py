@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, re
 import boto3
 from os.path import join
 from datetime import datetime
@@ -72,8 +72,8 @@ def s3_project_files(bucket, project, strip=True):
     return results
 
 def s3_delete_folder_contents(bucket, path_to_folder):
-    assert path_to_folder and path_to_folder.strip(), "prefix cannot be empty"
-    assert path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted"
+    ensure(path_to_folder and path_to_folder.strip(), "prefix cannot be empty")
+    ensure(path_to_folder[0] in ["_", "-", "."], "only test dirs can have their contents deleted")
     paths = []
     listing = s3_conn().list_objects(Bucket=bucket, Prefix=path_to_folder)
     if 'Contents' in listing:
@@ -99,8 +99,14 @@ def parse_s3_project_files(bucket, project):
     return parse_path_list(s3_project_files(bucket, project))[project]
 """
 
-def filterasf(file_list, project, host, filename):
-    import re
+def filter_listing(file_list, project, host, target=None, filename=''):
+    if not filename and target:
+        # a specific filename was not given, find all files based on target
+        lu = {
+            'tar-gzipped': 'archive-.+\.tar\.gz',
+            'mysql-database': '.+\-mysql\.gz',
+        }
+        filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
     cregex = re.compile(regex)
     return filter(cregex.match, file_list)
@@ -130,7 +136,7 @@ class ProgressPercentage(object):
 class DownloadProgressPercentage(ProgressPercentage):
     def __init__(self, remote_filename):
         super(DownloadProgressPercentage, self).__init__(remote_filename)
-        assert remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path"
+        ensure(remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path")
         bits = filter(None, remote_filename.split('/'))
         bucket, path = bits[1], "/".join(bits[2:])
         self._size = int(s3_file(bucket, path)['Contents'][0]['Size'])
@@ -176,20 +182,23 @@ def upload_to_s3(bucket, src, dest):
     LOG.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
     inst = ProgressPercentage(src)
     s3_conn().upload_file(src, bucket, dest, Callback=inst)
-    assert inst.done, "failed to complete uploading to s3"
-    assert verify_file(src, bucket, dest), "local file doesn't match results uploaded to s3 (content md5 or content length difference)"
+    ensure(inst.done, "failed to complete uploading to s3")
+    ensure(verify_file(src, bucket, dest),
+           "local file doesn't match results uploaded to s3 (content md5 or content length difference)")
     return dest
 
-def upload_backup(bucket, backup_results, project, hostname):
+def upload_backup(bucket, backup_results, project, hostname, remove=True):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
     these outputs are what is uploaded to s3"""
     upload_targets = [target_results['output'] for target_results in backup_results.values()]
     upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
+
     path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
     # TODO: consider moving this into `main`
-    remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
+    if remove:
+        remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
     return path_list
 
 ##
@@ -212,61 +221,70 @@ def backups(bucket, project, hostname, target, path=None):
     # TODO: merge this into `s3_project_files` ?
     available_backups = s3_project_files(bucket, project)
 
-    # FIXME: this sort of logic shouldn't live here.
-    # FUTURELUKE: uh huh. where then, past-Luke?
-    lu = {
-        'tar-gzipped': 'archive-.+.tar.gz',
-        'mysql-database': '.+-mysql.gz',
-    }
-    filename = lu[target]
-    if path and target == 'mysql':
-        filename = path + '-mysql.gz'
-    # /FIXME
+    # [u'_e2df12c6-01f4-4ded-a078-a09ad0d4d1e1/201706/20170606_testmachine_171525-dummy-db1-mysql.gz',
+    #  u'_e2df12c6-01f4-4ded-a078-a09ad0d4d1e1/201706/20170606_testmachine_171528-dummy-db2-mysql.gz',
+    #  u'_e2df12c6-01f4-4ded-a078-a09ad0d4d1e1/201706/20170606_testmachine_171530-dummy-db1-mysql.gz',
+    #  u'_e2df12c6-01f4-4ded-a078-a09ad0d4d1e1/201706/20170606_testmachine_171533-dummy-db2-mysql.gz']
 
     # get a raw list of all of the backups we have
-    backups = filterasf(available_backups, project, hostname, filename)
+    backups = filter_listing(available_backups, project, hostname, target, path)
+
+    # if path:
+    # [u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173226-dummy-db1-mysql.gz',
+    #  u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173231-dummy-db1-mysql.gz']
+
+    # if not path:
+    # [u'_154a994f-4b06-4121-829f-0c08ffe496ac/201706/20170606_testmachine_173510-dummy-db1-mysql.gz',
+    #  u'_154a994f-4b06-4121-829f-0c08ffe496ac/201706/20170606_testmachine_173513-dummy-db2-mysql.gz',
+    #  u'_154a994f-4b06-4121-829f-0c08ffe496ac/201706/20170606_testmachine_173515-dummy-db1-mysql.gz',
+    #  u'_154a994f-4b06-4121-829f-0c08ffe496ac/201706/20170606_testmachine_173518-dummy-db2-mysql.gz']
+
     if not backups:
-        msg = "no backups found for project %r on host %r (using target %r and path %r)"
-        LOG.warning(msg, project, hostname, target, path)
+        msg = "no backups found for project %r on host %r (using target %r and path %r)" % \
+            (project, hostname, target, path)
+        LOG.warning(msg)
         return []
 
-    # we have potentially many files at this point
-    # we only want to download the latest ones
-
-    # BUG HERE
-    if path:
-        # a specific file is wanted, easy
-        backups = [backups[-1]]
-
-    # get the date of the last upload and filter everything else out
-    most_recent = backups[-1]
-    prefix = most_recent[:most_recent.index('_')]
-    return filter(lambda p: p.startswith(prefix), backups)
+    return backups
 
 def latest_backups(bucket, project, hostname, target, path=None):
     # there may have been multiple backups
     # figure out the distinct files and return the latest of each
     backup_list = backups(bucket, project, hostname, target, path)
-    mmap = {}
+    if not backup_list:
+        return []
+
+    if path:
+        # a specific file was requested so backups at this point should only be specific files:
+        # [u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173226-dummy-db1-mysql.gz',
+        #  u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173231-dummy-db1-mysql.gz']
+        # and we can return the most recent
+        return [(path, backup_list[-1])]
+
+    # no path was supplied, so we need to find the latest versions of the distinct files uploaded
+    # we can't interrogate a descriptor to find out which files unfortunately
+
+    filename_idx = {}
     for path in backup_list:
-        # path ll: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
+        # split each path into bits and extract the filename (it's the last bit)
 
-        # ll: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
-        key = path.split('_', 2)
+        # path: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
+        # becomes: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
+        bits = path.split('_', 2)
 
-        # ll: u'archive-2a4c0db0.tar.gz'
-        key = key[2].split('-', 1)[1]
+        # ll: 'archive-2a4c0db0.tar.gz'
+        _, filename = bits[-1].split('-', 1)
 
-        if key not in mmap:
-            mmap[key] = []
-        mmap[key].append(path)
+        path_bucket = filename_idx.get(filename, [])
+        path_bucket.append(path)
+        filename_idx[filename] = path_bucket
 
     # we should now have something like {'archive.tar.gz': [
     #    'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
     #    '...']
     # }
 
-    return [(backuptype, sorted(filelist)[-1]) for backuptype, filelist in mmap.items()]
+    return [(backuptype, sorted(pb)[-1]) for backuptype, pb in filename_idx.items()]
 
 def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)
