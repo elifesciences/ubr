@@ -1,3 +1,4 @@
+import boto3
 import os, configparser
 from os.path import join
 import logging
@@ -42,8 +43,8 @@ ROOTLOG.addHandler(_handler)
 ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down
-import boto3
-boto3.set_stream_logger('', logging.CRITICAL)
+loggers = ['boto3', 'botocore', 's3transfer']
+[logger.getLogger(nom).setLevel(logging.CRITICAL) for nom in loggers]
 
 #
 # utils
