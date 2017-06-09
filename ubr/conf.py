@@ -1,4 +1,3 @@
-import boto3
 import os, configparser
 from os.path import join
 import logging
@@ -44,7 +43,7 @@ ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down
 loggers = ['boto3', 'botocore', 's3transfer']
-[logger.getLogger(nom).setLevel(logging.CRITICAL) for nom in loggers]
+[logging.getLogger(nom).setLevel(logging.CRITICAL) for nom in loggers]
 
 #
 # utils
