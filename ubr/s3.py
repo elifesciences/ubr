@@ -248,44 +248,45 @@ def backups(bucket, project, hostname, target, path=None):
 
     return backups
 
-def latest_backups(bucket, project, hostname, target, path=None):
+def latest_backups(bucket, project, hostname, target, backupname=None):
     # there may have been multiple backups
     # figure out the distinct files and return the latest of each
-    backup_list = backups(bucket, project, hostname, target) #, path) # 'path' here is the descriptor path, not the filename
+    backup_list = backups(bucket, project, hostname, target, backupname) # ll: 'dummy-db1-mysql.gz'
     if not backup_list:
         return []
 
-    if path:
+    if backupname:
         # a specific file was requested so backups at this point should only be specific files:
         # [u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173226-dummy-db1-mysql.gz',
         #  u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173231-dummy-db1-mysql.gz']
         # and we can return the most recent
-        return [(path, backup_list[-1])]
+        return [(backupname, backup_list[-1])]
 
     # no path was supplied, so we need to find the latest versions of the distinct files uploaded
     # we can't interrogate a descriptor to find out which files unfortunately
 
     filename_idx = {}
-    for path in backup_list:
+    for s3path in backup_list:
         # split each path into bits and extract the filename (it's the last bit)
 
         # path: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
         # becomes: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
-        bits = path.split('_', 2)
+        bits = s3path.split('_', 2)
 
         # ll: 'archive-2a4c0db0.tar.gz'
-        _, filename = bits[-1].split('-', 1)
+        # or: 'dummy-db1-mysql.gz'
+        _, s3backupname = bits[-1].split('-', 1)
 
-        path_bucket = filename_idx.get(filename, [])
-        path_bucket.append(path)
-        filename_idx[filename] = path_bucket
+        path_bucket = filename_idx.get(s3backupname, [])
+        path_bucket.append(s3path)
+        filename_idx[s3backupname] = path_bucket
 
     # we should now have something like {'archive.tar.gz': [
     #    'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
     #    '...']
     # }
 
-    return [(backuptype, sorted(pb)[-1]) for backuptype, pb in filename_idx.items()]
+    return [(backupnom, sorted(pb)[-1]) for backupnom, pb in filename_idx.items()]
 
 def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)

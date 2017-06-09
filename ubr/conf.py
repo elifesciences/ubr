@@ -38,7 +38,12 @@ _handler = logging.StreamHandler()
 _handler.setLevel(logging.DEBUG)
 _handler.setFormatter(logging.Formatter('%(levelname)s - %(asctime)s - %(message)s'))
 
+_filehandler = logging.FileHandler('ubr.log')
+_filehandler.setFormatter(_formatter)
+_filehandler.setLevel(logging.INFO)
+
 ROOTLOG.addHandler(_handler)
+ROOTLOG.addHandler(_filehandler)
 ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down

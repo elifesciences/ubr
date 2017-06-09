@@ -104,12 +104,12 @@ def load(db, dump_path, dropdb=False, **kwargs):
 
     return utils.system(cmd) == 0
 
-def dumpname(db):
+def backup_name(db):
     "generates a filename for the given db"
     return db + "-mysql.gz" # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz
 
 def dump(db, output_path, **kwargs):
-    output_path = dumpname(output_path)
+    output_path = backup_name(output_path)
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
@@ -152,7 +152,7 @@ def backup(path_list, destination):
 
 def _restore(db, backup_dir):
     try:
-        dump_path = os.path.join(backup_dir, dumpname(db))
+        dump_path = os.path.join(backup_dir, backup_name(db))
         assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
         return (db, load(db, dump_path, dropdb=True))
     except Exception:

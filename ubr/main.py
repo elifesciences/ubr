@@ -1,50 +1,49 @@
 import argparse
 import os, sys
 from os.path import join
-from conf import logging
+import logging
 from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 
 LOG = logging.getLogger(__name__)
-_handler = logging.FileHandler('ubr.log')
-_handler.setFormatter(conf._formatter)
-LOG.addHandler(_handler)
-LOG.setLevel(logging.INFO)
 
-TARGETS = {
-    'backup': {
-        'files': file_target.backup,
-        'tar-gzipped': tgz_target.backup,
-        'mysql-database': mysql_target.backup,
-        'postgresql-database': psql_target.backup,
-    },
+#
+# utils
+#
 
-    'restore': {
-        'files': file_target.restore,
-        'tar-gzipped': tgz_target.restore,
-        'mysql-database': mysql_target.restore,
-        'postgresql-database': psql_target.restore,
-    }
-}
+def getmod(target):
+    return {
+        'postgresql-database': psql_target,
+        'mysql-database': mysql_target,
+        'files': file_target,
+        'tar-gzipped': tgz_target,
+    }[target]
 
-def do(action, target, args, destination):
-    # print 'doing',action,'on',target,'with',args,'at',destination
-    if action not in TARGETS.keys():
-        LOG.warn("unknown action %r - I only know how to do %s", action, ", ".join(TARGETS.keys()))
-        return None
-    if target not in TARGETS[action].keys():
-        LOG.warn("unknown target %r - I only know about %s", target, ", ".join(TARGETS[action].keys()))
-        return None
-    return TARGETS[action][target](args, destination)
+def dofortarget(target, fnom, *args, **kwargs):
+    "given a target like 'mysql-database' and a function name like 'restore', finds the function and calls with remaining args"
+    mod = getmod(target)
+    fn = getattr(mod, fnom, None)
+    if not fn:
+        raise EnvironmentError("module %r (%s) has no function %r" % (mod, target, fnom))
+    return fn(*args, **kwargs)
+
+#
+#
+#
+
+def backup_name(target, path):
+    """returns the result of `module.backup_name(path)`.
+    so, psql_target.backup_name(foo) => foo-psql.tar.gz"""
+    return dofortarget(target, 'backup_name', path)
 
 def backup(descriptor, output_dir):
     "consumes a descriptor and creates backups of each of the target's paths"
-    return {target: do('backup', target, args, output_dir) for target, args in descriptor.items()}
+    return {target: dofortarget(target, 'backup', args, output_dir) for target, args in descriptor.items()}
 
 def restore(descriptor, backup_dir):
     """consumes a descriptor, reading replacements from the given `backup_dir`
     or the most recent datestamped directory"""
-    return {target: do('restore', target, args, backup_dir) for target, args in descriptor.items()}
+    return {target: dofortarget(target, 'restore', args, backup_dir) for target, args in descriptor.items()}
 
 #
 #
@@ -110,7 +109,7 @@ def download_from_s3(hostname=utils.hostname(), path_list=None):
                     project,
                     hostname,
                     target,
-                    path))
+                    backup_name(target, path)))
 
         results.append((descriptor, download_dir))
 
