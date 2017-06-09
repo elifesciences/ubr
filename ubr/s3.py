@@ -105,6 +105,7 @@ def filter_listing(file_list, project, host, target=None, filename=''):
         lu = {
             'tar-gzipped': 'archive-.+\.tar\.gz',
             'mysql-database': '.+\-mysql\.gz',
+            'postgresql-database': '.+\-psql.gz',
         }
         filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
@@ -250,7 +251,7 @@ def backups(bucket, project, hostname, target, path=None):
 def latest_backups(bucket, project, hostname, target, path=None):
     # there may have been multiple backups
     # figure out the distinct files and return the latest of each
-    backup_list = backups(bucket, project, hostname, target, path)
+    backup_list = backups(bucket, project, hostname, target) #, path) # 'path' here is the descriptor path, not the filename
     if not backup_list:
         return []
 
