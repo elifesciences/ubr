@@ -102,14 +102,32 @@ def download_from_s3(hostname=utils.hostname(), path_list=None):
         download_dir = machinedir(hostname, descriptor_path)
         utils.mkdir_p(download_dir)
 
+        # above path_list narrows descriptor down
+        # BUT! if path_list is None, the current descriptor will be read in.
+        # this may have different paths to the hostname we want to download from
+        # for example: prod--lax.elifesciences.org has 'laxprod'
+        #              demo--lax.elifesciences.org has 'laxdemo'
+        # and there will be no results for 'laxdemo' (default) when
+        # 'prod--lax.elifesciences.org' is specified without paths
+
         for target, remote_path_list in descriptor.items():
-            for path in remote_path_list:
+            # explicit paths specified, download exactly what was requested
+            if path_list:
+                for path in remote_path_list:
+                    s3.download_latest_backup(download_dir, *(
+                        conf.BUCKET,
+                        project,
+                        hostname,
+                        target,
+                        path))
+            else:
+                # no paths specified, download all paths for hostname+target
                 s3.download_latest_backup(download_dir, *(
                     conf.BUCKET,
                     project,
                     hostname,
                     target,
-                    path))
+                    None))
 
         results.append((descriptor, download_dir))
 
