@@ -27,6 +27,12 @@ def dofortarget(target, fnom, *args, **kwargs):
         raise EnvironmentError("module %r (%s) has no function %r" % (mod, target, fnom))
     return fn(*args, **kwargs)
 
+def machinedir(hostname, descriptor_path):
+    "returns a path where this machine can deal with this descriptor"
+    # ll: /tmp/ubr/civicrm/crm--prod/
+    # ll: /tmp/ubr/lax/lax--ci/
+    return os.path.join(conf.WORKING_DIR, pname(descriptor_path), hostname)
+
 #
 #
 #
@@ -48,12 +54,6 @@ def restore(descriptor, backup_dir):
 #
 #
 #
-
-def machinedir(hostname, descriptor_path):
-    "returns a path where this machine can deal with this descriptor"
-    # ll: /tmp/ubr/civicrm/crm--prod/
-    # ll: /tmp/ubr/lax/lax--ci/
-    return os.path.join(conf.WORKING_DIR, pname(descriptor_path), hostname)
 
 def backup_to_file(hostname, path_list=None):
     results = []
@@ -109,7 +109,7 @@ def download_from_s3(hostname=utils.hostname(), path_list=None):
                     project,
                     hostname,
                     target,
-                    backup_name(target, path)))
+                    path))
 
         results.append((descriptor, download_dir))
 
@@ -132,7 +132,7 @@ def adhoc_s3_download(path_list):
         try:
             # being adhoc, we can't manage a machinename() call
             download_dir = join(conf.WORKING_DIR, os.path.basename(remote_path))
-            return s3.download_from_s3(conf.BUCKET, remote_path, download_dir)
+            return s3.download(conf.BUCKET, remote_path, download_dir)
         except AssertionError as err:
             LOG.warning(err)
     return map(download, path_list)

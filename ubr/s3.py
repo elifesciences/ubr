@@ -204,7 +204,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
 
 ##
 
-def download_from_s3(bucket, remote_src, local_dest):
+def download(bucket, remote_src, local_dest):
     "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
     remote_src = remote_src.lstrip('/')
     obj = s3_file(bucket, remote_src)
@@ -291,8 +291,9 @@ def latest_backups(bucket, project, hostname, target, backupname=None):
 def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)
     x = []
-    for backuptype, remote_src in backup_list:
-        local_dest = join(to, backuptype)
+    for backupname, remote_src in backup_list:
+        # actung! the 'path or backupname' is switching between using a specific given filename or the one 
+        local_dest = join(to, path or backupname)
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
-        x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
+        x.append(download(bucket, remote_src, local_dest))
     return x

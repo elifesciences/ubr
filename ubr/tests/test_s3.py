@@ -182,7 +182,7 @@ class Download(BaseCase):
 
         # download to local
         expected_destination = join(self.expected_output_dir, filename)
-        s3.download_from_s3(self.s3_backup_bucket, key, expected_destination)
+        s3.download(self.s3_backup_bucket, key, expected_destination)
         self.assertTrue(os.path.exists(expected_destination))
 
     def test_download_nonexistant_file(self):
@@ -194,7 +194,7 @@ class Download(BaseCase):
         self.assertFalse(s3.s3_file_exists(s3obj))
 
         # attempt to download to local
-        self.assertRaises(AssertionError, s3.download_from_s3, self.s3_backup_bucket, key, self.expected_output_dir)
+        self.assertRaises(AssertionError, s3.download, self.s3_backup_bucket, key, self.expected_output_dir)
 
     def test_find_latest_file(self):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
