@@ -215,6 +215,7 @@ def download(bucket, remote_src, local_dest):
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     utils.mkdir_p(os.path.dirname(local_dest))
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
+    return local_dest
 
 
 def backups(bucket, project, hostname, target, path=None):
@@ -292,7 +293,6 @@ def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)
     x = []
     for backupname, remote_src in backup_list:
-        # actung! the 'path or backupname' is switching between using a specific given filename or the one 
         local_dest = join(to, path or backupname)
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
         x.append(download(bucket, remote_src, local_dest))
