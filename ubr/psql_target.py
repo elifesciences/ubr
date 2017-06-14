@@ -174,7 +174,7 @@ def backup_missing_prompt_user(dbname, dump_path):
         # nothing else can be restored, return what we were given
         return dump_path
     # opportunity!
-    other_files = map(lambda fname: join(dump_path, fname), other_files) # full paths
+    other_files = map(lambda fname: join(backup_dir, fname), other_files) # full paths
     print "expected file missing: %s" % dump_path
     print "other files are available to restore over %s" % dbname
     return utils.choose('choose: ', other_files, os.path.basename)
@@ -193,7 +193,7 @@ def _restore(dbname, backup_dir, prompt=False):
         # raise # this is what we should be doing
         return (dbname, False)
 
-def restore(path_list, backup_dir):
+def restore(path_list, backup_dir, prompt=False):
     return {
-        'output': [_restore(db, backup_dir) for db in path_list]
+        'output': [_restore(db, backup_dir, prompt) for db in path_list]
     }
