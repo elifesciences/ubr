@@ -179,7 +179,7 @@ def backup_missing_prompt_user(dbname, dump_path):
     print "other files are available to restore over %s" % dbname
     return utils.choose('choose: ', other_files, os.path.basename)
 
-def _restore(dbname, backup_dir, prompt=False):
+def _restore(dbname, backup_dir, prompt=True):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
         backup_dir = backup_dir or conf.WORKING_DIR
@@ -193,7 +193,7 @@ def _restore(dbname, backup_dir, prompt=False):
         # raise # this is what we should be doing
         return (dbname, False)
 
-def restore(path_list, backup_dir, prompt=False):
+def restore(path_list, backup_dir, prompt=True):
     return {
         'output': [_restore(db, backup_dir, prompt) for db in path_list]
     }
