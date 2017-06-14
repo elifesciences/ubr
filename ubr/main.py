@@ -137,6 +137,7 @@ def restore_from_s3(hostname=utils.hostname(), path_list=None):
     "same as the download action, but then restores the files/databases/whatever to where they came from"
     # download everything first ...
     results = download_from_s3(hostname, path_list)
+    # ll: [({'postgresql-database': ['laxbackfilltest']}, u'/tmp/ubr/lax/prod--lax.elifesciences.org')]
     # ... then restore
     return [restore(descriptor, download_dir) for descriptor, download_dir in results]
 
@@ -181,6 +182,9 @@ def parseargs(args):
     parser.add_argument('location', nargs='?', default='s3', choices=['s3', 'file'], help='am I doing this action from the file system or from S3?')
     parser.add_argument('hostname', nargs='?', default=utils.hostname(), help='if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment')
     parser.add_argument('paths', nargs='*', default=[], help='dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1')
+
+    # should a prompt be issued when necessary?
+    #parser.add_argument('--prompt', nargs='?', action='store_true', default=False)
 
     args = parser.parse_args(args)
 
