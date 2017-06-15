@@ -48,7 +48,7 @@ ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down
 loggers = ['boto3', 'botocore', 's3transfer']
-[logging.getLogger(nom).setLevel(logging.CRITICAL) for nom in loggers]
+[logging.getLogger(nom).setLevel(logging.ERROR) for nom in loggers]
 
 #
 # utils
