@@ -38,12 +38,17 @@ _handler = logging.StreamHandler()
 _handler.setLevel(logging.DEBUG)
 _handler.setFormatter(logging.Formatter('%(levelname)s - %(asctime)s - %(message)s'))
 
+_filehandler = logging.FileHandler('ubr.log')
+_filehandler.setFormatter(_formatter)
+_filehandler.setLevel(logging.INFO)
+
 ROOTLOG.addHandler(_handler)
+ROOTLOG.addHandler(_filehandler)
 ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down
-import boto3
-boto3.set_stream_logger('', logging.CRITICAL)
+loggers = ['boto3', 'botocore', 's3transfer']
+[logging.getLogger(nom).setLevel(logging.ERROR) for nom in loggers]
 
 #
 # utils

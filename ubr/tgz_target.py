@@ -37,7 +37,7 @@ def unpack(archive):
     # not great. check modtime as well?
     return [(f, os.path.isfile(f)) for f in filter(os.path.isfile, file_listing)]
 
-def backup(path_list, destination):
+def backup(path_list, destination, prompt=False):
     """does a regular file_backup and then tars and gzips the results.
     the name of the resulting file is 'archive.tar.gz'"""
     destination = os.path.abspath(destination)
@@ -79,7 +79,7 @@ def backup(path_list, destination):
         'output': [output_path]
     }
 
-def restore(path_list, backup_dir):
+def restore(path_list, backup_dir, prompt=False):
     """assumes a file called 'archive.tar.gz' is in the given directory and that all
     the paths to the files within that tar.gz file are """
     filename = filename_for_paths(path_list)

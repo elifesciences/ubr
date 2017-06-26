@@ -105,6 +105,7 @@ def filter_listing(file_list, project, host, target=None, filename=''):
         lu = {
             'tar-gzipped': 'archive-.+\.tar\.gz',
             'mysql-database': '.+\-mysql\.gz',
+            'postgresql-database': '.+\-psql.gz',
         }
         filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
@@ -203,7 +204,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
 
 ##
 
-def download_from_s3(bucket, remote_src, local_dest):
+def download(bucket, remote_src, local_dest):
     "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
     remote_src = remote_src.lstrip('/')
     obj = s3_file(bucket, remote_src)
@@ -214,6 +215,7 @@ def download_from_s3(bucket, remote_src, local_dest):
     inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     utils.mkdir_p(os.path.dirname(local_dest))
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
+    return local_dest
 
 
 def backups(bucket, project, hostname, target, path=None):
@@ -247,50 +249,51 @@ def backups(bucket, project, hostname, target, path=None):
 
     return backups
 
-def latest_backups(bucket, project, hostname, target, path=None):
+def latest_backups(bucket, project, hostname, target, backupname=None):
     # there may have been multiple backups
     # figure out the distinct files and return the latest of each
-    backup_list = backups(bucket, project, hostname, target, path)
+    backup_list = backups(bucket, project, hostname, target, backupname) # ll: 'dummy-db1-mysql.gz'
     if not backup_list:
         return []
 
-    if path:
+    if backupname:
         # a specific file was requested so backups at this point should only be specific files:
         # [u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173226-dummy-db1-mysql.gz',
         #  u'_8d0ae710-67de-483b-ae9b-3882ed80b656/201706/20170606_testmachine_173231-dummy-db1-mysql.gz']
         # and we can return the most recent
-        return [(path, backup_list[-1])]
+        return [(backupname, backup_list[-1])]
 
     # no path was supplied, so we need to find the latest versions of the distinct files uploaded
     # we can't interrogate a descriptor to find out which files unfortunately
 
     filename_idx = {}
-    for path in backup_list:
+    for s3path in backup_list:
         # split each path into bits and extract the filename (it's the last bit)
 
         # path: u'-test/201701/20170112_testmachine_164429-archive-2a4c0db0.tar.gz'
         # becomes: [u'-test/201701/20170112', u'testmachine', u'164429-archive-2a4c0db0.tar.gz']
-        bits = path.split('_', 2)
+        bits = s3path.split('_', 2)
 
         # ll: 'archive-2a4c0db0.tar.gz'
-        _, filename = bits[-1].split('-', 1)
+        # or: 'dummy-db1-mysql.gz'
+        _, s3backupname = bits[-1].split('-', 1)
 
-        path_bucket = filename_idx.get(filename, [])
-        path_bucket.append(path)
-        filename_idx[filename] = path_bucket
+        path_bucket = filename_idx.get(s3backupname, [])
+        path_bucket.append(s3path)
+        filename_idx[s3backupname] = path_bucket
 
     # we should now have something like {'archive.tar.gz': [
     #    'civicrm/201508/20150731_ip-10-0-2-118_230115-archive.tar.gz',
     #    '...']
     # }
 
-    return [(backuptype, sorted(pb)[-1]) for backuptype, pb in filename_idx.items()]
+    return [(backupnom, sorted(pb)[-1]) for backupnom, pb in filename_idx.items()]
 
 def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)
     x = []
-    for backuptype, remote_src in backup_list:
-        local_dest = join(to, backuptype)
+    for backupname, remote_src in backup_list:
+        local_dest = join(to, path or backupname)
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
-        x.append(download_from_s3(bucket, remote_src, join(to, backuptype)))
+        x.append(download(bucket, remote_src, local_dest))
     return x

@@ -64,7 +64,7 @@ class One(BaseCase):
         s3key = s3.s3_file(self.s3_backup_bucket, results[0][0]) # first path of first target
         self.assertTrue(s3.s3_file_exists(s3key))
 
-class Main(BaseCase):
+class ParseArgs(BaseCase):
     def setUp(self):
         self.patcher = mock.patch('ubr.utils.hostname', return_value='test-machine')
         self.patcher.start()
@@ -74,28 +74,28 @@ class Main(BaseCase):
 
     def test_parseargs_minimal_args(self):
         given = []
-        expected = ['backup', 's3', 'test-machine', []]
+        expected = ['backup', 's3', 'test-machine', [], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_parseargs_two_args(self):
         given = ['restore']
-        expected = ['restore', 's3', 'test-machine', []]
+        expected = ['restore', 's3', 'test-machine', [], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_parseargs_three_args(self):
         given = ['restore', 'file']
-        expected = ['restore', 'file', 'test-machine', []]
+        expected = ['restore', 'file', 'test-machine', [], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_parseargs_four_args(self):
         given = ['restore', 'file', 'example.org']
-        expected = ['restore', 'file', 'example.org', []]
+        expected = ['restore', 'file', 'example.org', [], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_parseargs_five_args(self):
         "optional fifth+ args to specify targets within the descriptor"
         given = ['restore', 'file', 'example.org', 'mysql-database.mydb1']
-        expected = ['restore', 'file', 'example.org', ['mysql-database.mydb1']]
+        expected = ['restore', 'file', 'example.org', ['mysql-database.mydb1'], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_parseargs_five_plus_args(self):
@@ -111,22 +111,22 @@ class Main(BaseCase):
             'mysql-database.mydb1',
             'files./opt/thing/',
             'mysql-database.mydb2',
-        ]]
+        ], False]
         self.assertEqual(main.parseargs(given), expected)
 
     def test_download_args(self):
         cases = [
             # download most recent files for this machine from s3
-            (['download'], ['download', 's3', 'test-machine', []]),
+            (['download'], ['download', 's3', 'test-machine', [], False]),
 
             # same again
-            (['download', 's3'], ['download', 's3', 'test-machine', []]),
+            (['download', 's3'], ['download', 's3', 'test-machine', [], False]),
 
             # download most recent files from the prod machine from s3
-            (['download', 's3', 'prod--test-machine'], ['download', 's3', 'prod--test-machine', []]),
+            (['download', 's3', 'prod--test-machine'], ['download', 's3', 'prod--test-machine', [], False]),
 
             # download just the mysql database 'thing' from the prod machine from s3
-            (['download', 's3', 'prod--test-machine', 'mysql-database.thing'], ['download', 's3', 'prod--test-machine', ['mysql-database.thing']]),
+            (['download', 's3', 'prod--test-machine', 'mysql-database.thing'], ['download', 's3', 'prod--test-machine', ['mysql-database.thing'], False]),
         ]
         for given, expected in cases:
             actual = main.parseargs(given)
@@ -135,15 +135,18 @@ class Main(BaseCase):
     def test_download_bad_args(self):
         bad_cases = [
             # downloading a file from filesystem?
-            (['download', 'file'], ['download', 'file', 'test-machine', []]),
+            (['download', 'file'], ['download', 'file', 'test-machine', [], False]),
         ]
         for given, expected in bad_cases:
             self.assertRaises(SystemExit, main.parseargs, given)
 
     def test_download_adhoc_args(self):
         cases = [
-            (['download', 's3', 'adhoc', '/path/to/uploaded/file.gz'], ['download', 's3', 'adhoc', ['/path/to/uploaded/file.gz']]),
-            (['download', 's3', 'adhoc', '/a/b/c.gz', '/a/b/c/d.gz'], ['download', 's3', 'adhoc', ['/a/b/c.gz', '/a/b/c/d.gz']]),
+            (['download', 's3', 'adhoc', '/path/to/uploaded/file.gz'],
+             ['download', 's3', 'adhoc', ['/path/to/uploaded/file.gz'], False]),
+
+            (['download', 's3', 'adhoc', '/a/b/c.gz', '/a/b/c/d.gz'],
+             ['download', 's3', 'adhoc', ['/a/b/c.gz', '/a/b/c/d.gz'], False]),
         ]
         for given, expected in cases:
             actual = main.parseargs(given)
@@ -156,3 +159,15 @@ class Main(BaseCase):
         ]
         for given in cases:
             self.assertRaises(SystemExit, main.parseargs, given)
+
+    def test_optional_args(self):
+        "optional args dont break parsing"
+        cases = [
+            (['download', 's3', 'test-machine', '--prompt'], ['download', 's3', 'test-machine', [], True]),
+
+            # order matters, but flags can appear at beginning of args as well
+            (['--prompt', 'download', 's3', 'test-machine'], ['download', 's3', 'test-machine', [], True]),
+        ]
+        for given, expected in cases:
+            actual = main.parseargs(given)
+            self.assertEqual(actual, expected)

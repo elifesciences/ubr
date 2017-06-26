@@ -1,3 +1,4 @@
+import sys
 import os, subprocess
 from datetime import datetime
 import errno
@@ -131,6 +132,52 @@ def pairwise(lst):
     # taken from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
     iterator = iter(lst)
     return izip(iterator, iterator)
+
+def enumerated(lst):
+    return dict(zip(range(1, len(lst) + 1), lst))
+
+def isint(x):
+    try:
+        int(x)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+def choose(prompt, choices, label_fn=None):
+    try:
+        if label_fn:
+            labels = zip(choices, map(label_fn, choices)) # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
+        else:
+            labels = zip(choices, choices)
+        idx = enumerated(choices) # ll: {1: /foo/bar/baz, 2: /foo/bar/bup}
+
+        while True:
+            # present menu
+            for i, pair in enumerate(labels):
+                print '%s: %s' % (i + 1, pair[1])
+            print
+
+            # prompt user
+            uin = raw_input(prompt)
+
+            # hygeine
+            if not uin or not uin.strip():
+                print 'a choice is required (ctrl-c to quit)'
+                continue
+            if not isint(uin):
+                print 'a -numeric- choice is required (ctrl-c to quit)'
+                continue
+            uin = int(uin)
+            if uin not in idx:
+                print 'a choice between 1 and %s is required (ctrl-c to quit)' % len(choices)
+                continue
+
+            # all good,
+            return idx[uin]
+
+    except KeyboardInterrupt:
+        print
+        sys.exit(1)
 
 
 from contextlib import contextmanager
