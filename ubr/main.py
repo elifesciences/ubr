@@ -2,6 +2,7 @@ import argparse
 import os, sys
 from os.path import join
 import logging
+from ubr.utils import ensure
 from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 
@@ -12,20 +13,20 @@ LOG = logging.getLogger(__name__)
 #
 
 def getmod(target):
-    return {
+    target_map = {
         'postgresql-database': psql_target,
         'mysql-database': mysql_target,
         'files': file_target,
         'tar-gzipped': tgz_target,
-    }[target]
+    }
+    ensure(target in target_map, "unknown target %r. known targets: %s" % (target, ", ".join(target_map.keys())))
+    return target_map[target]
 
 def dofortarget(target, fnom, *args, **kwargs):
     "given a target like 'mysql-database' and a function name like 'restore', finds the function and calls with remaining args"
     mod = getmod(target)
-    fn = getattr(mod, fnom, None)
-    if not fn:
-        raise EnvironmentError("module %r (%s) has no function %r" % (mod, target, fnom))
-    return fn(*args, **kwargs)
+    ensure(hasattr(mod, fnom), "module %r (%s) has no function %r" % (mod, target, fnom))
+    return getattr(mod, fnom)(*args, **kwargs)
 
 def machinedir(hostname, descriptor_path):
     "returns a path where this machine can deal with this descriptor"
@@ -42,35 +43,35 @@ def backup_name(target, path):
     so, psql_target.backup_name(foo) => foo-psql.tar.gz"""
     return dofortarget(target, 'backup_name', path)
 
-def backup(descriptor, output_dir):
+def backup(descriptor, output_dir, prompt=False):
     "consumes a descriptor and creates backups of each of the target's paths"
-    return {target: dofortarget(target, 'backup', args, output_dir) for target, args in descriptor.items()}
+    return {target: dofortarget(target, 'backup', args, output_dir, prompt) for target, args in descriptor.items()}
 
-def restore(descriptor, backup_dir):
+def restore(descriptor, backup_dir, prompt=False):
     """consumes a descriptor, reading replacements from the given `backup_dir`
     or the most recent datestamped directory"""
-    return {target: dofortarget(target, 'restore', args, backup_dir) for target, args in descriptor.items()}
+    return {target: dofortarget(target, 'restore', args, backup_dir, prompt) for target, args in descriptor.items()}
 
 #
 #
 #
 
-def backup_to_file(hostname, path_list=None):
+def backup_to_file(hostname, path_list=None, prompt=False):
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         descriptor = load_descriptor(descriptor_path, path_list)
         # ll: /tmp/project-name/hostname/somefile.tar.gz
         # ll: /tmp/civicrm/crm--prod/archive-5ea4f412.tar.gz
         backupdir = machinedir(hostname, descriptor_path)
-        results.append(backup(descriptor, backupdir))
+        results.append(backup(descriptor, backupdir, prompt))
     return results
 
-def restore_from_file(hostname, path_list=None):
+def restore_from_file(hostname, path_list=None, prompt=False):
     "restore backups from local files using descriptors"
     def _do(descriptor_path):
         try:
             restore_dir = machinedir(hostname, descriptor_path)
-            return restore(load_descriptor(descriptor_path, path_list), restore_dir)
+            return restore(load_descriptor(descriptor_path, path_list), restore_dir, prompt)
         except ValueError as err:
             if not path_list:
                 raise # this is some other ValueError
@@ -78,18 +79,18 @@ def restore_from_file(hostname, path_list=None):
             LOG.warning("skipping %s: %s" % (descriptor_path, err))
     return map(_do, find_descriptors(conf.DESCRIPTOR_DIR))
 
-def backup_to_s3(hostname=None, path_list=None):
+def backup_to_s3(hostname=None, path_list=None, prompt=False):
     "creates backups using descriptors and then uploads to s3"
     LOG.info("backing up ...")
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         project = pname(descriptor_path)
         backupdir = machinedir(hostname, descriptor_path)
-        backup_results = backup(load_descriptor(descriptor_path, path_list), backupdir)
+        backup_results = backup(load_descriptor(descriptor_path, path_list), backupdir, prompt)
         results.append(s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname()))
     return results
 
-def download_from_s3(hostname=utils.hostname(), path_list=None):
+def download_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
     """by specifying a different hostname, you can download a backup
     from a different machine. Of course you will need that other
     machine's descriptor in /etc/ubr/ ... otherwise it won't know
@@ -133,19 +134,19 @@ def download_from_s3(hostname=utils.hostname(), path_list=None):
 
     return results
 
-def restore_from_s3(hostname=utils.hostname(), path_list=None):
+def restore_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
     "same as the download action, but then restores the files/databases/whatever to where they came from"
     # download everything first ...
     results = download_from_s3(hostname, path_list)
     # ll: [({'postgresql-database': ['laxbackfilltest']}, u'/tmp/ubr/lax/prod--lax.elifesciences.org')]
     # ... then restore
-    return [restore(descriptor, download_dir) for descriptor, download_dir in results]
+    return [restore(descriptor, download_dir, prompt) for descriptor, download_dir in results]
 
 #
 # adhoc
 #
 
-def adhoc_s3_download(path_list):
+def adhoc_s3_download(path_list, prompt=False):
     "connect to s3 and download stuff :)"
     def download(remote_path):
         try:
@@ -156,7 +157,7 @@ def adhoc_s3_download(path_list):
             LOG.warning(err)
     return map(download, path_list)
 
-def adhoc_file_restore(path_list):
+def adhoc_file_restore(path_list, prompt=False):
     for source_file, descriptor_str in utils.pairwise(path_list):
         # descriptor_str looks like: 'mysql-database.somedb'
         # exactly like a single entry in a descriptor file
@@ -184,7 +185,7 @@ def parseargs(args):
     parser.add_argument('paths', nargs='*', default=[], help='dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1')
 
     # should a prompt be issued when necessary?
-    #parser.add_argument('--prompt', nargs='?', action='store_true', default=False)
+    parser.add_argument('--prompt', action='store_true', default=False)
 
     args = parser.parse_args(args)
 
@@ -200,17 +201,17 @@ def parseargs(args):
             if len(args.paths) % 2 != 0:
                 parser.error("an even number of paths is required: [source, target, source, target], etc")
 
-    return [getattr(args, key, None) for key in ['action', 'location', 'hostname', 'paths']]
+    return [getattr(args, key, None) for key in ['action', 'location', 'hostname', 'paths', 'prompt']]
 
 def main(args):
-    action, fromloc, hostname, paths = parseargs(args)
+    action, fromloc, hostname, paths, prompt = parseargs(args)
 
     if hostname == 'adhoc':
         decisions = {
             ('download', 's3'): adhoc_s3_download,
             ('restore', 'file'): adhoc_file_restore,
         }
-        return decisions[(action, fromloc)](paths)
+        return decisions[(action, fromloc)](paths, prompt)
 
     decisions = {
         'backup': {
@@ -225,7 +226,7 @@ def main(args):
             's3': download_from_s3,
         }
     }
-    return decisions[action][fromloc](hostname, paths)
+    return decisions[action][fromloc](hostname, paths, prompt)
 
 
 if __name__ == '__main__':

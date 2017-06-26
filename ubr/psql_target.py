@@ -155,7 +155,7 @@ def _backup(dbname, destination):
     ensure(dump(dbname, output_path), "postgresql database %r backup failed" % dbname)
     return output_path
 
-def backup(path_list, destination=None):
+def backup(path_list, destination=None, prompt=False):
     destination = destination or conf.WORKING_DIR
     destination = os.path.abspath(destination)
     utils.system("mkdir -p %s" % destination)
@@ -179,7 +179,7 @@ def backup_missing_prompt_user(dbname, dump_path):
     print "other files are available to restore over %s" % dbname
     return utils.choose('choose: ', other_files, os.path.basename)
 
-def _restore(dbname, backup_dir, prompt=True):
+def _restore(dbname, backup_dir, prompt):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
         backup_dir = backup_dir or conf.WORKING_DIR

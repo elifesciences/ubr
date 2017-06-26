@@ -139,7 +139,7 @@ def _backup(path, destination):
     output_path = os.path.join(destination, path)
     return dump(path, output_path)
 
-def backup(path_list, destination):
+def backup(path_list, destination, prompt=False):
     "dumps a list of databases and database tables"
     retval = utils.system("mkdir -p %s" % destination)
     if not retval == 0:
@@ -160,7 +160,7 @@ def _restore(db, backup_dir):
         # raise # this is what we should be doing
         return (db, False)
 
-def restore(db_list, backup_dir):
+def restore(db_list, backup_dir, prompt=False):
     return {
         'output': map(lambda db: _restore(db, backup_dir), db_list)
     }
