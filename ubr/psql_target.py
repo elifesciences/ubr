@@ -49,9 +49,17 @@ def drop(dbname):
     kwargs = defaults(dbname)
     return os.system(cmd % kwargs) == 0
 
-def load(dbname, path_to_dump):
+def load(dbname, path_to_dump, dropdb=False):
     # https://www.postgresql.org/docs/8.1/static/backup.html#BACKUP-DUMP-RESTORE
     ensure(os.path.exists(path_to_dump), "no such path: %r" % path_to_dump)
+
+    if dropdb:
+        msg = "failed to drop+create the database prior to loading fixture."
+        assert all([drop(dbname),
+                    not dbexists(dbname),
+                    create(dbname),
+                    dbexists(dbname)]), msg
+
     cmd = """cat %(path_to_dump)s | gunzip | psql \
     --username %(user)s \
     --no-password \
