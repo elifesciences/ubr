@@ -93,6 +93,12 @@ def cfg(path, default=0xDEADBEEF):
     except Exception:
         raise
 
+def envvar(nom, default):
+    return os.environ.get(nom) or default
+
+def var(envname, cfgpath, default):
+    return envvar(envname, None) or cfg(cfgpath, None) or default
+
 #
 # config
 #
@@ -105,7 +111,7 @@ BUCKET = 'elife-app-backups'
 DESCRIPTOR_DIR = '/etc/ubr/'
 
 # where should ubr do it's work? /tmp/ubr/ by default
-WORKING_DIR = join(cfg('general.working_dir', '/tmp'), 'ubr')
+WORKING_DIR = var('UBR_WORKING_DIR', 'general.working_dir', '/tmp') # "/tmp/ubr", "/ext/tmp/ubr"
 
 mkdir_p(WORKING_DIR)
 
