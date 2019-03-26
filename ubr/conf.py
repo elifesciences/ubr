@@ -4,6 +4,9 @@ import logging
 from pythonjsonlogger import jsonlogger
 # from ubr import utils # DONT!
 
+def envvar(nom, default):
+    return os.environ.get(nom) or default
+
 #
 # logging
 #
@@ -71,15 +74,15 @@ def mkdir_p(path):
 #
 
 
-PROJECT_DIR = os.getcwdu() # ll: /path/to/ubr/
+PROJECT_DIR = os.getcwdu() # "/path/to/ubr/"
 
-CFG_NAME = 'app.cfg'
+CFG_NAME = envvar('UBR_CFG_FILE', 'app.cfg')
 DYNCONFIG = configparser.SafeConfigParser(**{
     'allow_no_value': True,
     # these can be used like template variables
     # https://docs.python.org/2/library/configparser.html
     'defaults': {'dir': PROJECT_DIR}})
-DYNCONFIG.read(join(PROJECT_DIR, CFG_NAME)) # ll: /path/to/ubr/app.cfg
+DYNCONFIG.read(join(PROJECT_DIR, CFG_NAME)) # "/path/to/ubr/app.cfg"
 
 def cfg(path, default=0xDEADBEEF):
     lu = {'True': True, 'true': True, 'False': False, 'false': False} # cast any obvious booleans
@@ -93,9 +96,6 @@ def cfg(path, default=0xDEADBEEF):
     except Exception:
         raise
 
-def envvar(nom, default):
-    return os.environ.get(nom) or default
-
 def var(envname, cfgpath, default):
     return envvar(envname, None) or cfg(cfgpath, None) or default
 
@@ -108,7 +108,7 @@ def var(envname, cfgpath, default):
 BUCKET = 'elife-app-backups'
 
 # where should ubr look for backup descriptions?
-DESCRIPTOR_DIR = '/etc/ubr/'
+DESCRIPTOR_DIR = cfg('general.descriptor_dir', '/etc/ubr/')
 
 # where should ubr do it's work? /tmp/ubr/ by default
 WORKING_DIR = join(var('UBR_WORKING_DIR', 'general.working_dir', '/tmp'), 'ubr') # "/tmp/ubr", "/ext/tmp/ubr"
