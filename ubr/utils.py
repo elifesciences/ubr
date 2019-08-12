@@ -47,7 +47,7 @@ def system2(cmd):
     stdout, stderr = process.communicate()
     # return process.returncode, stdout
     LOG.info(stdout)
-    LOG.warn(stderr)
+    LOG.warning(stderr)
     return process.returncode
 
 

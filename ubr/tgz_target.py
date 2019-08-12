@@ -50,7 +50,7 @@ def backup(path_list, destination, prompt=False):
     # this will expand any globs (/home/foo/*.jpg), remove any unreadable files, etc
     expanded_path_list = list(map(os.path.abspath, file_target.wrangle_files(path_list)))
     if not expanded_path_list:
-        LOG.warn("no files to backup for %r" % path_list)
+        LOG.warning("no files to backup for %r" % path_list)
         return {
             'output': []
         }
