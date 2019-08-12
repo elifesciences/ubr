@@ -1,6 +1,6 @@
 import os, tarfile
 from ubr import utils, file_target, conf
-from conf import logging
+from .conf import logging
 import hashlib
 from ubr.utils import ensure
 
@@ -47,7 +47,7 @@ def backup(path_list, destination, prompt=False):
     destination = os.path.join(destination, TMP_SUBDIR) # /tmp/foo/.tgz-tmp
 
     # this will expand any globs (/home/foo/*.jpg), remove any unreadable files, etc
-    expanded_path_list = map(os.path.abspath, file_target.wrangle_files(path_list))
+    expanded_path_list = list(map(os.path.abspath, file_target.wrangle_files(path_list)))
     if not expanded_path_list:
         LOG.warn("no files to backup for %r" % path_list)
         return {

@@ -2,10 +2,10 @@ import sys
 import os, subprocess
 from datetime import datetime
 import errno
-from itertools import takewhile, izip
+from itertools import takewhile
 import compiler.ast
 import hashlib
-from conf import logging
+from .conf import logging
 from functools import reduce
 
 LOG = logging.getLogger(__name__)
@@ -73,13 +73,13 @@ def doall(val, *args):
 
 def list_paths(d):
     "returns a list of full paths in the given directory"
-    return map(lambda f: os.path.join(d, f), os.listdir(d))
+    return [os.path.join(d, f) for f in os.listdir(d)]
 
 def list_paths_recur(d):
     from os.path import join
     file_list = []
     for root, dirs, files in os.walk(d):
-        file_list.extend(map(lambda f: join(root, f), files))
+        file_list.extend([join(root, f) for f in files])
     return file_list
 
 # http://rosettacode.org/wiki/Find_common_directory_path#Python
@@ -91,7 +91,7 @@ def common_prefix(paths, sep='/'):
     """returns the common directory for a list of given paths.
     if only a single path is given, the parent directory is returned.
     if the only common directory is the root directory, then an empty string is returned."""
-    bydirectorylevels = zip(*[p.split(sep) for p in paths])
+    bydirectorylevels = list(zip(*[p.split(sep) for p in paths]))
     common = sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
     if len(paths) == 1:
         return os.path.dirname(common)
@@ -131,10 +131,10 @@ def pairwise(lst):
     # very clever lazy pairwise traversal:
     # taken from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
     iterator = iter(lst)
-    return izip(iterator, iterator)
+    return zip(iterator, iterator)
 
 def enumerated(lst):
-    return dict(zip(range(1, len(lst) + 1), lst))
+    return dict(list(zip(list(range(1, len(lst) + 1)), lst)))
 
 def isint(x):
     try:
@@ -146,37 +146,37 @@ def isint(x):
 def choose(prompt, choices, label_fn=None):
     try:
         if label_fn:
-            labels = zip(choices, map(label_fn, choices)) # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
+            labels = list(zip(choices, list(map(label_fn, choices)))) # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
         else:
-            labels = zip(choices, choices)
+            labels = list(zip(choices, choices))
         idx = enumerated(choices) # ll: {1: /foo/bar/baz, 2: /foo/bar/bup}
 
         while True:
             # present menu
             for i, pair in enumerate(labels):
-                print '%s: %s' % (i + 1, pair[1])
-            print
+                print('%s: %s' % (i + 1, pair[1]))
+            print()
 
             # prompt user
-            uin = raw_input(prompt)
+            uin = input(prompt)
 
             # hygeine
             if not uin or not uin.strip():
-                print 'a choice is required (ctrl-c to quit)'
+                print('a choice is required (ctrl-c to quit)')
                 continue
             if not isint(uin):
-                print 'a -numeric- choice is required (ctrl-c to quit)'
+                print('a -numeric- choice is required (ctrl-c to quit)')
                 continue
             uin = int(uin)
             if uin not in idx:
-                print 'a choice between 1 and %s is required (ctrl-c to quit)' % len(choices)
+                print('a choice between 1 and %s is required (ctrl-c to quit)' % len(choices))
                 continue
 
             # all good,
             return idx[uin]
 
     except KeyboardInterrupt:
-        print
+        print()
         sys.exit(1)
 
 

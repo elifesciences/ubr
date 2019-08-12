@@ -74,7 +74,7 @@ def mkdir_p(path):
 #
 
 
-PROJECT_DIR = os.getcwdu() # "/path/to/ubr/"
+PROJECT_DIR = os.getcwd() # "/path/to/ubr/"
 
 CFG_NAME = envvar('UBR_CFG_FILE', 'app.cfg')
 DYNCONFIG = configparser.SafeConfigParser(**{

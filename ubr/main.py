@@ -19,7 +19,7 @@ def getmod(target):
         'files': file_target,
         'tar-gzipped': tgz_target,
     }
-    ensure(target in target_map, "unknown target %r. known targets: %s" % (target, ", ".join(target_map.keys())))
+    ensure(target in target_map, "unknown target %r. known targets: %s" % (target, ", ".join(list(target_map.keys()))))
     return target_map[target]
 
 def dofortarget(target, fnom, *args, **kwargs):
@@ -77,7 +77,7 @@ def restore_from_file(hostname, path_list=None, prompt=False):
                 raise # this is some other ValueError
             # descriptor doesn't have given path. happens with multiple descriptors typically
             LOG.warning("skipping %s: %s" % (descriptor_path, err))
-    return map(_do, find_descriptors(conf.DESCRIPTOR_DIR))
+    return list(map(_do, find_descriptors(conf.DESCRIPTOR_DIR)))
 
 def backup_to_s3(hostname=None, path_list=None, prompt=False):
     "creates backups using descriptors and then uploads to s3"
@@ -155,7 +155,7 @@ def adhoc_s3_download(path_list, prompt=False):
             return s3.download(conf.BUCKET, remote_path, download_dir)
         except AssertionError as err:
             LOG.warning(err)
-    return map(download, path_list)
+    return list(map(download, path_list))
 
 def adhoc_file_restore(path_list, prompt=False):
     for source_file, descriptor_str in utils.pairwise(path_list):

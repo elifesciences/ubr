@@ -1,7 +1,7 @@
 import os, types
 import pg8000 as pg8k
 from os.path import join
-from base import BaseCase
+from .base import BaseCase
 from ubr import psql_target as psql, conf
 
 class One(BaseCase):
@@ -38,7 +38,7 @@ class Two(BaseCase):
         psql.load(self.db1, fixture)
 
     def tearDown(self):
-        map(psql.drop_if_exists, [self.db1, self.db2])
+        list(map(psql.drop_if_exists, [self.db1, self.db2]))
 
     def test_dbexists(self):
         self.assertTrue(psql.dbexists(self.db1))
@@ -66,7 +66,7 @@ class Two(BaseCase):
         expected_fields = ['field1', 'field2']
         for row in results:
             self.assertTrue(isinstance(row, dict)) # each row in result is a dictionary
-            self.assertItemsEqual(row.keys(), expected_fields)
+            self.assertItemsEqual(list(row.keys()), expected_fields)
 
     def test_runsql_fails_on_missing_database(self):
         "running a query against a missing database raises a error"

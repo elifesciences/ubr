@@ -1,6 +1,6 @@
 import os, shutil, glob2
 from ubr import utils
-from conf import logging
+from .conf import logging
 LOG = logging.getLogger(__name__)
 
 def copy_file(src, dest):
@@ -23,8 +23,8 @@ def expand_path(src):
 
 def wrangle_files(path_list):
     # expand any globs and then flatten the resulting nested structure
-    new_path_list = utils.flatten(map(expand_path, path_list))
-    new_path_list = filter(file_is_valid, new_path_list)
+    new_path_list = utils.flatten(list(map(expand_path, path_list)))
+    new_path_list = list(filter(file_is_valid, new_path_list))
 
     # some adhoc error reporting
     try:
@@ -32,7 +32,7 @@ def wrangle_files(path_list):
         assert len(path_list) == len(new_path_list), msg
     except AssertionError:
         # find the difference and then strip out anything that looks like a glob expr
-        missing = filter(lambda p: '*' not in p, set(path_list) - set(new_path_list))
+        missing = [p for p in set(path_list) - set(new_path_list) if '*' not in p]
         if missing:
             msg = "the following files failed validation and were removed from this backup: %s"
             LOG.error(msg, ", ".join(missing))
@@ -74,5 +74,5 @@ def restore(path_list, backup_dir, prompt=False):
     rsync /tmp/foo/opt/program/uploaded-files/ /opt/program/uploaded-files/
     """
     return {
-        'output': map(lambda p: _restore(p, backup_dir), path_list)
+        'output': [_restore(p, backup_dir) for p in path_list]
     }

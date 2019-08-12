@@ -2,7 +2,7 @@ import os, time, uuid
 from os.path import join
 from ubr import main, mysql_target, s3, tgz_target, utils
 from datetime import datetime
-from base import BaseCase
+from .base import BaseCase
 
 class One(BaseCase):
     def setUp(self):
@@ -64,7 +64,7 @@ class One(BaseCase):
         # we use the latest resp as our expectation
 
         names = ['dummy-db1-mysql.gz', 'dummy-db2-mysql.gz']
-        latest_resp_idx = dict(zip(names, sorted(latest_resp)))
+        latest_resp_idx = dict(list(zip(names, sorted(latest_resp))))
 
         # latest_resp_idx ll:
         # {'dummy-db1-mysql.gz': '_8f123b46-3314-4de6-9884-ed70709e00e9/201706/20170606_testmachine_170127-dummy-db1-mysql.gz',
@@ -300,7 +300,7 @@ class Download(BaseCase):
                                   self.s3_backup_bucket,
                                   self.project_name,
                                   self.hostname,
-                                  descriptor.keys()[0]) # target
+                                  list(descriptor.keys())[0]) # target
 
         filename = tgz_target.filename_for_paths(paths)
         self.assertTrue(os.path.exists(join(expected_download_dir, filename + '.tar.gz')))

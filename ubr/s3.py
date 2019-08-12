@@ -11,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
     "deletes the list of given paths if the path starts with the given root (default /tmp/)."
-    return map(os.unlink, filter(lambda p: p.startswith(rooted_at), filter(os.path.isfile, path_list)))
+    return list(map(os.unlink, [p for p in list(filter(os.path.isfile, path_list)) if p.startswith(rooted_at)]))
 
 
 #
@@ -68,7 +68,7 @@ def s3_project_files(bucket, project, strip=True):
     for page in iterator:
         if strip:
             if 'Contents' in page:
-                results.extend(map(lambda i: i['Key'], page['Contents']))
+                results.extend([i['Key'] for i in page['Contents']])
     return results
 
 def s3_delete_folder_contents(bucket, path_to_folder):
@@ -110,7 +110,7 @@ def filter_listing(file_list, project, host, target=None, filename=''):
         filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()
     cregex = re.compile(regex)
-    return filter(cregex.match, file_list)
+    return list(filter(cregex.match, file_list))
 
 
 class ProgressPercentage(object):
@@ -138,7 +138,7 @@ class DownloadProgressPercentage(ProgressPercentage):
     def __init__(self, remote_filename):
         super(DownloadProgressPercentage, self).__init__(remote_filename)
         ensure(remote_filename.startswith('s3://'), "given filename doesn't look like s3://bucket/some/path")
-        bits = filter(None, remote_filename.split('/'))
+        bits = [_f for _f in remote_filename.split('/') if _f]
         bucket, path = bits[1], "/".join(bits[2:])
         self._size = int(s3_file(bucket, path)['Contents'][0]['Size'])
 
@@ -193,8 +193,8 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
     these outputs are what is uploaded to s3"""
-    upload_targets = [target_results['output'] for target_results in backup_results.values()]
-    upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
+    upload_targets = [target_results['output'] for target_results in list(backup_results.values())]
+    upload_targets = list(filter(os.path.exists, utils.flatten(upload_targets)))
 
     path_list = [upload_to_s3(bucket, src, s3_key(project, hostname, src)) for src in upload_targets]
     # TODO: consider moving this into `main`

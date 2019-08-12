@@ -1,7 +1,7 @@
 import os
 from ubr import main, mysql_target, conf, utils
 from functools import partial
-from base import BaseCase
+from .base import BaseCase
 
 class TestDatabaseBackup(BaseCase):
     def setUp(self):
@@ -47,13 +47,13 @@ class TestDatabaseRestore(BaseCase):
         descriptor = {'mysql-database': [self.project_name]}
         table_test = partial(mysql_target.fetchone, self.project_name, "select count(*) from table2")
 
-        original_expected_result = {u'count(*)': 2}
+        original_expected_result = {'count(*)': 2}
         self.assertEqual(table_test(), original_expected_result)
 
         # backup and modify
         main.backup(descriptor, output_dir=self.expected_output_dir)
         mysql_target.mysql_query(self.project_name, "delete from table2")
-        self.assertEqual(table_test(), {u'count(*)': 0})
+        self.assertEqual(table_test(), {'count(*)': 0})
 
         # restore the db, run the test
         main.restore(descriptor, backup_dir=self.expected_output_dir)
@@ -64,7 +64,7 @@ class TestDatabaseRestore(BaseCase):
         descriptor = {'mysql-database': [self.project_name]}
         table_test = partial(mysql_target.fetchone, self.project_name, "select count(*) from table2")
 
-        original_expected_result = {u'count(*)': 2}
+        original_expected_result = {'count(*)': 2}
         self.assertEqual(table_test(), original_expected_result)
 
         # backup and modify
