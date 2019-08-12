@@ -7,7 +7,7 @@ pyflakes ubr/
 args="$@"
 module=""
 if [ ! -z "$args" ]; then
-    module=".$args"
+    module="$args"
 fi
 
 if [ ! -e test-config ]; then
