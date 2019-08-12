@@ -103,9 +103,9 @@ def filter_listing(file_list, project, host, target=None, filename=''):
     if not filename and target:
         # a specific filename was not given, find all files based on target
         lu = {
-            'tar-gzipped': 'archive-.+\.tar\.gz',
-            'mysql-database': '.+\-mysql\.gz',
-            'postgresql-database': '.+\-psql.gz',
+            'tar-gzipped': r'archive-.+\.tar\.gz',
+            'mysql-database': r'.+\-mysql\.gz',
+            'postgresql-database': r'.+\-psql.gz',
         }
         filename = lu[target]
     regex = r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s" % locals()

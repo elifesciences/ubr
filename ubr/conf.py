@@ -77,7 +77,7 @@ def mkdir_p(path):
 PROJECT_DIR = os.getcwd() # "/path/to/ubr/"
 
 CFG_NAME = envvar('UBR_CFG_FILE', 'app.cfg')
-DYNCONFIG = configparser.SafeConfigParser(**{
+DYNCONFIG = configparser.ConfigParser(**{
     'allow_no_value': True,
     # these can be used like template variables
     # https://docs.python.org/2/library/configparser.html
