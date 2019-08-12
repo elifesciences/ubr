@@ -11,7 +11,8 @@ TMP_SUBDIR = '.tgz-tmp' # this smells
 
 def filename_for_paths(path_list):
     "given a list of filenames, return a predictable string that can be used as a filename"
-    return 'archive-' + hashlib.sha1('|'.join(path_list)).hexdigest()[:8]
+    psv = '|'.join(path_list).encode() # b'/foo/bar.png|/foo/baz.png'
+    return 'archive-' + hashlib.sha1(psv).hexdigest()[:8]
 
 #
 #
