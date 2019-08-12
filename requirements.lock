@@ -6,7 +6,7 @@ boto3==1.9.205
 botocore==1.12.205
 coverage==4.5.4
 docutils==0.14
-glob2==0.5
+glob2==0.7
 importlib-metadata==0.19
 isort==4.3.21
 jmespath==0.9.4
