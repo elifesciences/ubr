@@ -4,5 +4,6 @@
 venv
 test-config
 .coverage
-htmlcov/*
+htmlcov/
 app.cfg
+build/
