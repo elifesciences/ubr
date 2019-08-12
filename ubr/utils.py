@@ -3,14 +3,25 @@ import os, subprocess
 from datetime import datetime
 import errno
 from itertools import takewhile
-import compiler.ast
+#import compiler.ast
+import collections
 import hashlib
 from .conf import logging
 from functools import reduce
 
 LOG = logging.getLogger(__name__)
 
-flatten = compiler.ast.flatten # deprecated, removed in Python3
+# flatten = compiler.ast.flatten # deprecated, removed in Python3
+
+# def flat_gen(x):
+def flatten(x):
+    def iselement(e):
+        return not(isinstance(e, collections.Iterable) and not isinstance(e, str))
+    for el in x:
+        if iselement(el):
+            yield el
+        else:
+            yield from flatten(el)
 
 def unique(lst):
     # http://stackoverflow.com/questions/13757835/make-python-list-unique-in-functional-way-map-reduce-filter

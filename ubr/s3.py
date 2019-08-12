@@ -175,7 +175,7 @@ def verify_file(filename, bucket, key):
         # we're using the convenience function `upload_file` and `download_file`
         # that automatically chooses what method is needed. log the error, but
         # as long as the bytes are identical, I don't mind.
-        LOG.error(e.message)
+        LOG.error(str(e))
 
     return True
 

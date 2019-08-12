@@ -66,7 +66,7 @@ class Two(BaseCase):
         expected_fields = ['field1', 'field2']
         for row in results:
             self.assertTrue(isinstance(row, dict)) # each row in result is a dictionary
-            self.assertItemsEqual(list(row.keys()), expected_fields)
+            self.assertCountEqual(list(row.keys()), expected_fields)
 
     def test_runsql_fails_on_missing_database(self):
         "running a query against a missing database raises a error"

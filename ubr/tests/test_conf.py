@@ -1,5 +1,5 @@
 import os
-import mock
+from unittest import mock
 from ubr import conf
 from .base import BaseCase
 
