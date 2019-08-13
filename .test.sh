@@ -16,4 +16,4 @@ fi
 set -a; source test-config; set +a;
 
 rm -rf build/junit.xml
-pytest "$module" -vvv --cov=ubr --cov-config=.coveragerc --junitxml=build/junit.xml
+pytest "$module" -vvv --cov=ubr --junitxml=build/junit.xml
