@@ -13,23 +13,23 @@ def envvar(nom, default):
 
 ROOTLOG = logging.getLogger("")
 _supported_keys = [
-    #'asctime',
-    #'created',
+    # 'asctime',
+    # 'created',
     'filename',
     'funcName',
     'levelname',
-    #'levelno',
+    # 'levelno',
     'lineno',
     'module',
     'msecs',
     'message',
     'name',
     'pathname',
-    #'process',
-    #'processName',
-    #'relativeCreated',
-    #'thread',
-    #'threadName'
+    # 'process',
+    # 'processName',
+    # 'relativeCreated',
+    # 'thread',
+    # 'threadName'
 ]
 # optional json logging if you need it
 _log_format = ['%({0:s})'.format(i) for i in _supported_keys]
@@ -136,7 +136,7 @@ POSTGRESQL = {
     # you can't use passwords in cli connections to postgresql. it's also not good practice.
     # ubr relies on a ~/.pgpass file existing:
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
-    #'pass':
+    # 'pass':
     'host': cfg('postgresql.host', 'localhost'),
     'port': int(cfg('postgresql.port', 5432)),
 }

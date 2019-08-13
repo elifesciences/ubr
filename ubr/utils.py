@@ -1,3 +1,6 @@
+import shutil
+import tempfile
+from contextlib import contextmanager
 import sys
 import os, subprocess
 from datetime import datetime
@@ -190,10 +193,6 @@ def choose(prompt, choices, label_fn=None):
         print()
         sys.exit(1)
 
-
-from contextlib import contextmanager
-import tempfile
-import shutil
 
 @contextmanager
 def TemporaryDirectory():
