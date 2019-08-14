@@ -6,7 +6,8 @@ import os, subprocess
 from datetime import datetime
 import errno
 from itertools import takewhile
-#import compiler.ast
+
+# import compiler.ast
 import collections
 import hashlib
 from .conf import logging
@@ -19,16 +20,19 @@ LOG = logging.getLogger(__name__)
 # def flat_gen(x):
 def flatten(x):
     def iselement(e):
-        return not(isinstance(e, collections.Iterable) and not isinstance(e, str))
+        return not (isinstance(e, collections.Iterable) and not isinstance(e, str))
+
     for el in x:
         if iselement(el):
             yield el
         else:
             yield from flatten(el)
 
+
 def unique(lst):
     # http://stackoverflow.com/questions/13757835/make-python-list-unique-in-functional-way-map-reduce-filter
     return reduce(lambda x, y: x + [y] if not y in x else x, lst, [])
+
 
 def ensure(assertion, msg, ExceptionClass=AssertionError):
     """intended as a convenient replacement for `assert` statements that
@@ -43,8 +47,9 @@ def system1(cmd):
     LOG.info("return status %s", retval)
     return retval
 
+
 def system2(cmd):
-    args = ['/bin/bash', '-c', cmd]
+    args = ["/bin/bash", "-c", cmd]
     # print args
     process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
@@ -56,18 +61,21 @@ def system2(cmd):
 
 system = system2
 
+
 def mkdir_p(path):
     try:
         os.makedirs(path)
-    except OSError as exc: # Python >2.5
+    except OSError as exc:  # Python >2.5
         if exc.errno == errno.EEXIST and os.path.isdir(path):
             pass
         else:
             LOG.error("problem attempting to create path %s", path)
             raise
 
+
 def dir_exists(p):
     return os.path.exists(p) and os.path.isdir(p)
+
 
 def first(lst):
     try:
@@ -75,8 +83,10 @@ def first(lst):
     except IndexError:
         return None
 
+
 def rest(lst):
     return lst[1:]
+
 
 def doall(val, *args):
     "applies all of the functions given in args to the first val"
@@ -85,23 +95,29 @@ def doall(val, *args):
         return doall(func(val), *rest(args))
     return val
 
+
 def list_paths(d):
     "returns a list of full paths in the given directory"
     return [os.path.join(d, f) for f in os.listdir(d)]
 
+
 def list_paths_recur(d):
     from os.path import join
+
     file_list = []
     for root, dirs, files in os.walk(d):
         file_list.extend([join(root, f) for f in files])
     return file_list
 
+
 # http://rosettacode.org/wiki/Find_common_directory_path#Python
+
 
 def allnamesequal(name):
     return all(n == name[0] for n in name[1:])
 
-def common_prefix(paths, sep='/'):
+
+def common_prefix(paths, sep="/"):
     """returns the common directory for a list of given paths.
     if only a single path is given, the parent directory is returned.
     if the only common directory is the root directory, then an empty string is returned."""
@@ -111,15 +127,19 @@ def common_prefix(paths, sep='/'):
         return os.path.dirname(common)
     return common
 
+
 def ymdhms():
     "returns a UTC datetime stamp as y-m-d--hr-min-sec"
     return datetime.utcnow().strftime("%Y-%m-%d--%H-%M-%S")
 
+
 def hostname():
     import platform
+
     return platform.node()
 
-def generate_file_md5(filename, blocksize=2**20):
+
+def generate_file_md5(filename, blocksize=2 ** 20):
     "http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python"
     m = hashlib.md5()
     with open(filename, "rb") as f:
@@ -129,6 +149,7 @@ def generate_file_md5(filename, blocksize=2**20):
                 break
             m.update(buf)
     return m.hexdigest()
+
 
 def rename_keys(data, keypairs):
     "renames keys in a dictionary. if the replacement is 'None', the key is deleted"
@@ -141,14 +162,17 @@ def rename_keys(data, keypairs):
     del data[old]
     return rename_keys(data, keypairs[1:])
 
+
 def pairwise(lst):
     # very clever lazy pairwise traversal:
     # taken from: http://stackoverflow.com/questions/4628290/pairs-from-single-list
     iterator = iter(lst)
     return zip(iterator, iterator)
 
+
 def enumerated(lst):
     return dict(list(zip(list(range(1, len(lst) + 1)), lst)))
+
 
 def isint(x):
     try:
@@ -157,18 +181,21 @@ def isint(x):
     except (TypeError, ValueError):
         return False
 
+
 def choose(prompt, choices, label_fn=None):
     try:
         if label_fn:
-            labels = list(zip(choices, list(map(label_fn, choices)))) # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
+            labels = list(
+                zip(choices, list(map(label_fn, choices)))
+            )  # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
         else:
             labels = list(zip(choices, choices))
-        idx = enumerated(choices) # ll: {1: /foo/bar/baz, 2: /foo/bar/bup}
+        idx = enumerated(choices)  # ll: {1: /foo/bar/baz, 2: /foo/bar/bup}
 
         while True:
             # present menu
             for i, pair in enumerate(labels):
-                print('%s: %s' % (i + 1, pair[1]))
+                print("%s: %s" % (i + 1, pair[1]))
             print()
 
             # prompt user
@@ -176,14 +203,17 @@ def choose(prompt, choices, label_fn=None):
 
             # hygeine
             if not uin or not uin.strip():
-                print('a choice is required (ctrl-c to quit)')
+                print("a choice is required (ctrl-c to quit)")
                 continue
             if not isint(uin):
-                print('a -numeric- choice is required (ctrl-c to quit)')
+                print("a -numeric- choice is required (ctrl-c to quit)")
                 continue
             uin = int(uin)
             if uin not in idx:
-                print('a choice between 1 and %s is required (ctrl-c to quit)' % len(choices))
+                print(
+                    "a choice between 1 and %s is required (ctrl-c to quit)"
+                    % len(choices)
+                )
                 continue
 
             # all good,
@@ -201,6 +231,7 @@ def TemporaryDirectory():
         yield name
     finally:
         shutil.rmtree(name)
+
 
 def tempdir():
     name = tempfile.mkdtemp()

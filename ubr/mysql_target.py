@@ -6,29 +6,31 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+
 def defaults(db=None, **overrides):
     "default mysql args"
     args = copy.deepcopy(conf.MYSQL)
-    args['dbname'] = db
+    args["dbname"] = db
     args.update(overrides)
-    ensure(args['user'], "a database username *must* be specified")
+    ensure(args["user"], "a database username *must* be specified")
     return args
+
 
 def _pymysql_conn(db=None):
     "returns a database connection to the given db"
-    config = defaults(db, **{
-        'charset': 'utf8mb4',
-        'cursorclass': pymysql.cursors.DictCursor
-    })
+    config = defaults(
+        db, **{"charset": "utf8mb4", "cursorclass": pymysql.cursors.DictCursor}
+    )
     # pymysql-specific wrangling
-    config = utils.rename_keys(config, [('dbname', 'db'), ('pass', 'password')])
+    config = utils.rename_keys(config, [("dbname", "db"), ("pass", "password")])
     # while you can connect to mysqld via mysql fine with the above config, you can't via pymysql.
     # both mysql and pymysql are doing stupid magic tricks behind the scenes when 'localhost' or
     # '127.0.0.1' are encountered.
-    if config['host'] in ['localhost', '127.0.0.1']:
-        config['unix_socket'] = '/var/run/mysqld/mysqld.sock'
+    if config["host"] in ["localhost", "127.0.0.1"]:
+        config["unix_socket"] = "/var/run/mysqld/mysqld.sock"
     LOG.debug("connecting with: %r", config)
     return pymysql.connect(**config)
+
 
 def mysql_query(db, sql, args=()):
     conn = _pymysql_conn(db)
@@ -40,13 +42,16 @@ def mysql_query(db, sql, args=()):
     finally:
         conn.close()
 
+
 def fetchall(db, sql, args=()):
     cursor = mysql_query(db, sql, args)
     return cursor.fetchall()
 
+
 def fetchone(db, sql, args=()):
     cursor = mysql_query(db, sql, args)
     return cursor.fetchone()
+
 
 def dbexists(db):
     "returns True if the given database exists"
@@ -54,24 +59,33 @@ def dbexists(db):
     args = [db]
     cursor = mysql_query(None, sql, args)
     result = cursor.fetchone()
-    return result is not None and 'SCHEMA_NAME' in result and result['SCHEMA_NAME'] == db
+    return (
+        result is not None and "SCHEMA_NAME" in result and result["SCHEMA_NAME"] == db
+    )
+
 
 def mysql_cli_cmd(mysqlcmd, **kwargs):
     "runs very simple commands from the command line against mysql. doesn't handle quoting at all. totally insecure."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd = """mysql \
+    cmd = (
+        """mysql \
     -u %(user)s \
     -p%(pass)s \
     -h %(host)s \
     -P %(port)s \
-    -e '%(mysqlcmd)s'""" % args
+    -e '%(mysqlcmd)s'"""
+        % args
+    )
     return utils.system(cmd)
 
+
 def drop(db, **kwargs):
-    return 0 == mysql_cli_cmd('drop database if exists %s;' % db, **kwargs)
+    return 0 == mysql_cli_cmd("drop database if exists %s;" % db, **kwargs)
+
 
 def create(db, **kwargs):
-    return 0 == mysql_cli_cmd('create database if not exists %s;' % db, **kwargs)
+    return 0 == mysql_cli_cmd("create database if not exists %s;" % db, **kwargs)
+
 
 def load(db, dump_path, dropdb=False, **kwargs):
     LOG.info("loading dump %r into db %r (dropdb=%s)", dump_path, db, dropdb)
@@ -80,40 +94,50 @@ def load(db, dump_path, dropdb=False, **kwargs):
     if dropdb:
         # reset the database before loading the fixture
         msg = "failed to drop+create the database prior to loading fixture."
-        assert all([drop(db, **kwargs),
-                    not dbexists(db),
-                    create(db, **kwargs),
-                    dbexists(db)]), msg
+        assert all(
+            [drop(db, **kwargs), not dbexists(db), create(db, **kwargs), dbexists(db)]
+        ), msg
         LOG.debug("passed assertion check!")
 
-    cmd = """mysql \
+    cmd = (
+        """mysql \
     -u %(user)s \
     -p%(pass)s \
     -h %(host)s \
     -P %(port)s \
-    %(dbname)s < %(path)s""" % args
+    %(dbname)s < %(path)s"""
+        % args
+    )
 
-    if dump_path.endswith('.gz'):
+    if dump_path.endswith(".gz"):
         LOG.info("dealing with a gzipped file")
-        cmd = """zcat %(path)s | mysql \
+        cmd = (
+            """zcat %(path)s | mysql \
         -u %(user)s \
         -p%(pass)s \
         -h %(host)s \
         -P %(port)s \
-        %(dbname)s""" % args
+        %(dbname)s"""
+            % args
+        )
 
     return utils.system(cmd) == 0
 
+
 def backup_name(db):
     "generates a filename for the given db"
-    return db + "-mysql.gz" # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz
+    return (
+        db + "-mysql.gz"
+    )  # looks like: ELIFECIVICRM-mysql.gz  or  /foo/bar/db-mysql.gz
+
 
 def dump(db, output_path, **kwargs):
     output_path = backup_name(output_path)
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
-    cmd = """set -o pipefail
+    cmd = (
+        """set -o pipefail
     mysqldump \
     -u %(user)s \
     -h %(host)s \
@@ -121,16 +145,20 @@ def dump(db, output_path, **kwargs):
     -p%(pass)s \
     --single-transaction \
     --skip-dump-date \
-    %(dbname)s | gzip > %(path)s""" % args
+    %(dbname)s | gzip > %(path)s"""
+        % args
+    )
     retval = utils.system(cmd)
     if not retval == 0:
         # not the best error to be throwing. perhaps a CommandError ?
         raise OSError("bad dump. got return value %s" % retval)
     return output_path
 
+
 #
 #
 #
+
 
 def _backup(path, destination):
     """'path' in MySQL's case is either 'dbname' or 'dbname.table'
@@ -139,28 +167,33 @@ def _backup(path, destination):
     output_path = os.path.join(destination, path)
     return dump(path, output_path)
 
+
 def backup(path_list, destination, prompt=False):
     "dumps a list of databases and database tables"
     retval = utils.system("mkdir -p %s" % destination)
     if not retval == 0:
         # check to see if our intention is there
-        assert os.path.isdir(destination), "given destination %r is not a directory or doesn't exist!" % destination
+        assert os.path.isdir(destination), (
+            "given destination %r is not a directory or doesn't exist!" % destination
+        )
     return {
-        'output_dir': destination,
-        'output': [_backup(p, destination) for p in path_list]
+        "output_dir": destination,
+        "output": [_backup(p, destination) for p in path_list],
     }
+
 
 def _restore(db, backup_dir):
     try:
         dump_path = os.path.join(backup_dir, backup_name(db))
-        assert os.path.isfile(dump_path), "expected path %r does not exist or is not a file." % dump_path
+        assert os.path.isfile(dump_path), (
+            "expected path %r does not exist or is not a file." % dump_path
+        )
         return (db, load(db, dump_path, dropdb=True))
     except Exception:
         LOG.exception("unhandled unexception attempting to restore database %r", db)
         # raise # this is what we should be doing
         return (db, False)
 
+
 def restore(db_list, backup_dir, prompt=False):
-    return {
-        'output': [_restore(db, backup_dir) for db in db_list]
-    }
+    return {"output": [_restore(db, backup_dir) for db in db_list]}
