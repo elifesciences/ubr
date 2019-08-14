@@ -147,7 +147,7 @@ def backup(path_list, destination, prompt=False):
         assert os.path.isdir(destination), "given destination %r is not a directory or doesn't exist!" % destination
     return {
         'output_dir': destination,
-        'output': map(lambda p: _backup(p, destination), path_list)
+        'output': [_backup(p, destination) for p in path_list]
     }
 
 def _restore(db, backup_dir):
@@ -162,5 +162,5 @@ def _restore(db, backup_dir):
 
 def restore(db_list, backup_dir, prompt=False):
     return {
-        'output': map(lambda db: _restore(db, backup_dir), db_list)
+        'output': [_restore(db, backup_dir) for db in db_list]
     }

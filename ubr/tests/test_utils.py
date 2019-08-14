@@ -1,5 +1,5 @@
 from ubr import utils
-from base import BaseCase
+from .base import BaseCase
 
 
 class UtilsTest(BaseCase):

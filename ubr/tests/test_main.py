@@ -1,7 +1,8 @@
-import os, mock
+import os
+from unittest import mock
 from os.path import join
 from ubr import main, utils, psql_target as psql, s3
-from base import BaseCase
+from .base import BaseCase
 
 class One(BaseCase):
     def setUp(self):

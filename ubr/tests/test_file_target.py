@@ -1,6 +1,6 @@
 import os, shutil, tempfile
 from ubr import main, utils, file_target
-from base import BaseCase
+from .base import BaseCase
 
 class TestFileBackup(BaseCase):
     def setUp(self):

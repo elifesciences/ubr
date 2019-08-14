@@ -1,7 +1,7 @@
 import os
 import glob
 from ubr import main, tgz_target
-from base import BaseCase
+from .base import BaseCase
 
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
@@ -50,7 +50,7 @@ class TestTarredGzippedRestore(BaseCase):
 
     def tearDown(self):
         archive_files = glob.glob(os.path.join(self.expected_output_dir, 'archive-*'))
-        map(lambda path: os.system('rm ' + path), archive_files)
+        list(map(lambda path: os.system('rm ' + path), archive_files))
 
     def test_tgz_restore(self):
         "tar-gzipped target unpacks the backup and restores the files"

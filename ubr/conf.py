@@ -13,23 +13,23 @@ def envvar(nom, default):
 
 ROOTLOG = logging.getLogger("")
 _supported_keys = [
-    #'asctime',
-    #'created',
+    # 'asctime',
+    # 'created',
     'filename',
     'funcName',
     'levelname',
-    #'levelno',
+    # 'levelno',
     'lineno',
     'module',
     'msecs',
     'message',
     'name',
     'pathname',
-    #'process',
-    #'processName',
-    #'relativeCreated',
-    #'thread',
-    #'threadName'
+    # 'process',
+    # 'processName',
+    # 'relativeCreated',
+    # 'thread',
+    # 'threadName'
 ]
 # optional json logging if you need it
 _log_format = ['%({0:s})'.format(i) for i in _supported_keys]
@@ -74,10 +74,10 @@ def mkdir_p(path):
 #
 
 
-PROJECT_DIR = os.getcwdu() # "/path/to/ubr/"
+PROJECT_DIR = os.getcwd() # "/path/to/ubr/"
 
 CFG_NAME = envvar('UBR_CFG_FILE', 'app.cfg')
-DYNCONFIG = configparser.SafeConfigParser(**{
+DYNCONFIG = configparser.ConfigParser(**{
     'allow_no_value': True,
     # these can be used like template variables
     # https://docs.python.org/2/library/configparser.html
@@ -136,7 +136,7 @@ POSTGRESQL = {
     # you can't use passwords in cli connections to postgresql. it's also not good practice.
     # ubr relies on a ~/.pgpass file existing:
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
-    #'pass':
+    # 'pass':
     'host': cfg('postgresql.host', 'localhost'),
     'port': int(cfg('postgresql.port', 5432)),
 }

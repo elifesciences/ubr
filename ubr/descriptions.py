@@ -1,10 +1,10 @@
 import os
 from ubr import utils
-from utils import ensure, unique
+from .utils import ensure, unique
 from functools import partial
 import yaml
 from schema import Schema, SchemaError
-from conf import logging
+from .conf import logging
 from functools import reduce
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def subdescriptor(desc, path_list):
                 val = unique(acc[key] + val)
             acc[key] = val
         return acc
-    return reduce(merge, map(partial(_subdesc, desc), path_list))
+    return reduce(merge, list(map(partial(_subdesc, desc), path_list)))
 
 #
 # utils
@@ -62,8 +62,8 @@ def find_descriptors(descriptor_dir):
     "returns a list of descriptors at the given path"
     def expandtoabs(path):
         return utils.doall(path, os.path.expanduser, os.path.abspath)
-    location_list = map(expandtoabs, utils.list_paths(descriptor_dir))
-    return sorted(filter(is_descriptor, filter(os.path.exists, location_list)))
+    location_list = list(map(expandtoabs, utils.list_paths(descriptor_dir)))
+    return sorted(filter(is_descriptor, list(filter(os.path.exists, location_list))))
 
 def validate_descriptor(descriptor):
     "return True if the given descriptor is correctly structured."

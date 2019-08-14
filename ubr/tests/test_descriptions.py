@@ -1,5 +1,5 @@
 import os, shutil
-from base import BaseCase
+from .base import BaseCase
 from ubr import descriptions as descr
 
 class FindDescriptors(BaseCase):

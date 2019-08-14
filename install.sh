@@ -1,19 +1,24 @@
 #!/bin/bash
-# creates virtualenv, installs python dependencies
-# used by other scripts to ensure a working env exists
-set -e
+set -e # everything must succeed.
+echo "[-] install.sh"
 
-if [ ! -d venv ]; then
-    # build venv if one doesn't exist
-    virtualenv --python=`which python2` venv
-fi
+. mkvenv.sh
 
 source venv/bin/activate
 
-# link the default (elife) config if no app.cfg file found
+if [ -e requirements.lock ]; then
+    # just delete the .lock file when you want to recreate it
+    pip install -r requirements.lock
+else
+    pip install -r requirements.txt
+    echo "locking..."
+    pip freeze > requirements.lock
+    echo "wrote 'requirements.lock'"
+fi
+
 if [ ! -e app.cfg ]; then
     echo "* no app.cfg found! using the example settings (elife.cfg) by default."
     ln -s elife.cfg app.cfg
 fi
 
-pip install -r requirements.txt
+echo "[✓] install.sh"

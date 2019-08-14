@@ -1,4 +1,5 @@
 #!/bin/bash
+# assumes activated venv
 set -e
 
 pyflakes ubr/
@@ -6,7 +7,7 @@ pyflakes ubr/
 args="$@"
 module=""
 if [ ! -z "$args" ]; then
-    module=".$args"
+    module="$args"
 fi
 
 if [ ! -e test-config ]; then
@@ -14,4 +15,5 @@ if [ ! -e test-config ]; then
 fi
 set -a; source test-config; set +a;
 
-green ubr"$module" --run-coverage --processes 1 -vv
+rm -rf build/junit.xml
+pytest "$module" -vvv --cov=ubr --junitxml=build/junit.xml
