@@ -4,6 +4,7 @@ from os.path import join
 from .base import BaseCase
 from ubr import psql_target as psql, conf
 
+
 class One(BaseCase):
     def setUp(self):
         pass
@@ -12,29 +13,29 @@ class One(BaseCase):
         pass
 
     def test_backup_name(self):
-        cases = [
-            (123, '123-psql.gz'),
-            ('foo', 'foo-psql.gz'),
-        ]
+        cases = [(123, "123-psql.gz"), ("foo", "foo-psql.gz")]
         for given, expected in cases:
             actual = psql.backup_name(given)
-            self.assertEqual(actual, expected, "given %r I got %r but was expecting %r" % (given, actual, expected))
+            self.assertEqual(
+                actual,
+                expected,
+                "given %r I got %r but was expecting %r" % (given, actual, expected),
+            )
 
     def test_bad_backup_names(self):
         "bad backup names fail noisily"
-        cases = [
-            "", None, [], {},
-        ]
+        cases = ["", None, [], {}]
         for given in cases:
             self.assertRaises(ValueError, psql.backup_name, given)
 
+
 class Two(BaseCase):
     def setUp(self):
-        self.db1, self.db2 = '_ubr_testdb', '_pants-party'
+        self.db1, self.db2 = "_ubr_testdb", "_pants-party"
         psql.create_if_not_exists(self.db1)
         psql.drop_if_exists(self.db2)
 
-        fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
+        fixture = join(self.fixture_dir, "psql_ubr_testdb.psql.gz")
         psql.load(self.db1, fixture)
 
     def tearDown(self):
@@ -62,10 +63,12 @@ class Two(BaseCase):
     def test_runsql(self):
         "running a query yields expected results"
         results = psql.runsql(self.db1, "select * from table1")
-        self.assertTrue(isinstance(results, types.GeneratorType)) # we get a lazy result back
-        expected_fields = ['field1', 'field2']
+        self.assertTrue(
+            isinstance(results, types.GeneratorType)
+        )  # we get a lazy result back
+        expected_fields = ["field1", "field2"]
         for row in results:
-            self.assertTrue(isinstance(row, dict)) # each row in result is a dictionary
+            self.assertTrue(isinstance(row, dict))  # each row in result is a dictionary
             self.assertCountEqual(list(row.keys()), expected_fields)
 
     def test_runsql_fails_on_missing_database(self):
@@ -75,12 +78,12 @@ class Two(BaseCase):
 
 class Backup(BaseCase):
     def setUp(self):
-        self.dbname = '_ubr_testdb'
+        self.dbname = "_ubr_testdb"
         psql.create_if_not_exists(self.dbname)
-        fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
+        fixture = join(self.fixture_dir, "psql_ubr_testdb.psql.gz")
         psql.load(self.dbname, fixture)
 
-        self.backup_dir = conf.WORKING_DIR # TODO: change this temp.dir
+        self.backup_dir = conf.WORKING_DIR  # TODO: change this temp.dir
         self.assertTrue(psql.dbexists(self.dbname))
 
     def tearDown(self):
@@ -94,12 +97,13 @@ class Backup(BaseCase):
 
     def test_backup_db_doesnt_exist(self):
         "a backup request for a database that doesn't exist, never happens"
-        expected = [] # nothing backed up
-        self.assertEqual(expected, psql.backup("foo")['output'])
+        expected = []  # nothing backed up
+        self.assertEqual(expected, psql.backup("foo")["output"])
+
 
 class Restore(BaseCase):
     def setUp(self):
-        self.db = '_ubr_testdb'
+        self.db = "_ubr_testdb"
         psql.drop_if_exists(self.db)
 
     def tearDown(self):
@@ -110,18 +114,14 @@ class Restore(BaseCase):
         # no database
         self.assertFalse(psql.dbexists(self.db))
         # will look for .../fixtures/_ubr_testdb.psql.gz
-        expected = {
-            'output': [
-                (self.db, True),
-            ]
-        }
+        expected = {"output": [(self.db, True)]}
         self.assertEqual(expected, psql.restore([self.db], self.fixture_dir))
         self.assertTrue(psql.dbexists(self.db))
 
     def test_restore_when_db_exists(self):
         "restoring a database drops any existing one"
         psql.create(self.db)
-        fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
+        fixture = join(self.fixture_dir, "psql_ubr_testdb.psql.gz")
         psql.load(self.db, fixture)
 
         psql.runsql(self.db, "delete from table1")
@@ -133,7 +133,7 @@ class Restore(BaseCase):
     def test_load_can_drop_the_existing_db(self):
         "restoring a database drops any existing one"
         psql.create(self.db)
-        fixture = join(self.fixture_dir, 'psql_ubr_testdb.psql.gz')
+        fixture = join(self.fixture_dir, "psql_ubr_testdb.psql.gz")
         psql.load(self.db, fixture)
 
         psql.runsql(self.db, "delete from table1")
