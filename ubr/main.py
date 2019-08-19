@@ -1,3 +1,6 @@
+import json
+import humanize as humanise
+from datetime import datetime, timedelta
 import argparse
 import os, sys
 from os.path import join
@@ -148,12 +151,12 @@ def download_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
             if path_list:
                 for path in remote_path_list:
                     s3.download_latest_backup(
-                        download_dir, *(conf.BUCKET, project, hostname, target, path)
+                        download_dir, conf.BUCKET, project, hostname, target, path
                     )
             else:
                 # no paths specified, download all paths for hostname+target
                 s3.download_latest_backup(
-                    download_dir, *(conf.BUCKET, project, hostname, target, None)
+                    download_dir, conf.BUCKET, project, hostname, target, None
                 )
 
         results.append((descriptor, download_dir))
@@ -212,6 +215,48 @@ def adhoc_file_restore(path_list, prompt=False):
             raise RuntimeError(message % target)
 
 
+# checks
+
+
+def check(hostname, path_list=None):
+    now = datetime.today() + timedelta(days=4)
+    problems = []
+    threshold = 2  # days
+    print(hostname)
+    # for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+    for descriptor_path in ["lax-backup.yaml"]:
+        project = pname(descriptor_path)  # lax
+        descriptor = load_descriptor(
+            descriptor_path, path_list
+        )  # {'postgresql-database': ['lax']}
+        for target, remote_path_list in descriptor.items():
+            latest_for_target = s3.latest_backups(
+                conf.BUCKET, project, hostname, target
+            )
+            for fname, s3_path in latest_for_target:
+                # (-> path (split '/') last (split '_') first))
+                # lax/201908/20190818_prod--lax.elifesciences.org_230323-laxprod-psql.gz => 20190818
+                datebit = s3_path.split("/")[-1].split("_")[0]
+                dtobj = datetime.strptime(datebit, "%Y%m%d")
+                diff = now - dtobj
+                print("* " + fname + ": " + humanise.naturaltime(diff))
+                if diff.days > threshold:
+                    problems.append(
+                        {
+                            hostname: {
+                                fname: s3_path,
+                                "age": dtobj.isoformat(),
+                                "age-in-days": diff.days,
+                            }
+                        }
+                    )
+            print
+    if problems:
+        print("problems")
+        print(json.dumps(problems, indent=4))
+    return problems
+
+
 #
 # bootstrap
 #
@@ -221,27 +266,27 @@ def parseargs(args):
     "accepts a list of arguments and returns a list of validated ones"
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "action",
+        "--action",
         nargs="?",
         default="backup",
-        choices=["backup", "restore", "download"],
+        choices=["check", "check-all", "backup", "restore", "download"],
         help="am I backing things up or restoring them?",
     )
     parser.add_argument(
-        "location",
+        "--location",
         nargs="?",
         default="s3",
         choices=["s3", "file"],
         help="am I doing this action from the file system or from S3?",
     )
     parser.add_argument(
-        "hostname",
+        "--hostname",
         nargs="?",
         default=utils.hostname(),
         help="if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment",
     )
     parser.add_argument(
-        "paths",
+        "--paths",
         nargs="*",
         default=[],
         help="dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1",
@@ -275,8 +320,16 @@ def parseargs(args):
 def main(args):
     action, fromloc, hostname, paths, prompt = parseargs(args)
 
+    if action == "check":
+        exit(len(check(hostname, paths)))
+
+    if action == "check-all":
+        return
+
     if hostname == "adhoc":
+        # only a subset of actions in locations implemented
         decisions = {
+            # ("upload", "s3"): ... # adhoc file uploads to s3 backups bucket would be pretty handy
             ("download", "s3"): adhoc_s3_download,
             ("restore", "file"): adhoc_file_restore,
         }
