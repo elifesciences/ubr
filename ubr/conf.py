@@ -41,7 +41,7 @@ _formatter = jsonlogger.JsonFormatter(_log_format)
 
 # output to stderr
 _handler = logging.StreamHandler()
-_handler.setLevel(logging.DEBUG)
+_handler.setLevel(logging.INFO)
 _handler.setFormatter(logging.Formatter("%(levelname)s - %(asctime)s - %(message)s"))
 
 _filehandler = logging.FileHandler("ubr.log")
