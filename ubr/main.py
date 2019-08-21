@@ -219,6 +219,7 @@ def adhoc_file_restore(path_list, prompt=False):
 
 
 def check(hostname, path_list=None):
+    "checks that self-test backups are happening"
     now = datetime.today() + timedelta(days=4)
     problems = []
     threshold = 2  # days
@@ -256,6 +257,12 @@ def check(hostname, path_list=None):
         print(json.dumps(problems, indent=4))
     return problems
 
+
+def check_all():
+    "test *all* backups are happening"
+    results = s3.all_projects_latest_backups(conf.BUCKET)
+    problems = []
+    return problems
 
 #
 # bootstrap
@@ -324,7 +331,7 @@ def main(args):
         exit(len(check(hostname, paths)))
 
     if action == "check-all":
-        return
+        exit(len(check_all()))
 
     if hostname == "adhoc":
         # only a subset of actions in locations implemented

@@ -29,7 +29,9 @@ def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
 #
 
 
-def s3_conn():
+def s3_conn(resource=False):
+    if resource:
+        return boto3.resource("s3")
     return boto3.client("s3", **conf.AWS)
 
 
@@ -74,6 +76,17 @@ def s3_key(project, hostname, filename, dt=None):
             % locals()
         )
     raise ValueError("given file has no extension.")
+
+def s3_projects(bucket):
+    "returns a list of projects receiving backups"
+    paginator = s3_conn().get_paginator("list_objects")
+    iterator = paginator.paginate(**{"Bucket": bucket, "Delimiter": "/"})
+    results = []
+    for page in iterator.search('CommonPrefixes'): # magic?
+        prefix = page['Prefix']
+        # exclude 'hidden' top level prefixes
+        not prefix.startswith('_') and results.append(prefix.strip('/'))
+    return results
 
 
 def s3_project_files(bucket, project, strip=True):
@@ -120,16 +133,16 @@ def parse_s3_project_files(bucket, project):
     return parse_path_list(s3_project_files(bucket, project))[project]
 """
 
+TARGET_PATTERNS = {
+    "tar-gzipped": r"archive-.+\.tar\.gz",
+    "mysql-database": r".+\-mysql\.gz",
+    "postgresql-database": r".+\-psql.gz",
+}
 
 def filter_listing(file_list, project, host, target=None, filename=""):
     if not filename and target:
         # a specific filename was not given, find all files based on target
-        lu = {
-            "tar-gzipped": r"archive-.+\.tar\.gz",
-            "mysql-database": r".+\-mysql\.gz",
-            "postgresql-database": r".+\-psql.gz",
-        }
-        filename = lu[target]
+        filename = TARGET_PATTERNS[target]
     regex = (
         r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s"
         % locals()
@@ -357,3 +370,28 @@ def download_latest_backup(to, bucket, project, hostname, target, path=None):
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
         x.append(download(bucket, remote_src, local_dest))
     return x
+
+#
+
+def extract_hostnames(path_list):
+    results = []
+    for path in path_list:
+        try:
+            results.append(path.split('_')[1])
+        except Exception as e:
+            print("failed to parse file %r, skipping: %s" % (str(e), path))
+    return set(results)
+
+def all_projects_latest_backups(bucket):
+    results = s3_projects(bucket)
+    for project in results[:1]:
+        print(project)
+        presults = s3_project_files(bucket, project)
+        hostname_list = extract_hostnames(presults)
+        for hostname in hostname_list:
+            print("-",hostname)
+            for target in TARGET_PATTERNS.keys():
+                print("-- %s:" % (target,), latest_backups(bucket, project, hostname, target))
+        print()
+    
+    return results
