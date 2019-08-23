@@ -1,12 +1,18 @@
-import json
-import humanize as humanise
-from datetime import datetime, timedelta
 import argparse
 import os, sys
 from os.path import join
 import logging
 from ubr.utils import ensure
-from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
+from ubr import (
+    conf,
+    utils,
+    s3,
+    mysql_target,
+    file_target,
+    tgz_target,
+    psql_target,
+    report,
+)
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 
 LOG = logging.getLogger(__name__)
@@ -219,50 +225,14 @@ def adhoc_file_restore(path_list, prompt=False):
 
 
 def check(hostname, path_list=None):
-    "checks that self-test backups are happening"
-    now = datetime.today() + timedelta(days=4)
-    problems = []
-    threshold = 2  # days
-    print(hostname)
-    # for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-    for descriptor_path in ["lax-backup.yaml"]:
-        project = pname(descriptor_path)  # lax
-        descriptor = load_descriptor(
-            descriptor_path, path_list
-        )  # {'postgresql-database': ['lax']}
-        for target, remote_path_list in descriptor.items():
-            latest_for_target = s3.latest_backups(
-                conf.BUCKET, project, hostname, target
-            )
-            for fname, s3_path in latest_for_target:
-                # (-> path (split '/') last (split '_') first))
-                # lax/201908/20190818_prod--lax.elifesciences.org_230323-laxprod-psql.gz => 20190818
-                datebit = s3_path.split("/")[-1].split("_")[0]
-                dtobj = datetime.strptime(datebit, "%Y%m%d")
-                diff = now - dtobj
-                print("* " + fname + ": " + humanise.naturaltime(diff))
-                if diff.days > threshold:
-                    problems.append(
-                        {
-                            hostname: {
-                                fname: s3_path,
-                                "age": dtobj.isoformat(),
-                                "age-in-days": diff.days,
-                            }
-                        }
-                    )
-            print
-    if problems:
-        print("problems")
-        print(json.dumps(problems, indent=4))
-    return problems
+    "test this host's backup is happening"
+    return report.check(hostname, path_list)
 
 
 def check_all():
-    "test *all* backups are happening"
-    results = s3.all_projects_latest_backups(conf.BUCKET)
-    problems = []
-    return problems
+    "test *all* host's backups are happening"
+    return report.check_all()
+
 
 #
 # bootstrap
