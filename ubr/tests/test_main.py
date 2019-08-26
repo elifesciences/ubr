@@ -32,7 +32,7 @@ class One(BaseCase):
         # ask to back up to a file
         descriptor = "postgresql-database: [_ubr_testdb]"
         open(join(self.tempdir, "testmachine-backup.yaml"), "w").write(descriptor)
-        results = main.main(["backup", "file"])
+        results = main.main(["--action", "backup", "--location", "file"])
         outputdir = results[0]["postgresql-database"]["output_dir"]
         expected_backup = join(outputdir, psql.backup_name(self.db1))
         self.assertTrue(os.path.exists(expected_backup))
@@ -44,7 +44,7 @@ class One(BaseCase):
         # restore from backup using same descriptor
         descriptor = "postgresql-database: [_ubr_testdb]"
         open(join(self.tempdir, "testmachine-backup.yaml"), "w").write(descriptor)
-        results = main.main(["backup", "file"])
+        results = main.main(["--action", "backup", "--location", "file"])
         outputdir = results[0]["postgresql-database"]["output_dir"]
         expected_backup = join(outputdir, psql.backup_name(self.db1))
         self.assertTrue(os.path.exists(expected_backup))
@@ -62,10 +62,9 @@ class One(BaseCase):
         # ask to back up to a file
         descriptor = "postgresql-database: [_ubr_testdb]"
         open(join(self.tempdir, "testmachine-backup.yaml"), "w").write(descriptor)
-        results = main.main(["backup", "s3"])
-        s3key = s3.s3_file(
-            self.s3_backup_bucket, results[0][0]
-        )  # first path of first target
+        results = main.main(["--action", "backup", "--location", "s3"])
+        # first path of first target
+        s3key = s3.s3_file(self.s3_backup_bucket, results[0][0])
         self.assertTrue(s3.s3_file_exists(s3key))
 
 
@@ -78,56 +77,60 @@ class ParseArgs(BaseCase):
         self.patcher.stop()
 
     def test_parseargs_minimal_args(self):
-        given = []
+        given = ""
         expected = ["backup", "s3", "test-machine", [], False]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_two_args(self):
-        given = ["restore"]
+        given = "--action restore"
         expected = ["restore", "s3", "test-machine", [], False]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_three_args(self):
-        given = ["restore", "file"]
+        given = "--action restore --location file"
         expected = ["restore", "file", "test-machine", [], False]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_four_args(self):
-        given = ["restore", "file", "example.org"]
+        given = "--action restore --location file --hostname example.org"
         expected = ["restore", "file", "example.org", [], False]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_five_args(self):
         "optional fifth+ args to specify targets within the descriptor"
-        given = ["restore", "file", "example.org", "mysql-database.mydb1"]
+        given = "--action restore --location file --hostname example.org --paths mysql-database.mydb1"
         expected = ["restore", "file", "example.org", ["mysql-database.mydb1"], False]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_five_plus_args(self):
         "optional fifth+ args to specify targets within the descriptor"
-        given = ["restore", "file", "example.org"]
-        given += ["mysql-database.mydb1", "files./opt/thing/", "mysql-database.mydb2"]
-        expected = ["restore", "file", "example.org"]
-        expected += [
+        given = "--action restore --location file --hostname example.org --paths mysql-database.mydb1 files./opt/thing/ mysql-database.mydb2"
+        expected = [
+            "restore",
+            "file",
+            "example.org",
             ["mysql-database.mydb1", "files./opt/thing/", "mysql-database.mydb2"],
             False,
         ]
-        self.assertEqual(main.parseargs(given), expected)
+        self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_download_args(self):
         cases = [
             # download most recent files for this machine from s3
-            (["download"], ["download", "s3", "test-machine", [], False]),
+            ("--action download", ["download", "s3", "test-machine", [], False]),
             # same again
-            (["download", "s3"], ["download", "s3", "test-machine", [], False]),
+            (
+                "--action download --location s3",
+                ["download", "s3", "test-machine", [], False],
+            ),
             # download most recent files from the prod machine from s3
             (
-                ["download", "s3", "prod--test-machine"],
+                "--action download --location s3 --hostname prod--test-machine",
                 ["download", "s3", "prod--test-machine", [], False],
             ),
             # download just the mysql database 'thing' from the prod machine from s3
             (
-                ["download", "s3", "prod--test-machine", "mysql-database.thing"],
+                "--action download --location s3 --hostname prod--test-machine --paths mysql-database.thing",
                 [
                     "download",
                     "s3",
@@ -138,7 +141,7 @@ class ParseArgs(BaseCase):
             ),
         ]
         for given, expected in cases:
-            actual = main.parseargs(given)
+            actual = main.parseargs(given.split())
             self.assertEqual(
                 actual,
                 expected,
@@ -148,24 +151,27 @@ class ParseArgs(BaseCase):
     def test_download_bad_args(self):
         bad_cases = [
             # downloading a file from filesystem?
-            (["download", "file"], ["download", "file", "test-machine", [], False])
+            (
+                "--action download --location file",
+                ["download", "file", "test-machine", [], False],
+            )
         ]
         for given, expected in bad_cases:
-            self.assertRaises(SystemExit, main.parseargs, given)
+            self.assertRaises(SystemExit, main.parseargs, given.split())
 
     def test_download_adhoc_args(self):
         cases = [
             (
-                ["download", "s3", "adhoc", "/path/to/uploaded/file.gz"],
+                "--action download --location s3 --hostname adhoc --paths /path/to/uploaded/file.gz",
                 ["download", "s3", "adhoc", ["/path/to/uploaded/file.gz"], False],
             ),
             (
-                ["download", "s3", "adhoc", "/a/b/c.gz", "/a/b/c/d.gz"],
+                "--action download --location s3 --hostname adhoc --paths /a/b/c.gz /a/b/c/d.gz",
                 ["download", "s3", "adhoc", ["/a/b/c.gz", "/a/b/c/d.gz"], False],
             ),
         ]
         for given, expected in cases:
-            actual = main.parseargs(given)
+            actual = main.parseargs(given.split())
             self.assertEqual(
                 actual,
                 expected,
@@ -175,24 +181,24 @@ class ParseArgs(BaseCase):
     def test_download_adhoc_bad_args(self):
         cases = [
             # adhoc download without specifying what to download
-            ["download", "s3", "adhoc"]
+            "--action download --location s3 --hostname adhoc"
         ]
         for given in cases:
-            self.assertRaises(SystemExit, main.parseargs, given)
+            self.assertRaises(SystemExit, main.parseargs, given.split())
 
     def test_optional_args(self):
         "optional args dont break parsing"
         cases = [
             (
-                ["download", "s3", "test-machine", "--prompt"],
+                "--action download --location s3 --hostname test-machine --prompt",
                 ["download", "s3", "test-machine", [], True],
             ),
-            # order matters, but flags can appear at beginning of args as well
+            # flags can appear at beginning of args
             (
-                ["--prompt", "download", "s3", "test-machine"],
+                "--prompt --action download --location s3 --hostname test-machine",
                 ["download", "s3", "test-machine", [], True],
             ),
         ]
         for given, expected in cases:
-            actual = main.parseargs(given)
+            actual = main.parseargs(given.split())
             self.assertEqual(actual, expected)
