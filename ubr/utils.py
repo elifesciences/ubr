@@ -6,8 +6,6 @@ import os, subprocess
 from datetime import datetime
 import errno
 from itertools import takewhile
-
-# import compiler.ast
 import collections
 import hashlib
 from .conf import logging
@@ -52,9 +50,6 @@ def group_by_many(lst, key_list):
     return group
 
 
-# flatten = compiler.ast.flatten # deprecated, removed in Python3
-
-# def flat_gen(x):
 def flatten(x):
     def iselement(e):
         return not (isinstance(e, collections.Iterable) and not isinstance(e, str))

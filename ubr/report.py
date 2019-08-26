@@ -1,7 +1,5 @@
 import re
-import json
 from datetime import datetime
-import os
 import logging
 from ubr.utils import group_by_many, visit
 from ubr import conf, s3
@@ -12,18 +10,11 @@ LOG = logging.getLogger(__name__)
 
 def bucket_contents(bucket):
     "returns a list of all keys in the given bucket"
-    # fname = "/tmp/ubr-s3-cached.json"
-    # if os.path.exists(fname):
-    #    return json.load(open(fname, "r"))
-
     paginator = s3.s3_conn().get_paginator("list_objects")
     iterator = paginator.paginate(**{"Bucket": bucket, "Prefix": ""})
     results = []
     for page in iterator:
         results.extend([i["Key"] for i in page["Contents"]])
-
-    # json.dump(results, open(fname, "w"), indent=4)
-
     return results
 
 
