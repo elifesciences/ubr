@@ -230,7 +230,7 @@ def check(hostname, path_list=None):
 
 
 def check_all():
-    "test *all* host's backups are happening"
+    "test *all* hosts backups are happening"
     return report.check_all()
 
 
@@ -306,7 +306,7 @@ def main(args):
     if hostname == "adhoc":
         # only a subset of actions in locations implemented
         decisions = {
-            # ("upload", "s3"): ... # adhoc file uploads to s3 backups bucket would be pretty handy
+            # ("upload", "s3"): ... # adhoc file uploads to s3 backups bucket would be handy
             ("download", "s3"): adhoc_s3_download,
             ("restore", "file"): adhoc_file_restore,
         }

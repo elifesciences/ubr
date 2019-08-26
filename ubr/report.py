@@ -1,67 +1,13 @@
 import re
 import json
-import humanize as humanise
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 import logging
 from ubr.utils import group_by_many, visit
 from ubr import conf, s3
-from ubr.descriptions import load_descriptor, pname
+from ubr.descriptions import load_descriptor, find_descriptors, pname
 
 LOG = logging.getLogger(__name__)
-
-
-def check(hostname, path_list=None):
-    "checks that self-test backups are happening"
-    now = datetime.today() + timedelta(days=4)
-    problems = []
-    threshold = 2  # days
-    print(hostname)
-    # for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-    for descriptor_path in ["lax-backup.yaml"]:
-        project = pname(descriptor_path)  # lax
-        descriptor = load_descriptor(
-            descriptor_path, path_list
-        )  # {'postgresql-database': ['lax']}
-        for target, remote_path_list in descriptor.items():
-            latest_for_target = s3.latest_backups(
-                conf.BUCKET, project, hostname, target
-            )
-            for fname, s3_path in latest_for_target:
-                # (-> path (split '/') last (split '_') first))
-                # lax/201908/20190818_prod--lax.elifesciences.org_230323-laxprod-psql.gz => 20190818
-                datebit = s3_path.split("/")[-1].split("_")[0]
-                dtobj = datetime.strptime(datebit, "%Y%m%d")
-                diff = now - dtobj
-                print("* " + fname + ": " + humanise.naturaltime(diff))
-                if diff.days > threshold:
-                    problems.append(
-                        {
-                            hostname: {
-                                fname: s3_path,
-                                "age": dtobj.isoformat(),
-                                "age-in-days": diff.days,
-                            }
-                        }
-                    )
-            print
-    if problems:
-        print("problems")
-        print(json.dumps(problems, indent=4))
-    return problems
-
-
-#
-
-
-def extract_hostnames(path_list):
-    results = []
-    for path in path_list:
-        try:
-            results.append(path.split("_")[1])
-        except Exception as e:
-            print("failed to parse file %r, skipping: %s" % (str(e), path))
-    return set(results)
 
 
 def bucket_contents(bucket):
@@ -81,7 +27,7 @@ def bucket_contents(bucket):
     return results
 
 
-def parse_contents(prefix_list):
+def parse_prefix_list(prefix_list):
     splitter = r"(?P<project>.+)\/(?P<ym>\d+)\/(?P<ymd>\d+)_(?P<host>[a-z0-9\.\-]+)_(?P<hms>\d+)\-(?P<filename>.+)$"
     splitter = re.compile(splitter)
     results = []
@@ -94,28 +40,9 @@ def parse_contents(prefix_list):
     return results
 
 
-def print_report(backup_list):
-    "given a list of backups, prints it's details"
-    result = group_by_many(backup_list, ["project", "host", "filename"])
-    for project, hosts in result.items():
-        print(project)
-        for host, files in hosts.items():
-            print(" ", host)
-            for filename, backup in files.items():
-                print("   ", filename, ": ", backup[0]["ymd"])  # why is this a list? ..
-
-
-def all_projects_latest_backups_by_host_and_filename(bucket):
-    prefix_list = bucket_contents(bucket)
-    parsed_prefix_list = parse_contents(prefix_list)
-
-    # TODO: stick in conf
-    project_blacklist = ["civicrm"]
-    file_blacklist = [
-        "archive-d162efcb.tar.gz",  # elife-metrics, old-style backup
-        "archive-b40e0f85.tar.gz",  # journal-cms, old-style backup
-        "elifedashboardprod-psql.gz",  # elife-dashboard, old-style backup
-    ]
+def filter_backup_list(backup_list):
+    project_blacklist = conf.REPORT_PROJECT_BLACKLIST
+    file_blacklist = conf.REPORT_FILE_BLACKLIST
     # we want to target only working machines and ignore test/retired/etc projects
     def cond(backup):
         return (
@@ -125,11 +52,17 @@ def all_projects_latest_backups_by_host_and_filename(bucket):
             and backup["filename"] not in file_blacklist
         )
 
-    result = filter(cond, parsed_prefix_list)
+    return filter(cond, backup_list)
+
+
+def all_projects_latest_backups_by_host_and_filename(bucket):
+    prefix_list = bucket_contents(bucket)
+    backup_list = parse_prefix_list(prefix_list)
+    backup_list = filter_backup_list(backup_list)
 
     # we want a list of the backups for each of the targets
     # {project: {host: {filename: [item-list]}}}
-    result = group_by_many(result, ["project", "host", "filename"])
+    backup_list = group_by_many(backup_list, ["project", "host", "filename"])
 
     # we want to transform the deeply nested struct above to retain only the most recent
     # backup. the leaves are sorted lists in ascending order, least to most recent
@@ -141,17 +74,41 @@ def all_projects_latest_backups_by_host_and_filename(bucket):
         return lst[-1]
 
     # {project: {host: {filename: latest-item}}}
-    return visit(result, apply_to_backup, most_recent_backup)
+    return visit(backup_list, apply_to_backup, most_recent_backup)
+
+
+def dtobj_from_backup(backup):
+    "given a backup struct, returns a datetime object"
+    dtstr = backup["ymd"] + backup["hms"]
+    return datetime.strptime(dtstr, "%Y%m%d%H%M%S")
 
 
 def old_backup(backup):
-    dtobj = datetime.strptime(backup["ymd"], "%Y%m%d")
+    "predicate, returns true if given backup is 'old' (older than 2 days)"
+    dtobj = dtobj_from_backup(backup)
     diff = datetime.now() - dtobj
     threshold = 2  # days
     return diff.days > threshold
 
 
+#
+
+
+def print_report(backup_list):
+    "given a list of backups, prints it's details"
+    result = group_by_many(backup_list, ["project", "host", "filename"])
+    for project, hosts in result.items():
+        print(project)
+        for host, files in hosts.items():
+            print(" ", host)
+            for filename, backup in files.items():
+                backup = backup[0]  # why is this a list ... ?
+                ppdt = dtobj_from_backup(backup)
+                print("   %s: %s" % (filename, ppdt))
+
+
 def check_all():
+    "check all project that backups are happening"
     results = all_projects_latest_backups_by_host_and_filename(conf.BUCKET)
     problems = []
     for project, hosts in results.items():
@@ -159,5 +116,28 @@ def check_all():
             for filename, backup in files.items():
                 old_backup(backup) and problems.append(backup)
                 # problems.append(backup)
+    problems and print_report(problems)
+    return problems
+
+
+def check(hostname, path_list=None):
+    "check self that backups are happening"
+    problems = []
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+        # 'lax'
+        project = pname(descriptor_path)
+        # {'postgresql-database': ['lax']}
+        descriptor = load_descriptor(descriptor_path, path_list)
+        for target, remote_path_list in descriptor.items():
+            # [('laxprod-psql.gz', 'lax/201908/20190825_prod--lax.elifesciences.org_230337-laxprod-psql.gz')
+            #  ('laxprod-archive.tar.gz', ' 'lax/201908/20190825_prod--lax.elifesciences.org_230337-laxprod-psql.gz')]
+            latest_for_target = s3.latest_backups(
+                conf.BUCKET, project, hostname, target
+            )
+            path_list = [s3_path for fname, s3_path in latest_for_target]
+            backup_list = parse_prefix_list(path_list)
+            for backup in backup_list:
+                # old_backup(backup) and problems.append(backup)
+                problems.append(backup)
     problems and print_report(problems)
     return problems

@@ -163,3 +163,14 @@ POSTGRESQL = {
     "host": cfg("postgresql.host", "localhost"),
     "port": int(cfg("postgresql.port", 5432)),
 }
+
+# ignore these specific projects when reporting
+# (projects with an "_" prefix are automatically ignored
+REPORT_PROJECT_BLACKLIST = ["civicrm"]
+
+# ignore these specific files when reporting
+REPORT_FILE_BLACKLIST = [
+    "archive-d162efcb.tar.gz",  # elife-metrics, old-style backup
+    "archive-b40e0f85.tar.gz",  # journal-cms, old-style backup
+    "elifedashboardprod-psql.gz",  # elife-dashboard, old-style backup
+]
