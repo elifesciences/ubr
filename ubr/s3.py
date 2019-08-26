@@ -29,9 +29,7 @@ def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
 #
 
 
-def s3_conn(resource=False):
-    if resource:
-        return boto3.resource("s3")
+def s3_conn():
     return boto3.client("s3", **conf.AWS)
 
 
