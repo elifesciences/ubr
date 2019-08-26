@@ -52,7 +52,7 @@ class One(BaseCase):
         psql.drop(self.db1)
         self.assertFalse(psql.dbexists(self.db1))
 
-        main.main(["restore", "file"])
+        main.main(["--action", "restore", "--location", "file"])
         self.assertTrue(psql.dbexists(self.db1))
 
     # to/from s3
