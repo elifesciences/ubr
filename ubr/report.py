@@ -133,7 +133,7 @@ def check(hostname, path_list=None):
             path_list = [s3_path for fname, s3_path in latest_for_target]
             backup_list = parse_prefix_list(path_list)
             for backup in backup_list:
-                # old_backup(backup) and problems.append(backup)
-                problems.append(backup)
+                old_backup(backup) and problems.append(backup)
+                #problems.append(backup)
     problems and print_report(problems)
     return problems
