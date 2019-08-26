@@ -12,9 +12,9 @@ LOG = logging.getLogger(__name__)
 
 def bucket_contents(bucket):
     "returns a list of all keys in the given bucket"
-    fname = "/tmp/ubr-s3-cached.json"
-    if os.path.exists(fname):
-        return json.load(open(fname, "r"))
+    # fname = "/tmp/ubr-s3-cached.json"
+    # if os.path.exists(fname):
+    #    return json.load(open(fname, "r"))
 
     paginator = s3.s3_conn().get_paginator("list_objects")
     iterator = paginator.paginate(**{"Bucket": bucket, "Prefix": ""})
@@ -22,12 +22,13 @@ def bucket_contents(bucket):
     for page in iterator:
         results.extend([i["Key"] for i in page["Contents"]])
 
-    json.dump(results, open(fname, "w"), indent=4)
+    # json.dump(results, open(fname, "w"), indent=4)
 
     return results
 
 
 def parse_prefix_list(prefix_list):
+    "splits a bucket prefix-path into a map of data"
     splitter = r"(?P<project>.+)\/(?P<ym>\d+)\/(?P<ymd>\d+)_(?P<host>[a-z0-9\.\-]+)_(?P<hms>\d+)\-(?P<filename>.+)$"
     splitter = re.compile(splitter)
     results = []
@@ -41,6 +42,7 @@ def parse_prefix_list(prefix_list):
 
 
 def filter_backup_list(backup_list):
+    "filters the given list of backups, excluding 'hidden' backups, non-production backups and projects/files that are on a blacklist configured in conf.py"
     project_blacklist = conf.REPORT_PROJECT_BLACKLIST
     file_blacklist = conf.REPORT_FILE_BLACKLIST
     # we want to target only working machines and ignore test/retired/etc projects
@@ -56,6 +58,9 @@ def filter_backup_list(backup_list):
 
 
 def all_projects_latest_backups_by_host_and_filename(bucket):
+    "returns a nested map of the most recent backup for each project+host+filename"
+    # this function by itself is really insightful.
+    # perhaps have it accept a list of backups rather than creating one itself?
     prefix_list = bucket_contents(bucket)
     backup_list = parse_prefix_list(prefix_list)
     backup_list = filter_backup_list(backup_list)
