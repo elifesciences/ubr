@@ -83,7 +83,7 @@ def old_backup(backup):
     "predicate, returns true if given backup is 'old' (older than 2 days)"
     dtobj = dtobj_from_backup(backup)
     diff = datetime.now() - dtobj
-    threshold = 2  # days
+    threshold = conf.REPORT_PROBLEM_THRESHOLD
     return diff.days > threshold
 
 

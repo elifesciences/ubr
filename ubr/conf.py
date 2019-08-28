@@ -174,3 +174,6 @@ REPORT_FILE_BLACKLIST = [
     "archive-b40e0f85.tar.gz",  # journal-cms, old-style backup
     "elifedashboardprod-psql.gz",  # elife-dashboard, old-style backup
 ]
+
+# number of days between now and the last backup before it's considered a problem
+REPORT_PROBLEM_THRESHOLD = 2 # days
