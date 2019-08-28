@@ -3,7 +3,16 @@ import os, sys
 from os.path import join
 import logging
 from ubr.utils import ensure
-from ubr import conf, utils, s3, mysql_target, file_target, tgz_target, psql_target
+from ubr import (
+    conf,
+    utils,
+    s3,
+    mysql_target,
+    file_target,
+    tgz_target,
+    psql_target,
+    report,
+)
 from ubr.descriptions import load_descriptor, find_descriptors, pname
 
 LOG = logging.getLogger(__name__)
@@ -148,12 +157,12 @@ def download_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
             if path_list:
                 for path in remote_path_list:
                     s3.download_latest_backup(
-                        download_dir, *(conf.BUCKET, project, hostname, target, path)
+                        download_dir, conf.BUCKET, project, hostname, target, path
                     )
             else:
                 # no paths specified, download all paths for hostname+target
                 s3.download_latest_backup(
-                    download_dir, *(conf.BUCKET, project, hostname, target, None)
+                    download_dir, conf.BUCKET, project, hostname, target, None
                 )
 
         results.append((descriptor, download_dir))
@@ -212,6 +221,19 @@ def adhoc_file_restore(path_list, prompt=False):
             raise RuntimeError(message % target)
 
 
+# checks
+
+
+def check(hostname, path_list=None):
+    "test this host's backup is happening"
+    return report.check(hostname, path_list)
+
+
+def check_all():
+    "test *all* hosts backups are happening"
+    return report.check_all()
+
+
 #
 # bootstrap
 #
@@ -221,27 +243,27 @@ def parseargs(args):
     "accepts a list of arguments and returns a list of validated ones"
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "action",
+        "--action",
         nargs="?",
         default="backup",
-        choices=["backup", "restore", "download"],
+        choices=["check", "check-all", "backup", "restore", "download"],
         help="am I backing things up or restoring them?",
     )
     parser.add_argument(
-        "location",
+        "--location",
         nargs="?",
         default="s3",
         choices=["s3", "file"],
         help="am I doing this action from the file system or from S3?",
     )
     parser.add_argument(
-        "hostname",
+        "--hostname",
         nargs="?",
         default=utils.hostname(),
         help="if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment",
     )
     parser.add_argument(
-        "paths",
+        "--paths",
         nargs="*",
         default=[],
         help="dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1",
@@ -275,8 +297,16 @@ def parseargs(args):
 def main(args):
     action, fromloc, hostname, paths, prompt = parseargs(args)
 
+    if action == "check":
+        exit(len(check(hostname, paths)))
+
+    if action == "check-all":
+        exit(len(check_all()))
+
     if hostname == "adhoc":
+        # only a subset of actions in locations implemented
         decisions = {
+            # ("upload", "s3"): ... # adhoc file uploads to s3 backups bucket would be handy
             ("download", "s3"): adhoc_s3_download,
             ("restore", "file"): adhoc_file_restore,
         }

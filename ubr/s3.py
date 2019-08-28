@@ -120,16 +120,17 @@ def parse_s3_project_files(bucket, project):
     return parse_path_list(s3_project_files(bucket, project))[project]
 """
 
+TARGET_PATTERNS = {
+    "tar-gzipped": r"archive-.+\.tar\.gz",
+    "mysql-database": r".+\-mysql\.gz",
+    "postgresql-database": r".+\-psql.gz",
+}
+
 
 def filter_listing(file_list, project, host, target=None, filename=""):
     if not filename and target:
         # a specific filename was not given, find all files based on target
-        lu = {
-            "tar-gzipped": r"archive-.+\.tar\.gz",
-            "mysql-database": r".+\-mysql\.gz",
-            "postgresql-database": r".+\-psql.gz",
-        }
-        filename = lu[target]
+        filename = TARGET_PATTERNS[target]
     regex = (
         r"%(project)s/(?P<ym>\d+)/(?P<ymd>\d+)_%(host)s_(?P<hms>\d+)\-%(filename)s"
         % locals()

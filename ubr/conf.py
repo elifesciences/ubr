@@ -41,7 +41,7 @@ _formatter = jsonlogger.JsonFormatter(_log_format)
 
 # output to stderr
 _handler = logging.StreamHandler()
-_handler.setLevel(logging.DEBUG)
+_handler.setLevel(logging.INFO)
 _handler.setFormatter(logging.Formatter("%(levelname)s - %(asctime)s - %(message)s"))
 
 _filehandler = logging.FileHandler("ubr.log")
@@ -163,3 +163,17 @@ POSTGRESQL = {
     "host": cfg("postgresql.host", "localhost"),
     "port": int(cfg("postgresql.port", 5432)),
 }
+
+# ignore these specific projects when reporting
+# (projects with an "_" prefix are automatically ignored
+REPORT_PROJECT_BLACKLIST = ["civicrm"]
+
+# ignore these specific files when reporting
+REPORT_FILE_BLACKLIST = [
+    "archive-d162efcb.tar.gz",  # elife-metrics, old-style backup
+    "archive-b40e0f85.tar.gz",  # journal-cms, old-style backup
+    "elifedashboardprod-psql.gz",  # elife-dashboard, old-style backup
+]
+
+# number of days between now and the last backup before it's considered a problem
+REPORT_PROBLEM_THRESHOLD = 2 # days

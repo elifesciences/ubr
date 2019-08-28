@@ -6,8 +6,6 @@ import os, subprocess
 from datetime import datetime
 import errno
 from itertools import takewhile
-
-# import compiler.ast
 import collections
 import hashlib
 from .conf import logging
@@ -15,9 +13,43 @@ from functools import reduce
 
 LOG = logging.getLogger(__name__)
 
-# flatten = compiler.ast.flatten # deprecated, removed in Python3
 
-# def flat_gen(x):
+def visit(data, pred, fn):
+    "visits every value in the given data and applies `fn` when `pred` is true "
+    if pred(data):
+        data = fn(data)
+        # why don't we return here after matching?
+        # the match may contain matches within child elements (lists, dicts)
+        # we want to visit them, too
+    if isinstance(data, dict):
+        return {key: visit(val, pred, fn) for key, val in data.items()}
+    elif isinstance(data, list):
+        return [visit(row, pred, fn) for row in data]
+    # unsupported type/no further matches
+    return data
+
+
+def group_by(lst, key):
+    idx = {}
+    for i in lst:
+        ikey = i[key]
+        grp = idx.get(ikey, [])
+        grp.append(i)
+        idx[ikey] = grp
+    return idx
+
+
+def group_by_many(lst, key_list):
+    key = key_list[0]
+    rest = key_list[1:]
+    group = group_by(lst, key)
+    if rest:
+        return {
+            grouper: group_by_many(sublist, rest) for grouper, sublist in group.items()
+        }
+    return group
+
+
 def flatten(x):
     def iselement(e):
         return not (isinstance(e, collections.Iterable) and not isinstance(e, str))
