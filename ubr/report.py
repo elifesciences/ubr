@@ -112,7 +112,8 @@ def check_all():
             for filename, backup in files.items():
                 old_backup(backup) and problems.append(backup)
                 # problems.append(backup)
-    problems and print_report(problems)
+    if problems:
+        print_report(problems)
     return problems
 
 
