@@ -145,6 +145,7 @@ def dump(db, output_path, **kwargs):
     -p%(pass)s \
     --single-transaction \
     --skip-dump-date \
+    --set-gtid-purged=OFF \
     %(dbname)s | gzip > %(path)s"""
         % args
     )
