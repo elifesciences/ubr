@@ -136,6 +136,40 @@ def dump(db, output_path, **kwargs):
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
+    
+    # THEORY
+    #
+    # The MySQL server binary log) contains all events that describe database changes.
+    # https://dev.mysql.com/doc/refman/5.7/en/binary-log.html
+    # The binary log can be used for:
+    # - replication of data to MySQL slaves. We do this in `prod` environments.
+    # - for point-in-time backup restores where some events from the log are applied to an old backup to make it reach time X. We don't do this at the moment.
+    #
+    # Global Transaction IDs are identifiers that can be assigned to write transactions on a MySQL master node:
+    # https://dev.mysql.com/doc/refman/5.7/en/replication-gtids.html
+    # MySQL slaves nodes can keep a record of the GTIDs that have been applied to their copy of the data.
+    #
+    # VARIABLES
+    #
+    # `gtid_purged` is a system variable that contains GTIDs that have been committed, but do not exist in the binary log (anymore, for example because the binary log has been _purged_ aka rotated).
+    # A dump doesn't contain only data then, but may also contain information about the GTIDs.
+    #
+    # DUMP GENERATION
+    # `--set-gtid-purged=OFF` does not write GTID-related information to the dump:
+    # https://dev.mysql.com/doc/refman/5.7/en/mysqldump.html#option_mysqldump_set-gtid-purged
+    # This means:
+    # - No `SET @@GLOBAL.gtid_purged` statement in the dump
+    # - No `@@SESSION.SQL_LOG_BIN=0` statement to disable the binary log while the dump is being reloaded
+    #
+    # AWS RDS CONTEXT
+    #
+    # These properties are problematic because (at least the latter) require `SUPER` privileges, which we don't have on RDS, being a managed server where we don't have access to a root user.
+    # RDS is configured with replication in `prod` environments:
+    # https://aws.amazon.com/rds/details/multi-az/
+    # However, GTIDs are disabled in the `default.mysql57` parameter group that we are consistently using:
+    # https://console.aws.amazon.com/rds/home?region=us-east-1#parameter-groups-detail:ids=default.mysql5.7;type=DbParameterGroup;editing=false
+    # Moreover, when we are restoring we are not even interested in GTIDs as we are dropping the database first.
+    # If GTIDs were enables, and we were to restore a slave node to bring it on par with master, we could use them. Unlikely use case as replication is always managed by RDS.
     cmd = (
         """set -o pipefail
     mysqldump \
