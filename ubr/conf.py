@@ -176,4 +176,4 @@ REPORT_FILE_BLACKLIST = [
 ]
 
 # number of days between now and the last backup before it's considered a problem
-REPORT_PROBLEM_THRESHOLD = 2 # days
+REPORT_PROBLEM_THRESHOLD = 2  # days

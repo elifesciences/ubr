@@ -11,8 +11,33 @@ LOG = logging.getLogger(__name__)
 
 #
 # 'descriptor' wrangling
-# a descriptor is a yaml file in /etc/ubr/ that ends with '-backup.yaml'
+# a descriptor is a YAML file in /etc/ubr/ that ends with '-backup.yaml'
+# it looks like:
 #
+# target:
+#   - name
+#
+# with 'target' being one of "files", "tar-gzipped", "mysql-database" or "postgresql-database"
+# and 'name' just the name of the target.
+#
+# a target can have many names, each of which becomes a separate backup. For example:
+#
+# postgresql-database:
+#   - db1
+#   - db2
+#   - foodb
+#
+# and a descriptor can have many targets. For example:
+#
+# mysql-database:
+#   - db1
+#
+# postgresql-database:
+#   - db2
+#   - db3
+#
+# tar-gzipped:
+#   - /var/log/myapp/*
 
 
 #

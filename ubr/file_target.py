@@ -1,5 +1,6 @@
 import os, shutil, glob2
 from ubr import utils
+from ubr.utils import ensure
 from .conf import logging
 
 LOG = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ def wrangle_files(path_list):
     # some adhoc error reporting
     try:
         msg = "invalid files have been removed from the backup!"
-        assert len(path_list) == len(new_path_list), msg
+        ensure(len(path_list) == len(new_path_list), msg)
     except AssertionError:
         # find the difference and then strip out anything that looks like a glob expr
         missing = [p for p in set(path_list) - set(new_path_list) if "*" not in p]
@@ -50,7 +51,7 @@ def wrangle_files(path_list):
 def backup(path_list, destination, prompt=False):
     """embarassingly simple 'copy each of the files specified
     to new destination, ignoring the common parents'"""
-    LOG.debug("given paths %s with destination %s", path_list, destination)
+    LOG.info("backing up given paths at %r" % (path_list,))
 
     new_path_list = wrangle_files(path_list)
     utils.mkdir_p(destination)
@@ -69,6 +70,7 @@ def _restore(path, backup_dir):
         "backup_src": os.path.join(backup_dir, path.lstrip("/")),
         "broken_dest": path,
     }
+    LOG.info("restoring files at %r" % path)
     cmd = "rsync %(backup_src)s %(broken_dest)s" % data
     retcode = utils.system(cmd)
     return (path, retcode == 0)
