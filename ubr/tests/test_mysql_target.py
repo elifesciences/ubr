@@ -6,6 +6,7 @@ from .base import BaseCase
 
 class TestDatabaseBackup(BaseCase):
     def setUp(self):
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         self.project_name = "_test"
         mysql_target.create(self.project_name)
@@ -20,7 +21,9 @@ class TestDatabaseBackup(BaseCase):
     def test_dump_db(self):
         "a compressed dump of the test database is created at the expected destination"
         descriptor = {"mysql-database": [self.project_name]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(1, len(results["mysql-database"]["output"]))
 
         expected_path = os.path.join(
@@ -30,12 +33,15 @@ class TestDatabaseBackup(BaseCase):
 
     def test_dump_db_fails_if_db_not_found(self):
         descriptor = {"mysql-database": ["pants-party"]}
-        self.assertRaises(OSError, main.backup, descriptor, conf.WORKING_DIR)
+        self.assertRaises(
+            OSError, main.backup, descriptor, conf.WORKING_DIR, self.default_opts
+        )
 
 
 class TestDatabaseRestore(BaseCase):
     def setUp(self):
         self.project_name = "_test"
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir = "/tmp/baz/"
         mysql_target.drop(self.project_name)
         mysql_target.create(self.project_name)
@@ -60,12 +66,16 @@ class TestDatabaseRestore(BaseCase):
         self.assertEqual(table_test(), original_expected_result)
 
         # backup and modify
-        main.backup(descriptor, output_dir=self.expected_output_dir)
+        main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         mysql_target.mysql_query(self.project_name, "delete from table2")
         self.assertEqual(table_test(), {"count(*)": 0})
 
         # restore the db, run the test
-        main.restore(descriptor, backup_dir=self.expected_output_dir)
+        main.restore(
+            descriptor, backup_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(table_test(), original_expected_result)
 
     def test_restore_missing_db(self):
@@ -79,13 +89,17 @@ class TestDatabaseRestore(BaseCase):
         self.assertEqual(table_test(), original_expected_result)
 
         # backup and modify
-        main.backup(descriptor, output_dir=self.expected_output_dir)
+        main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         mysql_target.drop(self.project_name)
         self.assertFalse(mysql_target.dbexists(self.project_name))
 
         # restore the db, run the test
         expected_results = {"mysql-database": {"output": [(self.project_name, True)]}}
-        results = main.restore(descriptor, backup_dir=self.expected_output_dir)
+        results = main.restore(
+            descriptor, backup_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(results, expected_results)
 
         # check data is as it was prior to dump

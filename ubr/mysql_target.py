@@ -136,7 +136,7 @@ def dump(db, output_path, **kwargs):
     args = defaults(db, path=output_path, **kwargs)
     # --skip-dump-date # suppresses the 'Dump completed on <YMD HMS>'
     # at the bottom of each dump file, defeating duplicate checking
-    
+
     # THEORY
     #
     # The MySQL server binary log) contains all events that describe database changes.
@@ -203,7 +203,7 @@ def _backup(path, destination):
     return dump(path, output_path)
 
 
-def backup(path_list, destination, prompt=False):
+def backup(path_list, destination, opts):
     "dumps a list of databases and database tables"
     retval = utils.system("mkdir -p %s" % destination)
     if not retval == 0:
@@ -230,5 +230,5 @@ def _restore(db, backup_dir):
         return (db, False)
 
 
-def restore(db_list, backup_dir, prompt=False):
+def restore(db_list, backup_dir, opts):
     return {"output": [_restore(db, backup_dir) for db in db_list]}

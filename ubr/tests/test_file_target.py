@@ -1,10 +1,11 @@
 import os, shutil, tempfile
-from ubr import main, utils, file_target
+from ubr import main, utils, file_target, conf
 from .base import BaseCase
 
 
 class TestFileBackup(BaseCase):
     def setUp(self):
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir = "/tmp/foo"
 
     def tearDown(self):
@@ -30,7 +31,9 @@ class TestFileBackup(BaseCase):
             }
         }
 
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        output = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(expected_output, output)
         self.assertTrue(utils.dir_exists(self.expected_output_dir))
         # test all of the files exist
@@ -53,7 +56,9 @@ class TestFileBackup(BaseCase):
             }
         }
 
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        output = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(expected_output, output)
         # test all of the files exist
         for path in output["files"]["output"]:
@@ -77,7 +82,9 @@ class TestFileBackup(BaseCase):
                 ],
             }
         }
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        output = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(expected_output, output)
         # test all of the files exist
         for path in output["files"]["output"]:
@@ -105,7 +112,9 @@ class TestFileBackup(BaseCase):
                 ],
             }
         }
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        output = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(expected_output, output)
         # test all of the files exist
         for path in output["files"]["output"]:
@@ -151,6 +160,7 @@ class TestFileBackup(BaseCase):
 
 class TestFileRestore(BaseCase):
     def setUp(self):
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir = os.path.join("/tmp/", utils.ymdhms())
 
     def tearDown(self):
@@ -167,7 +177,9 @@ class TestFileRestore(BaseCase):
 
         # backup the fixture copy
         descriptor = {"files": [fixture_copy]}
-        main.backup(descriptor, output_dir=self.expected_output_dir)
+        main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
 
         # overwrite our fixture copy with some garbage
         open(fixture_copy, "w").write("fooooooooooooooooooobar")
@@ -175,7 +187,9 @@ class TestFileRestore(BaseCase):
         self.assertNotEqual(md5, bad_md5)
 
         # restore our fixture copy
-        main.restore(descriptor, backup_dir=self.expected_output_dir)
+        main.restore(
+            descriptor, backup_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(open(fixture, "r").read(), open(fixture_copy, "r").read())
         restored_md5 = utils.generate_file_md5(fixture_copy)
         self.assertEqual(md5, restored_md5)

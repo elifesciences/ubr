@@ -2,7 +2,7 @@ import argparse
 import os, sys
 from os.path import join
 import logging
-from ubr.utils import ensure
+from ubr.utils import ensure, subdict
 from ubr import (
     conf,
     utils,
@@ -22,28 +22,31 @@ LOG = logging.getLogger(__name__)
 #
 
 
-def getmod(target):
+def get_module(target):
+    "returns the module for the given 'target', a key in a map of aliases->modules"
     target_map = {
         "postgresql-database": psql_target,
         "mysql-database": mysql_target,
         "files": file_target,
         "tar-gzipped": tgz_target,
     }
+    target_list = ", ".join(target_map.keys())
     ensure(
         target in target_map,
-        "unknown target %r. known targets: %s"
-        % (target, ", ".join(list(target_map.keys()))),
+        "unknown target %r. known targets: %s" % (target, target_list),
     )
     return target_map[target]
 
 
-def dofortarget(target, fnom, *args, **kwargs):
-    "given a target like 'mysql-database' and a function name like 'restore', finds the function and calls with remaining args"
-    mod = getmod(target)
+def module_dispatch(target, func_name, *args, **kwargs):
+    """given a target like 'mysql-database' and a function name like 'restore', 
+    finds the function in the target module and calls with remaining arguments"""
+    mod = get_module(target)
     ensure(
-        hasattr(mod, fnom), "module %r (%s) has no function %r" % (mod, target, fnom)
+        hasattr(mod, func_name),
+        "module %r (%s) has no function %r" % (mod, target, func_name),
     )
-    return getattr(mod, fnom)(*args, **kwargs)
+    return getattr(mod, func_name)(*args, **kwargs)
 
 
 def machinedir(hostname, descriptor_path):
@@ -61,22 +64,22 @@ def machinedir(hostname, descriptor_path):
 def backup_name(target, path):
     """returns the result of `module.backup_name(path)`.
     so, psql_target.backup_name(foo) => foo-psql.tar.gz"""
-    return dofortarget(target, "backup_name", path)
+    return module_dispatch(target, "backup_name", path)
 
 
-def backup(descriptor, output_dir, prompt=False):
+def backup(descriptor, output_dir, opts):
     "consumes a descriptor and creates backups of each of the target's paths"
     return {
-        target: dofortarget(target, "backup", args, output_dir, prompt)
+        target: module_dispatch(target, "backup", args, output_dir, opts)
         for target, args in descriptor.items()
     }
 
 
-def restore(descriptor, backup_dir, prompt=False):
+def restore(descriptor, backup_dir, opts):
     """consumes a descriptor, reading replacements from the given `backup_dir`
     or the most recent datestamped directory"""
     return {
-        target: dofortarget(target, "restore", args, backup_dir, prompt)
+        target: module_dispatch(target, "restore", args, backup_dir, opts)
         for target, args in descriptor.items()
     }
 
@@ -86,25 +89,25 @@ def restore(descriptor, backup_dir, prompt=False):
 #
 
 
-def backup_to_file(hostname, path_list=None, prompt=False):
+def backup_to_file(hostname, path_list, opts):
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         descriptor = load_descriptor(descriptor_path, path_list)
         # ll: /tmp/project-name/hostname/somefile.tar.gz
         # ll: /tmp/civicrm/crm--prod/archive-5ea4f412.tar.gz
         backupdir = machinedir(hostname, descriptor_path)
-        results.append(backup(descriptor, backupdir, prompt))
+        results.append(backup(descriptor, backupdir, opts))
     return results
 
 
-def restore_from_file(hostname, path_list=None, prompt=False):
+def restore_from_file(hostname, path_list, opts):
     "restore backups from local files using descriptors"
 
     def _do(descriptor_path):
         try:
             restore_dir = machinedir(hostname, descriptor_path)
             return restore(
-                load_descriptor(descriptor_path, path_list), restore_dir, prompt
+                load_descriptor(descriptor_path, path_list), restore_dir, opts
             )
         except ValueError as err:
             if not path_list:
@@ -115,7 +118,7 @@ def restore_from_file(hostname, path_list=None, prompt=False):
     return list(map(_do, find_descriptors(conf.DESCRIPTOR_DIR)))
 
 
-def backup_to_s3(hostname=None, path_list=None, prompt=False):
+def backup_to_s3(hostname, path_list, opts):
     "creates backups using descriptors and then uploads to s3"
     LOG.info("backing up ...")
     results = []
@@ -123,7 +126,7 @@ def backup_to_s3(hostname=None, path_list=None, prompt=False):
         project = pname(descriptor_path)
         backupdir = machinedir(hostname, descriptor_path)
         backup_results = backup(
-            load_descriptor(descriptor_path, path_list), backupdir, prompt
+            load_descriptor(descriptor_path, path_list), backupdir, opts
         )
         results.append(
             s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname())
@@ -131,7 +134,7 @@ def backup_to_s3(hostname=None, path_list=None, prompt=False):
     return results
 
 
-def download_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
+def download_from_s3(hostname, path_list, opts):
     """by specifying a different hostname, you can download a backup
     from a different machine. Of course you will need that other
     machine's descriptor in /etc/ubr/ ... otherwise it won't know
@@ -170,15 +173,14 @@ def download_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
     return results
 
 
-def restore_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
+def restore_from_s3(hostname, path_list, opts):
     "same as the download action, but then restores the files/databases/whatever to where they came from"
     # download everything first ...
-    results = download_from_s3(hostname, path_list)
+    results = download_from_s3(hostname, path_list, opts)
     # ll: [({'postgresql-database': ['laxbackfilltest']}, u'/tmp/ubr/lax/prod--lax.elifesciences.org')]
     # ... then restore
     return [
-        restore(descriptor, download_dir, prompt)
-        for descriptor, download_dir in results
+        restore(descriptor, download_dir, opts) for descriptor, download_dir in results
     ]
 
 
@@ -187,7 +189,7 @@ def restore_from_s3(hostname=utils.hostname(), path_list=None, prompt=False):
 #
 
 
-def adhoc_s3_download(path_list, prompt=False):
+def adhoc_s3_download(path_list, opts):
     "connect to s3 and download stuff :)"
 
     def download(remote_path):
@@ -201,7 +203,7 @@ def adhoc_s3_download(path_list, prompt=False):
     return list(map(download, path_list))
 
 
-def adhoc_file_restore(path_list, prompt=False):
+def adhoc_file_restore(path_list, opts):
     for source_file, descriptor_str in utils.pairwise(path_list):
         # descriptor_str looks like: 'mysql-database.somedb'
         # exactly like a single entry in a descriptor file
@@ -269,8 +271,16 @@ def parseargs(args):
         help="dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1",
     )
 
+    # enable/disable the upload/download progress bar
+    # if enabled for headless operations, like in a cron job, it may generate a lot of 'noise' to the log file
+    parser.add_argument("--progress-bar", dest="progress_bar", action="store_true")
+    parser.add_argument("--no-progress-bar", dest="progress_bar", action="store_false")
+    parser.set_defaults(progress_bar=conf.DEFAULT_CLI_OPTS["progress_bar"])
+
     # should a prompt be issued when necessary?
-    parser.add_argument("--prompt", action="store_true", default=False)
+    parser.add_argument(
+        "--prompt", action="store_true", default=conf.DEFAULT_CLI_OPTS["prompt"]
+    )
 
     args = parser.parse_args(args)
 
@@ -288,14 +298,18 @@ def parseargs(args):
                     "an even number of paths is required: [source, target, source, target], etc"
                 )
 
-    return [
-        getattr(args, key, None)
-        for key in ["action", "location", "hostname", "paths", "prompt"]
+    cmd = [
+        getattr(args, key, None) for key in ["action", "location", "hostname", "paths"]
     ]
+
+    opts = subdict(args.__dict__, ["prompt", "progress_bar"])
+
+    return cmd, opts
 
 
 def main(args):
-    action, fromloc, hostname, paths, prompt = parseargs(args)
+    cmd, opts = parseargs(args)
+    action, fromloc, hostname, paths = cmd
 
     if action == "check":
         exit(len(check(hostname, paths)))
@@ -310,14 +324,14 @@ def main(args):
             ("download", "s3"): adhoc_s3_download,
             ("restore", "file"): adhoc_file_restore,
         }
-        return decisions[(action, fromloc)](paths, prompt)
+        return decisions[(action, fromloc)](paths, opts)
 
     decisions = {
         "backup": {"s3": backup_to_s3, "file": backup_to_file},
         "restore": {"s3": restore_from_s3, "file": restore_from_file},
         "download": {"s3": download_from_s3},
     }
-    return decisions[action][fromloc](hostname, paths, prompt)
+    return decisions[action][fromloc](hostname, paths, opts)
 
 
 if __name__ == "__main__":

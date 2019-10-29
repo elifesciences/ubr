@@ -178,7 +178,7 @@ def _backup(dbname, destination):
     return output_path
 
 
-def backup(path_list, destination=None, prompt=False):
+def backup(path_list, destination, opts):
     destination = destination or conf.WORKING_DIR
     destination = os.path.abspath(destination)
     utils.system("mkdir -p %s" % destination)
@@ -206,11 +206,12 @@ def backup_missing_prompt_user(dbname, dump_path):
     return utils.choose("choose: ", other_files, os.path.basename)
 
 
-def _restore(dbname, backup_dir, prompt):
+def _restore(dbname, backup_dir, opts):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
         backup_dir = backup_dir or conf.WORKING_DIR
         dump_path = join(backup_dir, backup_name(dbname))
+        prompt = opts["prompt"]
         if prompt and not os.path.exists(dump_path):
             dump_path = backup_missing_prompt_user(dbname, dump_path)
         ensure(
@@ -227,5 +228,5 @@ def _restore(dbname, backup_dir, prompt):
         return (dbname, False)
 
 
-def restore(path_list, backup_dir, prompt=True):
-    return {"output": [_restore(db, backup_dir, prompt) for db in path_list]}
+def restore(path_list, backup_dir, opts):
+    return {"output": [_restore(db, backup_dir, opts) for db in path_list]}
