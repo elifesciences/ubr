@@ -159,9 +159,11 @@ class ProgressPercentage(object):
             percentage = (self._seen_so_far / self._size) * 100
             self.done = percentage == 100
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)        "
+                "\r%s  %s / %s  (%.2f%%)"
                 % (self._filename, self._seen_so_far, self._size, percentage)
             )
+            if self.done:
+                sys.stdout.write("\n")
             sys.stdout.flush()
 
 
