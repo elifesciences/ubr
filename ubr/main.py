@@ -128,8 +128,16 @@ def backup_to_s3(hostname, path_list, opts):
         backup_results = backup(
             load_descriptor(descriptor_path, path_list), backupdir, opts
         )
+        remove_backup_after_upload = True
         results.append(
-            s3.upload_backup(conf.BUCKET, backup_results, project, utils.hostname())
+            s3.upload_backup(
+                conf.BUCKET,
+                backup_results,
+                project,
+                utils.hostname(),
+                remove_backup_after_upload,
+                opts["progress_bar"],
+            )
         )
     return results
 
@@ -160,12 +168,25 @@ def download_from_s3(hostname, path_list, opts):
             if path_list:
                 for path in remote_path_list:
                     s3.download_latest_backup(
-                        download_dir, conf.BUCKET, project, hostname, target, path
+                        download_dir,
+                        conf.BUCKET,
+                        project,
+                        hostname,
+                        target,
+                        path,
+                        opts["progress_bar"],
                     )
             else:
                 # no paths specified, download all paths for hostname+target
+                path = None
                 s3.download_latest_backup(
-                    download_dir, conf.BUCKET, project, hostname, target, None
+                    download_dir,
+                    conf.BUCKET,
+                    project,
+                    hostname,
+                    target,
+                    path,
+                    opts["progress_bar"],
                 )
 
         results.append((descriptor, download_dir))
@@ -196,7 +217,9 @@ def adhoc_s3_download(path_list, opts):
         try:
             # being adhoc, we can't manage a machinename() call
             download_dir = join(conf.WORKING_DIR, os.path.basename(remote_path))
-            return s3.download(conf.BUCKET, remote_path, download_dir)
+            return s3.download(
+                conf.BUCKET, remote_path, download_dir, opts["progress_bar"]
+            )
         except AssertionError as err:
             LOG.warning(err)
 
@@ -218,7 +241,7 @@ def adhoc_file_restore(path_list, opts):
         elif target == "postgresql-database":
             psql_target.load(path, source_file, dropdb=True)
         else:
-            message = "only adhoc database restores are currently handled, not `%s`"
+            message = "only adhoc *database* restores (mysql and postgresql) are currently handled, not %r"
             LOG.error(message, target)
             raise RuntimeError(message % target)
 
