@@ -7,6 +7,8 @@ pyflakes ubr/
 args="$@"
 module=""
 if [ ! -z "$args" ]; then
+    # like this for pytest:
+    # ./ubr/tests/test_main.py::ParseArgs::test_download_adhoc_args
     module="$args"
 fi
 

@@ -12,16 +12,11 @@ LOG = logging.getLogger(__name__)
 
 def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
     "deletes the list of given paths if the path starts with the given root (default /tmp/)."
-    return list(
-        map(
-            os.unlink,
-            [
-                p
-                for p in list(filter(os.path.isfile, path_list))
-                if p.startswith(rooted_at)
-            ],
-        )
-    )
+    return [
+        os.unlink(p)
+        for p in filter(os.path.isfile, path_list)
+        if p.startswith(rooted_at)
+    ]
 
 
 #
