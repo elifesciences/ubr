@@ -174,6 +174,7 @@ def dump(dbname, output_path):
 def _backup(dbname, destination):
     "thin wrapper around `dump()` to raise hell if db failed to backup"
     output_path = join(destination, backup_name(dbname))
+    LOG.info("backing up PostgreSQL database %r" % dbname)
     ensure(dump(dbname, output_path), "postgresql database %r backup failed" % dbname)
     return output_path
 
@@ -217,6 +218,7 @@ def _restore(dbname, backup_dir, prompt):
             os.path.exists(dump_path),
             "expected path %r does not exist or is not a file." % dump_path,
         )
+        LOG.info("restoring PostgreSQL database %r" % dbname)
         return (
             dbname,
             all([drop_if_exists(dbname), create(dbname), load(dbname, dump_path)]),

@@ -135,6 +135,6 @@ def check(hostname, path_list=None):
             backup_list = parse_prefix_list(path_list)
             for backup in backup_list:
                 old_backup(backup) and problems.append(backup)
-                #problems.append(backup)
+                # problems.append(backup)
     problems and print_report(problems)
     return problems
