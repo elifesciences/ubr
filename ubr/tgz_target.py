@@ -5,7 +5,6 @@ import hashlib
 from ubr.utils import ensure
 
 LOG = logging.getLogger(__name__)
-LOG.level = logging.DEBUG
 
 TMP_SUBDIR = ".tgz-tmp"  # this smells
 
@@ -48,6 +47,8 @@ def unpack(archive):
 def backup(path_list, destination, opts):
     """does a regular file_backup and then tars and gzips the results.
     the name of the resulting file is 'archive.tar.gz'"""
+    LOG.info("backing up files %r" % (path_list,))
+
     destination = os.path.abspath(destination)
 
     # obfuscate the given destination so it doesn't overwrite anything
@@ -92,6 +93,7 @@ def backup(path_list, destination, opts):
 def restore(path_list, backup_dir, opts):
     """assumes a file called 'archive.tar.gz' is in the given directory and that all
     the paths to the files within that tar.gz file are """
-    filename = filename_for_paths(path_list)
-    archive = os.path.join(backup_dir, filename + ".tar.gz")
+    filename = filename_for_paths(path_list) + ".tar.gz"
+    archive = os.path.join(backup_dir, filename)
+    LOG.info("restoring files in archive %r" % filename)
     return {"output": unpack(archive)}

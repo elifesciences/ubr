@@ -1,3 +1,4 @@
+import hashlib
 import os, sys, re
 import boto3
 from os.path import join
@@ -173,12 +174,30 @@ class DownloadProgressPercentage(ProgressPercentage):
         bucket, path = bits[1], "/".join(bits[2:])
         self._size = int(s3_file(bucket, path)["Contents"][0]["Size"])
 
+# taken and modified from `tlastowka/calculate_multipart_etag` (GPLv3):
+# - https://github.com/tlastowka/calculate_multipart_etag
+def generate_s3_etag(source_path):
+    "generates an S3-style ETag"
+    chunk_size = 8 * 1024 * 1024 # 8 MiB
+    md5s = []
+    with open(source_path, 'rb') as fp:
+        while True:
+            data = fp.read(chunk_size)
+            if not data:
+                break
+            md5s.append(hashlib.md5(data))
+
+    # precisely $chunk-sized files are still uploaded in multiple parts
+    if os.path.getsize(source_path) >= chunk_size:
+        digests = b"".join(m.digest() for m in md5s)
+        new_md5 = hashlib.md5(digests)
+        return '"%s-%s"' % (new_md5.hexdigest(), len(md5s))
+
+    # file smaller than chunk size
+    return '"%s"' % md5s[0].hexdigest()
 
 def verify_file(filename, bucket, key):
-    """{u'MaxKeys': 1000, u'Prefix': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Name': 'elife-app-backups', 'ResponseMetadata': {'HTTPStatusCode': 200, 'HostId': 'ux+6JS8Snw+wKj7wuUpMF3ajq11aVYLjcFNpYhKpv7WOOTAXcZoMo4Nmpf0GdYQKFYrT60nKCwM=', 'RequestId': 'EBC29E161C7FEAF1'}, u'Marker': '', u'IsTruncated': False, u'Contents': [{u'LastModified': datetime.datetime(2015, 7, 29, 10, 37, 11, tzinfo=tzutc()), u'ETag': '"4c5a880597d564134192e812336c3d9e"', u'StorageClass': 'STANDARD', u'Key': '_test/201507/20150729_113709_testmachine-archive.tar.gz', u'Owner': {u'DisplayName': 'aws', u'ID': '8a202ef63dada93bea1dc89ddcbc0772245e0f9e8d2d818f8c3c66e193065766'}, u'Size': 234278}]}
-
-    http://docs.aws.amazon.com/AWSAndroidSDK/latest/javadoc/com/amazonaws/services/s3/model/ObjectMetadata.html#getETag()
-    """
+    "compares the local md5sum with the remote md5sum. files uploaded in multiple parts "
     s3obj = s3_file(bucket, key)
     remote_bytes = int(s3obj["Contents"][0]["Size"])
     local_bytes = os.path.getsize(filename)
@@ -198,24 +217,20 @@ def verify_file(filename, bucket, key):
                 % (key, local_bytes, remote_bytes)
             )
 
-    remote_md5 = s3obj["Contents"][0]["ETag"]
-    remote_md5 = remote_md5.strip('"')  # yes, really. fml.
-    local_md5 = utils.generate_file_md5(filename)
+    remote_etag = s3obj["Contents"][0]["ETag"]
+    local_etag = generate_s3_etag(filename)
 
-    LOG.info("got remote md5 %s for file %s", remote_md5, key)
-    LOG.info("got local md5 %s for file %s", local_md5, filename)
+    LOG.info("got remote ETag %r for file %s", remote_etag, key)
+    LOG.info("got local ETag %r for file %s", local_etag, filename)
 
     try:
-        if remote_md5 != local_md5:
+        if remote_etag != local_etag:
             raise ValueError(
-                "MD5 sums for file (%r) local (%r) and remote (%r) do not match"
-                % (filename, local_bytes, remote_bytes)
+                "ETags for file %r (%s, local) and (%s, remote) do not match"
+                % (filename, local_etag, remote_etag)
             )
     except ValueError as e:
-        # this happens when S3 does a multipart upload on large files apparently.
-        # we're using the convenience function `upload_file` and `download_file`
-        # that automatically chooses what method is needed. log the error, but
-        # as long as the bytes are identical, I don't mind.
+        # it's possible the default chunk size has changed from 8192 KiB to ...?
         LOG.error(str(e))
 
     return True

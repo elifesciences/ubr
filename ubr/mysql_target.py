@@ -88,15 +88,23 @@ def create(db, **kwargs):
 
 
 def load(db, dump_path, dropdb=False, **kwargs):
-    LOG.info("loading dump %r into db %r (dropdb=%s)", dump_path, db, dropdb)
+    LOG.debug("loading dump %r into db %r (dropdb=%s)", dump_path, db, dropdb)
     args = defaults(db, path=dump_path, **kwargs)
     # TODO: consider dropping this convenience function
     if dropdb:
         # reset the database before loading the fixture
         msg = "failed to drop+create the database prior to loading fixture."
-        assert all(
-            [drop(db, **kwargs), not dbexists(db), create(db, **kwargs), dbexists(db)]
-        ), msg
+        ensure(
+            all(
+                [
+                    drop(db, **kwargs),
+                    not dbexists(db),
+                    create(db, **kwargs),
+                    dbexists(db),
+                ]
+            ),
+            msg,
+        )
         LOG.debug("passed assertion check!")
 
     cmd = (
@@ -110,7 +118,7 @@ def load(db, dump_path, dropdb=False, **kwargs):
     )
 
     if dump_path.endswith(".gz"):
-        LOG.info("dealing with a gzipped file")
+        LOG.debug("dealing with a gzipped file")
         cmd = (
             """zcat %(path)s | mysql \
         -u %(user)s \
@@ -200,6 +208,7 @@ def _backup(path, destination):
     'destination' is the directory to store the output"""
     # looks like: /tmp/foo/test.gzip or /tmp/foo/test.table1.gzip
     output_path = os.path.join(destination, path)
+    LOG.info("backing up MySQL database %r" % path)
     return dump(path, output_path)
 
 
@@ -208,8 +217,9 @@ def backup(path_list, destination, opts):
     retval = utils.system("mkdir -p %s" % destination)
     if not retval == 0:
         # check to see if our intention is there
-        assert os.path.isdir(destination), (
-            "given destination %r is not a directory or doesn't exist!" % destination
+        ensure(
+            os.path.isdir(destination),
+            "given destination %r is not a directory or doesn't exist!" % destination,
         )
     return {
         "output_dir": destination,
@@ -220,9 +230,11 @@ def backup(path_list, destination, opts):
 def _restore(db, backup_dir):
     try:
         dump_path = os.path.join(backup_dir, backup_name(db))
-        assert os.path.isfile(dump_path), (
-            "expected path %r does not exist or is not a file." % dump_path
+        ensure(
+            os.path.isfile(dump_path),
+            "expected path %r does not exist or is not a file." % dump_path,
         )
+        LOG.info("restoring MySQL database %r" % db)
         return (db, load(db, dump_path, dropdb=True))
     except Exception:
         LOG.exception("unhandled unexception attempting to restore database %r", db)
