@@ -178,15 +178,13 @@ def download_from_s3(hostname, path_list, opts):
                     )
             else:
                 # no paths specified, download all paths for hostname+target
-                path = None
                 s3.download_latest_backup(
                     download_dir,
                     conf.BUCKET,
                     project,
                     hostname,
                     target,
-                    path,
-                    opts["progress_bar"],
+                    progress_bar=opts["progress_bar"],
                 )
 
         results.append((descriptor, download_dir))
