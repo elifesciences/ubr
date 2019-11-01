@@ -13,16 +13,11 @@ LOG = logging.getLogger(__name__)
 
 def remove_targets(path_list, rooted_at=conf.WORKING_DIR):
     "deletes the list of given paths if the path starts with the given root (default /tmp/)."
-    return list(
-        map(
-            os.unlink,
-            [
-                p
-                for p in list(filter(os.path.isfile, path_list))
-                if p.startswith(rooted_at)
-            ],
-        )
-    )
+    return [
+        os.unlink(p)
+        for p in filter(os.path.isfile, path_list)
+        if p.startswith(rooted_at)
+    ]
 
 
 #
@@ -160,9 +155,11 @@ class ProgressPercentage(object):
             percentage = (self._seen_so_far / self._size) * 100
             self.done = percentage == 100
             sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)        "
+                "\r%s  %s / %s  (%.2f%%)"
                 % (self._filename, self._seen_so_far, self._size, percentage)
             )
+            if self.done:
+                sys.stdout.write("\n")
             sys.stdout.flush()
 
 
@@ -239,11 +236,11 @@ def verify_file(filename, bucket, key):
     return True
 
 
-def upload_to_s3(bucket, src, dest):
+def upload_to_s3(bucket, src, dest, progress_bar=True):
     LOG.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
-    inst = ProgressPercentage(src)
+    inst = ProgressPercentage(src) if progress_bar else None
     s3_conn().upload_file(src, bucket, dest, Callback=inst)
-    ensure(inst.done, "failed to complete uploading to s3")
+    progress_bar and ensure(inst.done, "failed to complete uploading to s3")
     ensure(
         verify_file(src, bucket, dest),
         "local file doesn't match results uploaded to s3 (content md5 or content length difference)",
@@ -251,7 +248,9 @@ def upload_to_s3(bucket, src, dest):
     return dest
 
 
-def upload_backup(bucket, backup_results, project, hostname, remove=True):
+def upload_backup(
+    bucket, backup_results, project, hostname, remove=True, progress_bar=True
+):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
@@ -262,7 +261,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
     upload_targets = list(filter(os.path.exists, utils.flatten(upload_targets)))
 
     path_list = [
-        upload_to_s3(bucket, src, s3_key(project, hostname, src))
+        upload_to_s3(bucket, src, s3_key(project, hostname, src), progress_bar)
         for src in upload_targets
     ]
     # TODO: consider moving this into `main`
@@ -274,7 +273,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
 ##
 
 
-def download(bucket, remote_src, local_dest):
+def download(bucket, remote_src, local_dest, progress_bar=True):
     "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
     remote_src = remote_src.lstrip("/")
     obj = s3_file(bucket, remote_src)
@@ -282,8 +281,13 @@ def download(bucket, remote_src, local_dest):
     msg = "key %r in bucket %r doesn't exist or we have no access to it. cannot download file."
     ensure(s3_file_exists(obj), msg % (remote_src, bucket))
 
-    inst = DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
     utils.mkdir_p(os.path.dirname(local_dest))
+
+    inst = (
+        DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
+        if progress_bar
+        else None
+    )
     s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
     return local_dest
 
@@ -365,11 +369,13 @@ def latest_backups(bucket, project, hostname, target, backupname=None):
     return [(backupnom, sorted(pb)[-1]) for backupnom, pb in filename_idx.items()]
 
 
-def download_latest_backup(to, bucket, project, hostname, target, path=None):
+def download_latest_backup(
+    to, bucket, project, hostname, target, path=None, progress_bar=True
+):
     backup_list = latest_backups(bucket, project, hostname, target, path)
-    x = []
+    results = []
     for backupname, remote_src in backup_list:
         local_dest = join(to, path or backupname)
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
-        x.append(download(bucket, remote_src, local_dest))
-    return x
+        results.append(download(bucket, remote_src, local_dest, progress_bar))
+    return results

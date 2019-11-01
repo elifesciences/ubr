@@ -1,11 +1,12 @@
 import os
 import glob
-from ubr import main, tgz_target
+from ubr import main, tgz_target, conf
 from .base import BaseCase
 
 
 class TestTarredGzippedBackup(BaseCase):
     def setUp(self):
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir = "/tmp/foo"
 
     def tearDown(self):
@@ -15,7 +16,9 @@ class TestTarredGzippedBackup(BaseCase):
         fixture = os.path.join(self.fixture_dir, "img1.png")
         paths = [fixture, os.path.join(self.fixture_dir, "*/**")]
         descriptor = {"tar-gzipped": paths}
-        output = main.backup(descriptor, output_dir=self.expected_output_dir)
+        output = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
 
         filename = tgz_target.filename_for_paths(paths)
         expected_output = {
@@ -32,13 +35,17 @@ class TestTarredGzippedBackup(BaseCase):
         "the tgz target returns a list for it's 'output' result. all targets must return a list"
         fixture = os.path.join(self.fixture_dir, "img1.png")
         descriptor = {"tar-gzipped": [fixture]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(1, len(results["tar-gzipped"]["output"]))
 
     def test_bad_backup_target_doesnt_prevent_subsequent(self):
         "if a backup target fails to create it's backup, it shouldn't stop other targets from being backed up"
         descriptor = {"tar-gzipped": ["/does/not/exist/"]}
-        results = main.backup(descriptor, "/never/reached/")
+        results = main.backup(
+            descriptor, output_dir="/never/reached/", opts=self.default_opts
+        )
         expected = []
         self.assertEqual(expected, results["tar-gzipped"]["output"])
 
@@ -46,6 +53,7 @@ class TestTarredGzippedBackup(BaseCase):
 class TestTarredGzippedRestore(BaseCase):
     def setUp(self):
         self.expected_output_dir = "/tmp/baz"
+        self.default_opts = conf.DEFAULT_CLI_OPTS
 
     def tearDown(self):
         archive_files = glob.glob(os.path.join(self.expected_output_dir, "archive-*"))
@@ -56,7 +64,9 @@ class TestTarredGzippedRestore(BaseCase):
         fixture = os.path.join(self.fixture_dir, "img1.png")
         paths = [fixture]
         descriptor = {"tar-gzipped": paths}
-        main.backup(descriptor, output_dir=self.expected_output_dir)
+        main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
 
         # ensure an archive was created
         filename = tgz_target.filename_for_paths(paths)
@@ -70,5 +80,7 @@ class TestTarredGzippedRestore(BaseCase):
                 "output": [(os.path.abspath(fixture), True)]
             }
         }
-        results = main.restore(descriptor, backup_dir=self.expected_output_dir)
+        results = main.restore(
+            descriptor, backup_dir=self.expected_output_dir, opts=self.default_opts
+        )
         self.assertEqual(results, expected_results)

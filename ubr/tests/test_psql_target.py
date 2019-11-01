@@ -84,6 +84,7 @@ class Backup(BaseCase):
         psql.load(self.dbname, fixture)
 
         self.backup_dir = conf.WORKING_DIR  # TODO: change this temp.dir
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.assertTrue(psql.dbexists(self.dbname))
 
     def tearDown(self):
@@ -91,20 +92,24 @@ class Backup(BaseCase):
 
     def test_backup(self):
         "a simple dump of the database happens"
-        psql.backup(self.dbname)
+        psql.backup(self.dbname, destination=None, opts=self.default_opts)
         expected_path = join(self.backup_dir, self.dbname + "-psql.gz")
         self.assertTrue(os.path.exists(expected_path))
 
     def test_backup_db_doesnt_exist(self):
         "a backup request for a database that doesn't exist, never happens"
         expected = []  # nothing backed up
-        self.assertEqual(expected, psql.backup("foo")["output"])
+        self.assertEqual(
+            expected,
+            psql.backup("foo", destination=None, opts=self.default_opts)["output"],
+        )
 
 
 class Restore(BaseCase):
     def setUp(self):
         self.db = "_ubr_testdb"
         psql.drop_if_exists(self.db)
+        self.default_opts = conf.DEFAULT_CLI_OPTS
 
     def tearDown(self):
         psql.drop_if_exists(self.db)
@@ -115,7 +120,12 @@ class Restore(BaseCase):
         self.assertFalse(psql.dbexists(self.db))
         # will look for .../fixtures/_ubr_testdb.psql.gz
         expected = {"output": [(self.db, True)]}
-        self.assertEqual(expected, psql.restore([self.db], self.fixture_dir))
+        self.assertEqual(
+            expected,
+            psql.restore(
+                [self.db], backup_dir=self.fixture_dir, opts=self.default_opts
+            ),
+        )
         self.assertTrue(psql.dbexists(self.db))
 
     def test_restore_when_db_exists(self):
@@ -127,7 +137,7 @@ class Restore(BaseCase):
         psql.runsql(self.db, "delete from table1")
         self.assertEqual(0, len(list(psql.runsql(self.db, "select * from table1"))))
 
-        psql.restore([self.db], self.fixture_dir)
+        psql.restore([self.db], backup_dir=self.fixture_dir, opts=self.default_opts)
         self.assertEqual(2, len(list(psql.runsql(self.db, "select * from table1"))))
 
     def test_load_can_drop_the_existing_db(self):

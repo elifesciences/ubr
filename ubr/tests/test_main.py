@@ -1,7 +1,7 @@
 import os
 from unittest import mock
 from os.path import join
-from ubr import main, utils, psql_target as psql, s3
+from ubr import main, utils, psql_target as psql, s3, conf
 from .base import BaseCase
 
 
@@ -72,72 +72,78 @@ class ParseArgs(BaseCase):
     def setUp(self):
         self.patcher = mock.patch("ubr.utils.hostname", return_value="test-machine")
         self.patcher.start()
+        self.default_opts = conf.DEFAULT_CLI_OPTS
 
     def tearDown(self):
         self.patcher.stop()
 
     def test_parseargs_minimal_args(self):
         given = ""
-        expected = ["backup", "s3", "test-machine", [], False]
+        expected = (["backup", "s3", "test-machine", []], self.default_opts)
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_two_args(self):
         given = "--action restore"
-        expected = ["restore", "s3", "test-machine", [], False]
+        expected = (["restore", "s3", "test-machine", []], self.default_opts)
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_three_args(self):
         given = "--action restore --location file"
-        expected = ["restore", "file", "test-machine", [], False]
+        expected = (["restore", "file", "test-machine", []], self.default_opts)
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_four_args(self):
         given = "--action restore --location file --hostname example.org"
-        expected = ["restore", "file", "example.org", [], False]
+        expected = (["restore", "file", "example.org", []], self.default_opts)
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_five_args(self):
         "optional fifth+ args to specify targets within the descriptor"
         given = "--action restore --location file --hostname example.org --paths mysql-database.mydb1"
-        expected = ["restore", "file", "example.org", ["mysql-database.mydb1"], False]
+        expected = (
+            ["restore", "file", "example.org", ["mysql-database.mydb1"]],
+            self.default_opts,
+        )
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_parseargs_five_plus_args(self):
         "optional fifth+ args to specify targets within the descriptor"
         given = "--action restore --location file --hostname example.org --paths mysql-database.mydb1 files./opt/thing/ mysql-database.mydb2"
-        expected = [
-            "restore",
-            "file",
-            "example.org",
-            ["mysql-database.mydb1", "files./opt/thing/", "mysql-database.mydb2"],
-            False,
-        ]
+        expected = (
+            [
+                "restore",
+                "file",
+                "example.org",
+                ["mysql-database.mydb1", "files./opt/thing/", "mysql-database.mydb2"],
+            ],
+            self.default_opts,
+        )
         self.assertEqual(main.parseargs(given.split()), expected)
 
     def test_download_args(self):
         cases = [
             # download most recent files for this machine from s3
-            ("--action download", ["download", "s3", "test-machine", [], False]),
+            (
+                "--action download",
+                (["download", "s3", "test-machine", []], self.default_opts),
+            ),
             # same again
             (
                 "--action download --location s3",
-                ["download", "s3", "test-machine", [], False],
+                (["download", "s3", "test-machine", []], self.default_opts),
             ),
             # download most recent files from the prod machine from s3
             (
                 "--action download --location s3 --hostname prod--test-machine",
-                ["download", "s3", "prod--test-machine", [], False],
+                (["download", "s3", "prod--test-machine", []], self.default_opts),
             ),
             # download just the mysql database 'thing' from the prod machine from s3
             (
                 "--action download --location s3 --hostname prod--test-machine --paths mysql-database.thing",
-                [
-                    "download",
-                    "s3",
-                    "prod--test-machine",
-                    ["mysql-database.thing"],
-                    False,
-                ],
+                (
+                    ["download", "s3", "prod--test-machine", ["mysql-database.thing"]],
+                    self.default_opts,
+                ),
             ),
         ]
         for given, expected in cases:
@@ -153,7 +159,7 @@ class ParseArgs(BaseCase):
             # downloading a file from filesystem?
             (
                 "--action download --location file",
-                ["download", "file", "test-machine", [], False],
+                (["download", "file", "test-machine", []], self.default_opts),
             )
         ]
         for given, expected in bad_cases:
@@ -163,11 +169,17 @@ class ParseArgs(BaseCase):
         cases = [
             (
                 "--action download --location s3 --hostname adhoc --paths /path/to/uploaded/file.gz",
-                ["download", "s3", "adhoc", ["/path/to/uploaded/file.gz"], False],
+                (
+                    ["download", "s3", "adhoc", ["/path/to/uploaded/file.gz"]],
+                    self.default_opts,
+                ),
             ),
             (
                 "--action download --location s3 --hostname adhoc --paths /a/b/c.gz /a/b/c/d.gz",
-                ["download", "s3", "adhoc", ["/a/b/c.gz", "/a/b/c/d.gz"], False],
+                (
+                    ["download", "s3", "adhoc", ["/a/b/c.gz", "/a/b/c/d.gz"]],
+                    self.default_opts,
+                ),
             ),
         ]
         for given, expected in cases:
@@ -188,15 +200,17 @@ class ParseArgs(BaseCase):
 
     def test_optional_args(self):
         "optional args dont break parsing"
+
+        expected_opts = {"progress_bar": False, "prompt": True}  # inverse of defaults
         cases = [
             (
-                "--action download --location s3 --hostname test-machine --prompt",
-                ["download", "s3", "test-machine", [], True],
+                "--action download --location s3 --hostname test-machine --prompt --no-progress-bar",
+                (["download", "s3", "test-machine", []], expected_opts),
             ),
             # flags can appear at beginning of args
             (
-                "--prompt --action download --location s3 --hostname test-machine",
-                ["download", "s3", "test-machine", [], True],
+                "--prompt --action download --no-progress-bar --location s3 --hostname test-machine",
+                (["download", "s3", "test-machine", []], expected_opts),
             ),
         ]
         for given, expected in cases:

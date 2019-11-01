@@ -116,6 +116,10 @@ def first(lst):
         return None
 
 
+def subdict(data, key_list):
+    return {key: val for key, val in data.items() if key in key_list}
+
+
 def rest(lst):
     return lst[1:]
 

@@ -1,6 +1,6 @@
 import os, time, uuid
 from os.path import join
-from ubr import main, mysql_target, s3, tgz_target, utils
+from ubr import main, mysql_target, s3, tgz_target, utils, conf
 from datetime import datetime
 from .base import BaseCase
 
@@ -119,6 +119,7 @@ class One(BaseCase):
 
 class Upload(BaseCase):
     def setUp(self):
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         self.s3_backup_bucket = "elife-app-backups-test"
         self.project_name = "_test"
@@ -137,7 +138,9 @@ class Upload(BaseCase):
         "the results of a backup are uploaded to s3"
         fixture = os.path.join(self.fixture_dir, "img1.png")
         descriptor = {"tar-gzipped": [fixture, os.path.join(self.fixture_dir, "*/**")]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
 
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
@@ -156,7 +159,9 @@ class Upload(BaseCase):
         # two things to upload
         descriptor = {"tar-gzipped": [fixture], "mysql-database": [self.project_name]}
 
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         uploaded_keys = s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
         )
@@ -173,7 +178,9 @@ class Upload(BaseCase):
         "after a successful upload to s3, whatever was uploaded is removed"
         fixture = os.path.join(self.fixture_dir, "img1.png")
         descriptor = {"tar-gzipped": [fixture]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
 
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
@@ -188,6 +195,7 @@ class Download(BaseCase):
         self.project_name = "-test"
         self.s3_backup_bucket = "elife-app-backups-test"
         self.hostname = "testmachine"
+        self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir, self.rmtmpdir = utils.tempdir()
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
 
@@ -243,7 +251,9 @@ class Download(BaseCase):
         descriptor = {"tar-gzipped": paths}
 
         # backup+upload
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
         )
@@ -272,7 +282,9 @@ class Download(BaseCase):
         "a backup can be uploaded to s3 and then detected as the latest and downloaded"
         # do the backup
         descriptor = {"mysql-database": ["_test"]}
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
         )
@@ -303,7 +315,9 @@ class Download(BaseCase):
         descriptor = {"tar-gzipped": [fixture, os.path.join(self.fixture_dir, "*/**")]}
 
         # do backup1
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
         )
@@ -313,7 +327,9 @@ class Download(BaseCase):
         time.sleep(1)
 
         # do backup2
-        results2 = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results2 = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         s3.upload_backup(
             self.s3_backup_bucket, results2, self.project_name, self.hostname
         )
@@ -350,7 +366,9 @@ class Download(BaseCase):
         descriptor = {"tar-gzipped": paths}
 
         # backup + upload
-        results = main.backup(descriptor, output_dir=self.expected_output_dir)
+        results = main.backup(
+            descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
+        )
         s3.upload_backup(
             self.s3_backup_bucket, results, self.project_name, self.hostname
         )
@@ -373,6 +391,8 @@ class Download(BaseCase):
         os.system("rm %s" % os.path.abspath(fixture2))
         self.assertFalse(os.path.exists(fixture))
         self.assertFalse(os.path.exists(fixture2))
-        results = main.restore(descriptor, backup_dir=expected_download_dir)
+        results = main.restore(
+            descriptor, backup_dir=expected_download_dir, opts=self.default_opts
+        )
         self.assertTrue(os.path.exists(fixture))
         self.assertTrue(os.path.exists(fixture2))

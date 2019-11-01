@@ -48,7 +48,7 @@ def wrangle_files(path_list):
     return new_path_list
 
 
-def backup(path_list, destination, prompt=False):
+def backup(path_list, destination, opts):
     """embarassingly simple 'copy each of the files specified
     to new destination, ignoring the common parents'"""
     LOG.info("backing up given paths at %r" % (path_list,))
@@ -76,7 +76,7 @@ def _restore(path, backup_dir):
     return (path, retcode == 0)
 
 
-def restore(path_list, backup_dir, prompt=False):
+def restore(path_list, backup_dir, opts):
     """how do we restore files? we rsync the target from the input dir.
 
     the 'backup_dir' is the dir we read backups from with the given path_list providing further path information

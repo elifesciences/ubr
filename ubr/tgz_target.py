@@ -44,7 +44,7 @@ def unpack(archive):
     return [(f, os.path.isfile(f)) for f in filter(os.path.isfile, file_listing)]
 
 
-def backup(path_list, destination, prompt=False):
+def backup(path_list, destination, opts):
     """does a regular file_backup and then tars and gzips the results.
     the name of the resulting file is 'archive.tar.gz'"""
     LOG.info("backing up files %r" % (path_list,))
@@ -90,7 +90,7 @@ def backup(path_list, destination, prompt=False):
     return {"output": [output_path]}
 
 
-def restore(path_list, backup_dir, prompt=False):
+def restore(path_list, backup_dir, opts):
     """assumes a file called 'archive.tar.gz' is in the given directory and that all
     the paths to the files within that tar.gz file are """
     filename = filename_for_paths(path_list) + ".tar.gz"
