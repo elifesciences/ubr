@@ -121,7 +121,7 @@ def _dictfetchall(cursor):
     # > Version 1.16.0, 2020-07-11
     # > This is a backwardly incompatible release of pg8000.
     # > All data types are now sent as text rather than binary.
-    #cols = [a[0].decode("utf-8") for a in cursor.description]
+    # cols = [a[0].decode("utf-8") for a in cursor.description]
     cols = [a[0] for a in cursor.description]
     for row in cursor.fetchall():
         yield {a: b for a, b in zip(cols, row)}
