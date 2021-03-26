@@ -1,0 +1,24 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[requires]
+python_version = "3.6"
+
+[packages]
+boto3 = "~=1.9"
+glob2 = "~=0.5"
+pg8000 = "~=1.10"
+pgpasslib = "~=1.1"
+python-json-logger = "~=0.1"
+schema = "~=0.6.5"
+PyMySQL = "~=0.7"
+PyYAML = "~=5.4"
+
+[dev-packages]
+coverage = "~=5.2"
+pyflakes = "~=2.1"
+pylint = "~=1.7"
+pytest = "~=5.0"
+pytest-cov = "~=2.7"
