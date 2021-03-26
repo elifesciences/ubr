@@ -1,7 +1,5 @@
 # ubr
 
-[![Code Climate](https://codeclimate.com/github/elifesciences/ubr/badges/gpa.svg)](https://codeclimate.com/github/elifesciences/ubr)
-
 I don't ever want to write another backup script __ever again__.
 
 They are so damn tedious and every time I write one it's just ever so slightly
@@ -106,15 +104,15 @@ I have nothing right now, just my desired syntax
 
 
     how to download a backup?
-        - ubr lagotto mysql restore
+        - ubr lax psql restore
         
     how to create a backup
-        - ubr lagotto mysql backup
+        - ubr lax psql backup
 
 
 ## Copyright & Licence
 
-Copyright 2015 eLife Sciences. Licensed under the [GPLv3](LICENCE.txt)
+Copyright 2015-present eLife Sciences. Licensed under the [GPLv3](LICENCE.txt)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
