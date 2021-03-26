@@ -177,9 +177,9 @@ REPORT_FILE_BLACKLIST = [
     "archive-d162efcb.tar.gz",  # elife-metrics, old-style backup
     "archive-b40e0f85.tar.gz",  # journal-cms, old-style backup
     "elifedashboardprod-psql.gz",  # elife-dashboard, old-style backup
-    "articlescheduler-psql.gz", # elife-dashboard/article-scheduler, once-off/ad-hoc article-scheduler backup
-    "archive-59001402.tar.gz", # peerscout, adhoc files backup
-    "peerscoutprod-psql.gz", # peerscout, adhoc database upload
+    "articlescheduler-psql.gz",  # elife-dashboard/article-scheduler, once-off/ad-hoc article-scheduler backup
+    "archive-59001402.tar.gz",  # peerscout, adhoc files backup
+    "peerscoutprod-psql.gz",  # peerscout, adhoc database upload
 ]
 
 # number of days between now and the last backup before it's considered a problem

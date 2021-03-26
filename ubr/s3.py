@@ -174,13 +174,14 @@ class DownloadProgressPercentage(ProgressPercentage):
         bucket, path = bits[1], "/".join(bits[2:])
         self._size = int(s3_file(bucket, path)["Contents"][0]["Size"])
 
+
 # taken and modified from `tlastowka/calculate_multipart_etag` (GPLv3):
 # - https://github.com/tlastowka/calculate_multipart_etag
 def generate_s3_etag(source_path):
     "generates an S3-style ETag"
-    chunk_size = 8 * 1024 * 1024 # 8 MiB
+    chunk_size = 8 * 1024 * 1024  # 8 MiB
     md5s = []
-    with open(source_path, 'rb') as fp:
+    with open(source_path, "rb") as fp:
         while True:
             data = fp.read(chunk_size)
             if not data:
@@ -195,6 +196,7 @@ def generate_s3_etag(source_path):
 
     # file smaller than chunk size
     return '"%s"' % md5s[0].hexdigest()
+
 
 def verify_file(filename, bucket, key):
     "compares the local md5sum with the remote md5sum. files uploaded in multiple parts "

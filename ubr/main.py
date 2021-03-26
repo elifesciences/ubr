@@ -39,7 +39,7 @@ def get_module(target):
 
 
 def module_dispatch(target, func_name, *args, **kwargs):
-    """given a target like 'mysql-database' and a function name like 'restore', 
+    """given a target like 'mysql-database' and a function name like 'restore',
     finds the function in the target module and calls with remaining arguments"""
     mod = get_module(target)
     ensure(

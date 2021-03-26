@@ -92,7 +92,7 @@ def backup(path_list, destination, opts):
 
 def restore(path_list, backup_dir, opts):
     """assumes a file called 'archive.tar.gz' is in the given directory and that all
-    the paths to the files within that tar.gz file are """
+    the paths to the files within that tar.gz file are"""
     filename = filename_for_paths(path_list) + ".tar.gz"
     archive = os.path.join(backup_dir, filename)
     LOG.info("restoring files in archive %r" % filename)
