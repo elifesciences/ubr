@@ -127,7 +127,7 @@ def validate_descriptor(descriptor):
 
 
 def load_descriptor(descriptor_path, path_list=[]):
-    descriptor = validate_descriptor(yaml.load(open(descriptor_path, "r")))
+    descriptor = validate_descriptor(yaml.safe_load(open(descriptor_path, "r")))
     if path_list:
         return subdescriptor(descriptor, path_list)
     return descriptor

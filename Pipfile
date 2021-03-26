@@ -9,7 +9,8 @@ python_version = "3.6"
 [packages]
 boto3 = "~=1.9"
 glob2 = "~=0.5"
-pg8000 = "~=1.10"
+# does not use semver!
+pg8000 = "==1.16.*"
 pgpasslib = "~=1.1"
 python-json-logger = "~=0.1"
 schema = "~=0.6.5"
