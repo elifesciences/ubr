@@ -2,8 +2,6 @@
 # assumes activated venv
 set -e
 
-pyflakes ubr/
-
 args="$@"
 module=""
 if [ ! -z "$args" ]; then
