@@ -1,7 +1,6 @@
 import shutil
 import tempfile
 from contextlib import contextmanager
-import sys
 import os, subprocess
 import errno
 from itertools import takewhile
@@ -103,10 +102,6 @@ def mkdir_p(path):
             raise
 
 
-def subdict(data, key_list):
-    return {key: val for key, val in data.items() if key in key_list}
-
-
 def list_paths(d):
     "returns a list of full paths for the given directory `d`"
     return [os.path.join(d, f) for f in os.listdir(d)]
@@ -190,48 +185,6 @@ def isint(x):
         return True
     except (TypeError, ValueError):
         return False
-
-
-def choose(prompt, choices, label_fn=None):
-    try:
-        if label_fn:
-            # [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
-            labels = zip(choices, map(label_fn, choices))
-
-        else:
-            labels = zip(choices, choices)
-        idx = enumerated(choices)  # {1: /foo/bar/baz, 2: /foo/bar/bup}
-
-        while True:
-            # present menu
-            for i, pair in enumerate(labels):
-                print("%s: %s" % (i + 1, pair[1]))
-            print()
-
-            # prompt user
-            uin = input(prompt)
-
-            # hygeine
-            if not uin or not uin.strip():
-                print("a choice is required (ctrl-c to quit)")
-                continue
-            if not isint(uin):
-                print("a -numeric- choice is required (ctrl-c to quit)")
-                continue
-            uin = int(uin)
-            if uin not in idx:
-                print(
-                    "a choice between 1 and %s is required (ctrl-c to quit)"
-                    % len(choices)
-                )
-                continue
-
-            # all good,
-            return idx[uin]
-
-    except KeyboardInterrupt:
-        print()
-        sys.exit(1)
 
 
 @contextmanager

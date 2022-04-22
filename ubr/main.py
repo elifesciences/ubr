@@ -2,7 +2,7 @@ import argparse
 import os, sys
 from os.path import join
 import logging
-from ubr.utils import ensure, subdict
+from ubr.utils import ensure
 from ubr import (
     conf,
     utils,
@@ -136,7 +136,6 @@ def backup_to_s3(hostname, path_list, opts):
                 project,
                 utils.hostname(),
                 remove_backup_after_upload,
-                opts["progress_bar"],
             )
         )
     return results
@@ -168,23 +167,12 @@ def download_from_s3(hostname, path_list, opts):
             if path_list:
                 for path in remote_path_list:
                     s3.download_latest_backup(
-                        download_dir,
-                        conf.BUCKET,
-                        project,
-                        hostname,
-                        target,
-                        path,
-                        opts["progress_bar"],
+                        download_dir, conf.BUCKET, project, hostname, target, path
                     )
             else:
                 # no paths specified, download all paths for hostname+target
                 s3.download_latest_backup(
-                    download_dir,
-                    conf.BUCKET,
-                    project,
-                    hostname,
-                    target,
-                    progress_bar=opts["progress_bar"],
+                    download_dir, conf.BUCKET, project, hostname, target
                 )
 
         results.append((descriptor, download_dir))
@@ -215,9 +203,7 @@ def adhoc_s3_download(path_list, opts):
         try:
             # being adhoc, we can't manage a machinename() call
             download_dir = join(conf.WORKING_DIR, os.path.basename(remote_path))
-            return s3.download(
-                conf.BUCKET, remote_path, download_dir, opts["progress_bar"]
-            )
+            return s3.download(conf.BUCKET, remote_path, download_dir)
         except AssertionError as err:
             LOG.warning(err)
 
@@ -292,17 +278,6 @@ def parseargs(args):
         help="partial backup/restore using specific targets. for example: 'mysql-database.mydb1'",
     )
 
-    # enable/disable the upload/download progress bar
-    # if enabled for headless operations, like in a cron job, it may generate a lot of 'noise' to the log file
-    parser.add_argument("--progress-bar", dest="progress_bar", action="store_true")
-    parser.add_argument("--no-progress-bar", dest="progress_bar", action="store_false")
-    parser.set_defaults(progress_bar=conf.DEFAULT_CLI_OPTS["progress_bar"])
-
-    # should a prompt be issued when necessary?
-    parser.add_argument(
-        "--prompt", action="store_true", default=conf.DEFAULT_CLI_OPTS["prompt"]
-    )
-
     args = parser.parse_args(args)
 
     if args.action == "download" and args.location == "file":
@@ -323,7 +298,7 @@ def parseargs(args):
         getattr(args, key, None) for key in ["action", "location", "hostname", "paths"]
     ]
 
-    opts = subdict(args.__dict__, ["prompt", "progress_bar"])
+    opts = {}
 
     return cmd, opts
 

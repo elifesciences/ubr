@@ -125,7 +125,7 @@ def var(envname, cfgpath, default):
 # CLI argument parsing uses the values in this map as defaults
 # tests and other non-standard entry points should use the values in
 # this map if parsed CLI arguments are not available
-DEFAULT_CLI_OPTS = {"progress_bar": True, "prompt": False}
+DEFAULT_CLI_OPTS = {}
 
 # which S3 bucket should ubr upload backups to/restore backups from?
 BUCKET = "elife-app-backups"

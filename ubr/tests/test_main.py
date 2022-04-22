@@ -197,22 +197,3 @@ class ParseArgs(BaseCase):
         ]
         for given in cases:
             self.assertRaises(SystemExit, main.parseargs, given.split())
-
-    def test_optional_args(self):
-        "optional args dont break parsing"
-
-        expected_opts = {"progress_bar": False, "prompt": True}  # inverse of defaults
-        cases = [
-            (
-                "--action download --location s3 --hostname test-machine --prompt --no-progress-bar",
-                (["download", "s3", "test-machine", []], expected_opts),
-            ),
-            # flags can appear at beginning of args
-            (
-                "--prompt --action download --no-progress-bar --location s3 --hostname test-machine",
-                (["download", "s3", "test-machine", []], expected_opts),
-            ),
-        ]
-        for given, expected in cases:
-            actual = main.parseargs(given.split())
-            self.assertEqual(actual, expected)
