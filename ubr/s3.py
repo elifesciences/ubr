@@ -199,7 +199,7 @@ def generate_s3_etag(source_path):
 
 
 def verify_file(filename, bucket, key):
-    "compares the local md5sum with the remote md5sum. files uploaded in multiple parts "
+    "compares the local md5sum with the remote md5sum. files uploaded in multiple parts"
     s3obj = s3_file(bucket, key)
     remote_bytes = int(s3obj["Contents"][0]["Size"])
     local_bytes = os.path.getsize(filename)

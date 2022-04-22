@@ -39,6 +39,12 @@ LOG = logging.getLogger(__name__)
 # tar-gzipped:
 #   - /var/log/myapp/*
 
+KNOWN_TARGETS = [
+    "files",
+    "tar-gzipped",
+    "mysql-database",
+    "postgresql-database",
+]
 
 #
 # description pruning
@@ -51,7 +57,8 @@ def _subdesc(desc, path):
     bits = path.split(".", 1)
     ensure(
         len(bits) == 2,
-        "expecting just two bits, got %s bits: %s" % (len(bits), path),
+        "expecting just two bits (type and target), got %s bits: %s"
+        % (len(bits), path),
         ValueError,
     )
     toplevel, target = bits
@@ -73,7 +80,7 @@ def subdescriptor(desc, path_list):
             acc[key] = val
         return acc
 
-    return reduce(merge, list(map(partial(_subdesc, desc), path_list)))
+    return reduce(merge, map(partial(_subdesc, desc), path_list))
 
 
 #
@@ -102,25 +109,20 @@ def is_descriptor(path):
 
 def find_descriptors(descriptor_dir):
     "returns a list of descriptors at the given path"
-
-    def expandtoabs(path):
-        return utils.doall(path, os.path.expanduser, os.path.abspath)
-
-    location_list = list(map(expandtoabs, utils.list_paths(descriptor_dir)))
-    return sorted(filter(is_descriptor, list(filter(os.path.exists, location_list))))
+    # '/descriptor/dir/' => ['/descriptor/dir/foo-backup.yaml', '/descriptor/dir/bar-backup.yaml']
+    return sorted(
+        [
+            os.path.abspath(os.path.expanduser(path))
+            for path in utils.list_paths(descriptor_dir)
+            if os.path.exists(path) and is_descriptor(path)
+        ]
+    )
 
 
 def validate_descriptor(descriptor):
-    "return True if the given descriptor is correctly structured."
+    "returns `True` if the given `descriptor` is correctly structured."
     try:
-        descr_schema = Schema(
-            {
-                lambda v: v
-                in ["files", "tar-gzipped", "mysql-database", "postgresql-database"]: [
-                    str
-                ]
-            }
-        )
+        descr_schema = Schema({lambda v: v in KNOWN_TARGETS: [str]})
         return descr_schema.validate(descriptor)
     except SchemaError as err:
         raise AssertionError(str(err))

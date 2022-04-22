@@ -270,26 +270,26 @@ def parseargs(args):
         nargs="?",
         default="backup",
         choices=["check", "check-all", "backup", "restore", "download"],
-        help="am I backing things up or restoring them?",
     )
     parser.add_argument(
         "--location",
         nargs="?",
         default="s3",
         choices=["s3", "file"],
-        help="am I doing this action from the file system or from S3?",
+        help="backup/restore files to/from here",
     )
     parser.add_argument(
         "--hostname",
         nargs="?",
         default=utils.hostname(),
-        help="if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment",
+        help="used to restore files from another host. default to *this* host (%r)"
+        % utils.hostname(),
     )
     parser.add_argument(
         "--paths",
         nargs="*",
         default=[],
-        help="dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1",
+        help="partial backup/restore using specific targets. for example: 'mysql-database.mydb1'",
     )
 
     # enable/disable the upload/download progress bar

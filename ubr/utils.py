@@ -10,12 +10,14 @@ import collections
 import hashlib
 from .conf import logging
 from functools import reduce
+import platform
+import uuid
 
 LOG = logging.getLogger(__name__)
 
 
 def visit(data, pred, fn):
-    "visits every value in the given data and applies `fn` when `pred` is true "
+    "visits every value in the given data and applies `fn` when `pred` is true"
     if pred(data):
         data = fn(data)
         # why don't we return here after matching?
@@ -66,6 +68,11 @@ def unique(lst):
     return reduce(lambda x, y: x + [y] if not y in x else x, lst, [])
 
 
+def unique_id():
+    "returns a stringified UUID4"
+    return str(uuid.uuid4())
+
+
 def ensure(assertion, msg, ExceptionClass=AssertionError):
     """intended as a convenient replacement for `assert` statements that
     get compiled away with -O flags"""
@@ -73,25 +80,17 @@ def ensure(assertion, msg, ExceptionClass=AssertionError):
         raise ExceptionClass(msg)
 
 
-def system1(cmd):
-    LOG.info(cmd)
-    retval = os.system(cmd)
-    LOG.info("return status %s", retval)
-    return retval
-
-
-def system2(cmd):
+def system(cmd):
     args = ["/bin/bash", "-c", cmd]
-    # print args
     process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
-    # return process.returncode, stdout
-    LOG.info(stdout)
-    LOG.warning(stderr)
+    stdout = stdout and stdout.decode()
+    stderr = stderr and stderr.decode()
+    if stdout:
+        LOG.info(stdout)
+    if stderr:
+        LOG.warning(stderr)
     return process.returncode
-
-
-system = system2
 
 
 def mkdir_p(path):
@@ -105,77 +104,52 @@ def mkdir_p(path):
             raise
 
 
-def dir_exists(p):
-    return os.path.exists(p) and os.path.isdir(p)
-
-
-def first(lst):
-    try:
-        return lst[0]
-    except IndexError:
-        return None
-
-
 def subdict(data, key_list):
     return {key: val for key, val in data.items() if key in key_list}
 
 
-def rest(lst):
-    return lst[1:]
-
-
-def doall(val, *args):
-    "applies all of the functions given in args to the first val"
-    func = first(args)
-    if func:
-        return doall(func(val), *rest(args))
-    return val
-
-
 def list_paths(d):
-    "returns a list of full paths in the given directory"
+    "returns a list of full paths for the given directory `d`"
     return [os.path.join(d, f) for f in os.listdir(d)]
 
 
 def list_paths_recur(d):
-    from os.path import join
-
+    "returns a list of full paths for the given directory `d` *as well as* paths for all sub-directories"
     file_list = []
     for root, dirs, files in os.walk(d):
-        file_list.extend([join(root, f) for f in files])
+        file_list.extend([os.path.join(root, f) for f in files])
     return file_list
 
 
 # http://rosettacode.org/wiki/Find_common_directory_path#Python
+def _allnamesequal(item_list):
+    "returns `True` if all items in `item_list` are equal to it's first item."
+    return all(item == item_list[0] for item in item_list[1:])
 
 
-def allnamesequal(name):
-    return all(n == name[0] for n in name[1:])
-
-
-def common_prefix(paths, sep="/"):
+def common_prefix(path_list):
     """returns the common directory for a list of given paths.
     if only a single path is given, the parent directory is returned.
     if the only common directory is the root directory, then an empty string is returned."""
-    bydirectorylevels = list(zip(*[p.split(sep) for p in paths]))
-    common = sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
-    if len(paths) == 1:
-        return os.path.dirname(common)
-    return common
+    sep = "/"
+    ensure(isinstance(path_list, list), "expected a list of paths")
 
+    # ['/foo/bar/baz', '/foo/bar/boo'] => [('', ''), ('foo', 'foo'), ('bar', 'bar'), ('baz', 'boo')]
+    bydirectorylevels = zip(*[p.split(sep) for p in path_list])
 
-def ymdhms():
-    "returns a UTC datetime stamp as y-m-d--hr-min-sec"
-    return datetime.utcnow().strftime("%Y-%m-%d--%H-%M-%S")
+    common_path = [x[0] for x in takewhile(_allnamesequal, bydirectorylevels)]
+    common_path = sep.join(common_path)
+
+    if len(path_list) == 1:
+        return os.path.dirname(common_path)
+    return common_path
 
 
 def hostname():
-    import platform
-
     return platform.node()
 
 
-def generate_file_md5(filename, blocksize=2 ** 20):
+def generate_file_md5(filename, blocksize=2**20):
     "http://stackoverflow.com/questions/1131220/get-md5-hash-of-big-files-in-python"
     m = hashlib.md5()
     with open(filename, "rb") as f:
@@ -207,7 +181,8 @@ def pairwise(lst):
 
 
 def enumerated(lst):
-    return dict(list(zip(list(range(1, len(lst) + 1)), lst)))
+    """`["a", "b", "c", "d"] => {1: 'a', 2: 'b', 3: 'c', 4: 'd'}`"""
+    return dict(zip(range(1, len(lst) + 1), lst))
 
 
 def isint(x):
@@ -221,12 +196,12 @@ def isint(x):
 def choose(prompt, choices, label_fn=None):
     try:
         if label_fn:
-            labels = list(
-                zip(choices, list(map(label_fn, choices)))
-            )  # ll: [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
+            # [(/foo/bar/baz, baz), (/foo/bar/bup, bup)]
+            labels = zip(choices, map(label_fn, choices))
+
         else:
-            labels = list(zip(choices, choices))
-        idx = enumerated(choices)  # ll: {1: /foo/bar/baz, 2: /foo/bar/bup}
+            labels = zip(choices, choices)
+        idx = enumerated(choices)  # {1: /foo/bar/baz, 2: /foo/bar/bup}
 
         while True:
             # present menu
