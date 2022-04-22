@@ -3,7 +3,6 @@ import tempfile
 from contextlib import contextmanager
 import sys
 import os, subprocess
-from datetime import datetime
 import errno
 from itertools import takewhile
 import collections
