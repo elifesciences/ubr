@@ -104,6 +104,9 @@ def mkdir_p(path):
 
 def list_paths(d):
     "returns a list of full paths for the given directory `d`"
+    if not os.path.exists(d):
+        LOG.warning("path does not exist: %s" % d)
+        return []
     return [os.path.join(d, f) for f in os.listdir(d)]
 
 

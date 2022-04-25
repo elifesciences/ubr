@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 from ubr.utils import group_by_many, visit
 from ubr import conf, s3
-from ubr.descriptions import load_descriptor, find_descriptors, pname
+from ubr.descriptions import load_descriptor, find_descriptors, project_name
 
 LOG = logging.getLogger(__name__)
 
@@ -122,7 +122,7 @@ def check(hostname, path_list=None):
     problems = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
         # 'lax'
-        project = pname(descriptor_path)
+        project = project_name(descriptor_path)
         # {'postgresql-database': ['lax']}
         descriptor = load_descriptor(descriptor_path, path_list)
         for target, remote_path_list in descriptor.items():

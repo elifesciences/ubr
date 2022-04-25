@@ -44,6 +44,7 @@ KNOWN_TARGETS = [
     "tar-gzipped",
     "mysql-database",
     "postgresql-database",
+    "rds-snapshot",
 ]
 
 #
@@ -62,10 +63,13 @@ def _subdesc(desc, path):
         ValueError,
     )
     toplevel, target = bits
-    ensure(toplevel in desc, "descriptor has no %r key" % toplevel, ValueError)
-    ensure(
-        target in desc[toplevel], "given descriptor has no path %r" % path, ValueError
-    )
+    # lsh@2022-04-25: changed from hard fail with ValueError to soft fail with empty map
+    if not toplevel in desc:
+        LOG.warning("no %r in descriptor: %s" % (toplevel, desc))
+        return {}
+    if not target in desc[toplevel]:
+        LOG.warning("given descriptor has no path %r" % path)
+        return {}
     return {toplevel: [target]}
 
 
@@ -88,7 +92,7 @@ def subdescriptor(desc, path_list):
 #
 
 
-def pname(path):
+def project_name(path):
     "returns the name of the project given a path to a file"
     try:
         filename = os.path.basename(path)
@@ -104,7 +108,7 @@ def pname(path):
 
 def is_descriptor(path):
     "return True if the given path or filename looks like a descriptor file"
-    return pname(path) is not None
+    return project_name(path) is not None
 
 
 def find_descriptors(descriptor_dir):

@@ -1,3 +1,4 @@
+from pprint import pprint
 import argparse
 import os, sys
 from os.path import join
@@ -7,13 +8,14 @@ from ubr import (
     conf,
     utils,
     s3,
+    rds_target,
     mysql_target,
     file_target,
     tgz_target,
     psql_target,
     report,
 )
-from ubr.descriptions import load_descriptor, find_descriptors, pname
+from ubr.descriptions import load_descriptor, find_descriptors, project_name
 
 LOG = logging.getLogger(__name__)
 
@@ -22,26 +24,19 @@ LOG = logging.getLogger(__name__)
 #
 
 
-def get_module(target):
-    "returns the module for the given 'target', a key in a map of aliases->modules"
-    target_map = {
-        "postgresql-database": psql_target,
-        "mysql-database": mysql_target,
-        "files": file_target,
-        "tar-gzipped": tgz_target,
-    }
-    target_list = ", ".join(target_map.keys())
-    ensure(
-        target in target_map,
-        "unknown target %r. known targets: %s" % (target, target_list),
-    )
-    return target_map[target]
+TARGET_MAP = {
+    "postgresql-database": psql_target,
+    "mysql-database": mysql_target,
+    "files": file_target,
+    "tar-gzipped": tgz_target,
+    "rds": rds_target,
+}
 
 
 def module_dispatch(target, func_name, *args, **kwargs):
     """given a target like 'mysql-database' and a function name like 'restore',
     finds the function in the target module and calls with remaining arguments"""
-    mod = get_module(target)
+    mod = TARGET_MAP[target]
     ensure(
         hasattr(mod, func_name),
         "module %r (%s) has no function %r" % (mod, target, func_name),
@@ -53,11 +48,39 @@ def machinedir(hostname, descriptor_path):
     "returns a path where this machine can deal with this descriptor"
     # ll: /tmp/ubr/civicrm/crm--prod/
     # ll: /tmp/ubr/lax/lax--ci/
-    return os.path.join(conf.WORKING_DIR, pname(descriptor_path), hostname)
+    return os.path.join(conf.WORKING_DIR, project_name(descriptor_path), hostname)
+
+
+def _print_config():
+    "debugging, print the configuration the app is running under."
+    print("--- command line args")
+    _, args = _parseargs(sys.argv[1:])
+    pprint(args.__dict__)
+    print("--- conf")
+    pprint(
+        {
+            k: v
+            for k, v in conf.__dict__.items()
+            if not k.startswith("_") and type(v) != type(os)
+        }
+    )
+    print("--- descriptors")
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+        print("%r:" % descriptor_path)
+        pprint(load_descriptor(descriptor_path, args.paths))
+
+
+def print_config(fn):
+    def wrapper(*args, **kwargs):
+        _print_config()
+        print("---")
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 #
-#
+# API
 #
 
 
@@ -87,6 +110,11 @@ def restore(descriptor, backup_dir, opts):
 #
 #
 #
+
+
+@print_config
+def backup_to_rds(hostname, path_list, opts):
+    pass
 
 
 def backup_to_file(hostname, path_list, opts):
@@ -123,7 +151,7 @@ def backup_to_s3(hostname, path_list, opts):
     LOG.info("backing up ...")
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-        project = pname(descriptor_path)
+        project = project_name(descriptor_path)
         backupdir = machinedir(hostname, descriptor_path)
         backup_results = backup(
             load_descriptor(descriptor_path, path_list), backupdir, opts
@@ -149,7 +177,7 @@ def download_from_s3(hostname, path_list, opts):
     LOG.info("restoring ...")
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-        project = pname(descriptor_path)
+        project = project_name(descriptor_path)
         descriptor = load_descriptor(descriptor_path, path_list)
         download_dir = machinedir(hostname, descriptor_path)
         utils.mkdir_p(download_dir)
@@ -248,27 +276,26 @@ def check_all():
 #
 
 
-def parseargs(args):
-    "accepts a list of arguments and returns a list of validated ones"
+def _parseargs(args):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--action",
         nargs="?",
         default="backup",
-        choices=["check", "check-all", "backup", "restore", "download"],
+        choices=["config", "check", "check-all", "backup", "restore", "download"],
     )
     parser.add_argument(
         "--location",
         nargs="?",
         default="s3",
-        choices=["s3", "file"],
+        choices=["s3", "file", "rds"],
         help="backup/restore files to/from here",
     )
     parser.add_argument(
         "--hostname",
         nargs="?",
         default=utils.hostname(),
-        help="used to restore files from another host. default to *this* host (%r)"
+        help="used to restore files from another host. default is *this* host (%r)"
         % utils.hostname(),
     )
     parser.add_argument(
@@ -278,7 +305,13 @@ def parseargs(args):
         help="partial backup/restore using specific targets. for example: 'mysql-database.mydb1'",
     )
 
-    args = parser.parse_args(args)
+    return parser, parser.parse_args(args)
+
+
+def parseargs(args):
+    "accepts a list of arguments and returns a list of validated ones"
+
+    parser, args = _parseargs(args)
 
     if args.action == "download" and args.location == "file":
         parser.error("you can only 'download' when location is 's3'")
@@ -294,6 +327,9 @@ def parseargs(args):
                     "an even number of paths is required: [source, target, source, target], etc"
                 )
 
+    if args.action == "restore" and args.location == "rds":
+        parser.error("you cannot restore an RDS snapshot using UBR.")
+
     cmd = [
         getattr(args, key, None) for key in ["action", "location", "hostname", "paths"]
     ]
@@ -303,9 +339,18 @@ def parseargs(args):
     return cmd, opts
 
 
+@print_config
+def config():
+    pass
+
+
 def main(args):
     cmd, opts = parseargs(args)
     action, fromloc, hostname, paths = cmd
+
+    if action == "config":
+        config()
+        exit(0)
 
     if action == "check":
         exit(len(check(hostname, paths)))
@@ -323,7 +368,7 @@ def main(args):
         return decisions[(action, fromloc)](paths, opts)
 
     decisions = {
-        "backup": {"s3": backup_to_s3, "file": backup_to_file},
+        "backup": {"s3": backup_to_s3, "file": backup_to_file, "rds": backup_to_rds},
         "restore": {"s3": restore_from_s3, "file": restore_from_file},
         "download": {"s3": download_from_s3},
     }
