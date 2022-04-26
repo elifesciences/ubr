@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-echo "[-] install.sh"
 
 . mkvenv.sh
 
@@ -9,8 +8,6 @@ pip install pip wheel --upgrade
 pip install -r requirements.txt --progress-bar off
 
 if [ ! -e app.cfg ]; then
-    echo "* no app.cfg found! using the example settings (elife.cfg) by default."
-    ln -s elife.cfg app.cfg
+    echo "* no app.cfg found! using the example settings (example.cfg) by default."
+    ln -sfT example.cfg app.cfg
 fi
-
-echo "[✓] install.sh"
