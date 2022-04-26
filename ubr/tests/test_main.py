@@ -202,13 +202,13 @@ class ParseArgs(BaseCase):
 
 def test_parseargs__restore_rds():
     "an RDS snapshot cannot be restored via UBR"
-    given = "--action restore --location rds --hostname prod--lax"
+    given = "--action restore --location rds-snapshot --hostname prod--lax"
     with pytest.raises(SystemExit):
         main.parseargs(given.split())
 
 
 def test_parseargs__backup_rds():
     "an RDS instance can have a snapshot taken"
-    given = "--action backup --location rds --hostname prod--lax"
+    given = "--action backup --location rds-snapshot --hostname prod--lax"
     with mock.patch("ubr.rds_target.backup"):
         main.parseargs(given.split())
