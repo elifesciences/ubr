@@ -5,7 +5,7 @@ echo "[-] install.sh"
 . mkvenv.sh
 
 source venv/bin/activate
-pip install pip wheel --upgrade --progress-bar off
+pip install pip wheel --upgrade
 pip install -r requirements.txt --progress-bar off
 
 if [ ! -e app.cfg ]; then
