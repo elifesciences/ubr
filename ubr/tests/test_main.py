@@ -210,5 +210,5 @@ def test_parseargs__restore_rds():
 def test_parseargs__backup_rds():
     "an RDS instance can have a snapshot taken"
     given = "--action backup --location rds --hostname prod--lax"
-    with mock.patch("rds_target.backup"):
+    with mock.patch("ubr.rds_target.backup"):
         main.parseargs(given.split())
