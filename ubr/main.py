@@ -29,7 +29,7 @@ TARGET_MAP = {
     "mysql-database": mysql_target,
     "files": file_target,
     "tar-gzipped": tgz_target,
-    "rds": rds_target,
+    "rds-snapshot": rds_target,
 }
 
 
@@ -114,7 +114,10 @@ def restore(descriptor, backup_dir, opts):
 
 @print_config
 def backup_to_rds(hostname, path_list, opts):
-    pass
+    return [
+        backup(load_descriptor(path, path_list), None, opts)
+        for path in find_descriptors(conf.DESCRIPTOR_DIR)
+    ]
 
 
 def backup_to_file(hostname, path_list, opts):
@@ -288,7 +291,7 @@ def _parseargs(args):
         "--location",
         nargs="?",
         default="s3",
-        choices=["s3", "file", "rds"],
+        choices=["s3", "file", "rds-snapshot"],
         help="backup/restore files to/from here",
     )
     parser.add_argument(
@@ -327,7 +330,7 @@ def parseargs(args):
                     "an even number of paths is required: [source, target, source, target], etc"
                 )
 
-    if args.action == "restore" and args.location == "rds":
+    if args.action == "restore" and args.location == "rds-snapshot":
         parser.error("you cannot restore an RDS snapshot using UBR.")
 
     cmd = [
@@ -368,7 +371,11 @@ def main(args):
         return decisions[(action, fromloc)](paths, opts)
 
     decisions = {
-        "backup": {"s3": backup_to_s3, "file": backup_to_file, "rds": backup_to_rds},
+        "backup": {
+            "s3": backup_to_s3,
+            "file": backup_to_file,
+            "rds-snapshot": backup_to_rds,
+        },
         "restore": {"s3": restore_from_s3, "file": restore_from_file},
         "download": {"s3": download_from_s3},
     }
