@@ -18,6 +18,9 @@ PyMySQL = "~=1.0"
 PyYAML = "~=6.0"
 
 [dev-packages]
+# lsh@2022-04-26: greater versions not available for python3.8.
+# remove once using python3.8 exclusively
+dataclasses = "<=0.6"
 # dropped python 3.6 support in 6.3
 coverage = "==6.2.*"
 pyflakes = "~=2.4"
@@ -25,4 +28,4 @@ pylint = "~=2.13"
 # dropped python 3.6 support in 7.1.0
 pytest = "==7.0.*"
 pytest-cov = "~=3.0"
-black = "~=22.3"
+black = "*"

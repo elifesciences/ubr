@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "032b69b6d4e3b6823c1fd60bf9c6edbd6bdd7456d0167b61936097784614e528"
+            "sha256": "a25cc0f3642cec38c8bade309888bc7306b57bb2e6895f8f8f39fce8bf374c23"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,19 +18,19 @@
     "default": {
         "boto3": {
             "hashes": [
-                "sha256:2f2a8d9c44cacac32d258532c6b87d2e0a1549b38e0a559bfb786023f10733b3",
-                "sha256:cffdd39e824a51ef7cec4e744d764ee14cccf6a7045126cf0c7990f399ccf809"
+                "sha256:733a651e76b37b10c1f7ccba53deae43e47ada8ae64128042632373c5d266cf7",
+                "sha256:75310f5bb2af8f51f15f790d95dc4a4725bcec286f83458980ee2c3286cc0a03"
             ],
             "index": "pypi",
-            "version": "==1.21.45"
+            "version": "==1.22.0"
         },
         "botocore": {
             "hashes": [
-                "sha256:4bd7c6ca50cffbfb2386c7a43b4205e7a20e85083b0cd2b71fdc8a3d612deca0",
-                "sha256:b57a75dc4eadf33d299dabbe11c989fb4553b66331f4580a9aae4316dc6ff198"
+                "sha256:38c04682e7554dbccb33cd37863d76eaff97922dfb72677d0b7a49f8dbadc373",
+                "sha256:646f0631c4ee46928be2dbb4b44e10f5f184e70ed6efddb24bc7328d81d7a175"
             ],
             "markers": "python_version >= '3.6'",
-            "version": "==1.24.45"
+            "version": "==1.25.0"
         },
         "contextlib2": {
             "hashes": [
@@ -284,11 +284,11 @@
         },
         "dataclasses": {
             "hashes": [
-                "sha256:0201d89fa866f68c8ebd9d08ee6ff50c0b255f8ec63a71c16fda7af82bb887bf",
-                "sha256:8479067f342acf957dc82ec415d355ab5edb7e7646b90dc6e2fd1d96ad084c97"
+                "sha256:454a69d788c7fda44efd71e259be79577822f5e3f53f029a22d08004e951dc9f",
+                "sha256:6988bd2b895eef432d562370bb707d540f32f7360ab13da45340101bc2307d84"
             ],
-            "markers": "python_version < '3.7'",
-            "version": "==0.8"
+            "index": "pypi",
+            "version": "==0.6"
         },
         "dill": {
             "hashes": [
