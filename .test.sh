@@ -10,10 +10,5 @@ if [ ! -z "$args" ]; then
     module="$args"
 fi
 
-if [ ! -e test-config ]; then
-    cp example.config test-config
-fi
-set -a; source test-config; set +a;
-
 rm -rf build/junit.xml
 pytest "$module" -vvv --cov=ubr --junitxml=build/junit.xml
