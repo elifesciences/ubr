@@ -12,22 +12,19 @@ Because I don't want to write another backup script __ever again__.
 
 ## configuration
 
-All configuration comes from sourcing `/etc/ubr/config`
+All configuration goes in `app.cfg`, an example can be found in `example.cfg`.
 
-Put your default MYSQL/AWS/whatever config (see `config.example`) in there 
-because the system calls made will just assume (when it can) that it has all 
-the permissions it needs as environment variables.
+If not `app.cfg` is found, `example.cfg` will be used (and probably fail).
 
-If it doesn't appear as an environment variable, then the application being 
-called may try to look for it's config:
+Environment variables available are:
 
-    * AWS: http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
-    * BOTO: http://boto.readthedocs.org/en/latest/boto_config_tut.html
-    * MySQL: https://dev.mysql.com/doc/refman/5.0/en/environment-variables.html
+* `UBR_CFG_FILE` - use an alternative to `app.cfg`
+* `UBR_DESCRIPTION_DIR` - where to look for *descriptor* files (more below)
+* `UBR_WORKING_DIR` - root directory for temporary files during a backup (default `/tmp/ubr`)
 
-__Exceptions__ to this rule: 
+The final of configuration available to UBR can then be viewed with:
 
-    * MySQL will be given the value of `MYSQL_USER` rather than `USER`
+    ./ubr.sh --action config
 
 ## 'descriptor' files
 

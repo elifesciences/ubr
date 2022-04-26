@@ -1,3 +1,4 @@
+import tempfile
 import os, configparser
 import logging
 from pythonjsonlogger import jsonlogger
@@ -133,28 +134,28 @@ BUCKET = "elife-app-backups"
 DESCRIPTOR_DIR = _var("UBR_DESCRIPTOR_DIR", "general.descriptor_dir", "/etc/ubr")
 
 # where should ubr do it's work? /tmp/ubr/ by default
+# "/tmp/ubr", "/ext/tmp/ubr"
 WORKING_DIR = os.path.join(
-    _var("UBR_WORKING_DIR", "general.working_dir", "/tmp"), "ubr"
-)  # "/tmp/ubr", "/ext/tmp/ubr"
-
+    _var("UBR_WORKING_DIR", "general.working_dir", tempfile.gettempdir()), "ubr"
+)
 _mkdir_p(WORKING_DIR)
 
-# we used to pick these up from wherever boto could find them
-# now a machine may have several sets of credentials for different tasks
-# so we're explicit about which ones we're using.
+# always be explicit about which AWS credentials to use,
+# otherwise boto will go looking for them on the fs, in envvars, etc,
+# possibly finding an incorrect set during testing.
 
 AWS = {
     "aws_access_key_id": _cfg("aws.access_key_id"),
     "aws_secret_access_key": _cfg("aws.secret_access_key"),
+    "region_name": "us-east-1",
 }
 
 MYSQL = {
     "user": _cfg("mysql.user"),
     "pass": _cfg("mysql.pass"),
     "host": _cfg("mysql.host", "localhost"),
-    "port": int(
-        _cfg("mysql.port", 3306)
-    ),  # pymysql absolutely cannot handle a stringified port
+    # pymysql cannot handle a stringified port
+    "port": int(_cfg("mysql.port", 3306)),
 }
 
 POSTGRESQL = {
