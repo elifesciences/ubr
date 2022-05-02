@@ -3,8 +3,10 @@ import os, unittest
 
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))
 
+
 def fixture(fixture_name):
     return os.path.join(THIS_DIR, "fixtures", fixture_name)
+
 
 class BaseCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):

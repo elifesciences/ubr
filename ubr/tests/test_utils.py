@@ -1,5 +1,5 @@
 from ubr import utils
-from .base import BaseCase
+
 
 def test_pairwise():
     cases = [
@@ -11,10 +11,11 @@ def test_pairwise():
     for given, expected in cases:
         assert list(utils.pairwise(given)) == expected
 
+
 def test_common_prefix():
     cases = [
         (["/"], "/"),
-        (["/a", "/"], None), # root paths not handled so well :(
+        (["/a", "/"], None),  # root paths not handled so well :(
         (["/a", "/b"], None),
         (["/a", "/b"], None),
         (["/a", "/a"], "/a"),

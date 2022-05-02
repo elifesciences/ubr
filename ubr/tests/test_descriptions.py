@@ -2,6 +2,7 @@ import os, shutil
 from ubr import descriptions
 from . import base
 
+
 class FindDescriptors(base.BaseCase):
     def setUp(self):
         self.expected_output_dir = "/tmp/foo"
@@ -66,10 +67,13 @@ class LoadDescriptor(base.BaseCase):
                 AssertionError, descriptions.validate_descriptor, bad_descriptor
             )
 
+
 def test_descriptior__empty():
     expected = {}
-    assert descriptions.load_descriptor(base.fixture("ubr-empty-backup.yaml")) == expected
-            
+    assert (
+        descriptions.load_descriptor(base.fixture("ubr-empty-backup.yaml")) == expected
+    )
+
 
 def test_many_subdesc():
     "passing multiple paths gives us the appropriately pruned description"

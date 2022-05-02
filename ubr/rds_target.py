@@ -29,7 +29,7 @@ def rds_snapshot(instance_id, snapshot_name):
 
 
 def wait_until_available(response):
-    """polls `describe_db_snapshots` until the instance described in the given `response` has 
+    """polls `describe_db_snapshots` until the instance described in the given `response` has
     reached the 'available' state or times out."""
     snapshot_id = response["DBSnapshot"]["DBSnapshotIdentifier"]
 
