@@ -22,21 +22,21 @@ def rds_snapshot(instance_id, snapshot_name):
             "DBSnapshotIdentifier": snapshot_name,
             "DBInstanceIdentifier": instance_id,
             "Tags": [
-                {"Key": "author", "Value": "UBR"},
+                {"Key": "author", "Value": "ubr"},
             ],
         }
     )
 
 
 def wait_until_available(response):
-    "polls `describe_db_snapshots` until the instance described in the given `response` has reached a steady state or times out."
+    """polls `describe_db_snapshots` until the instance described in the given `response` has 
+    reached the 'available' state or times out."""
     snapshot_id = response["DBSnapshot"]["DBSnapshotIdentifier"]
 
     start_time = time.time()
     max_wait_time_minutes = 10
 
     while True:
-
         elapsed_seconds = int(time.time() - start_time)
         if (elapsed_seconds / 60) > max_wait_time_minutes:
             LOG.error(
@@ -46,8 +46,6 @@ def wait_until_available(response):
             )
             return False
 
-        # I can't find a description of any other possible statuses than 'available'
-        # we have 'creating'
         resp = rds_conn().describe_db_snapshots(DBSnapshotIdentifier=snapshot_id)
         status = resp["DBSnapshots"][0]["Status"]
         if status != "available":
@@ -65,7 +63,7 @@ def snapshot_name(instance_id):
     # 'automatically' created snapshots (like a daily snapshot) look like:
     #   rds:lax-end2end-2022-04-26-04-50
     # 'manually' created snapshots (like destroying a cloudformation stack) look like:
-    #   elife-xpub-prod-snapshot-attacheddb-1s782yrlhghls
+    #   elife-alfred-prod-snapshot-attacheddb-1s782yrlhghls
     # ubr created snapshots will look like:
     #   ubr-lax-end2end-2022-04-26-04-50
 

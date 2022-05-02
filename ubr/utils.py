@@ -139,7 +139,7 @@ def common_prefix(path_list):
 
     if len(path_list) == 1:
         return os.path.dirname(common_path)
-    return common_path
+    return common_path or None
 
 
 def hostname():

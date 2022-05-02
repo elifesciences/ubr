@@ -24,13 +24,14 @@ LOG = logging.getLogger(__name__)
 #
 
 
-TARGET_MAP = {
-    "postgresql-database": psql_target,
-    "mysql-database": mysql_target,
-    "files": file_target,
-    "tar-gzipped": tgz_target,
-    "rds-snapshot": rds_target,
-}
+KNOWN_TARGET_FNS = [
+    file_target,
+    tgz_target,
+    mysql_target,
+    psql_target,
+    rds_target,
+]
+TARGET_MAP = dict(zip(conf.KNOWN_TARGETS, KNOWN_TARGET_FNS))
 
 
 def module_dispatch(target, func_name, *args, **kwargs):
@@ -280,6 +281,8 @@ def check_all():
 
 
 def _parseargs(args):
+    """basic parsing of args passed in. see `parseargs` for further validation.
+    split out so it's result can be used in the `config` action."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--action",
@@ -344,6 +347,8 @@ def parseargs(args):
 
 @print_config
 def config():
+    """the CLI action `config`.
+    also, a simple demonstration of the `print_config` decorator"""
     pass
 
 

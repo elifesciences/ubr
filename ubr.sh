@@ -4,5 +4,5 @@
 set -e
 . install.sh > /dev/null
 
-# usage: ubr <config-dir> <backup|restore> <dir|s3> [target] [path]
+# usage: ubr <backup|restore> <dir|s3> [target] [path]
 python -m ubr.main "$@"

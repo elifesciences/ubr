@@ -4,17 +4,17 @@ Because I don't want to write another backup script __ever again__.
 
 ## requisites
 
-* ...
+* Python
 
 ## usage
 
-...
+    ./ubr.sh <backup|restore|config|check|check-all|download> <dir|s3|rds-snapshot> [target] [path.into.description]
 
 ## configuration
 
-All configuration goes in `app.cfg`, an example can be found in `example.cfg`.
+All configuration goes in `app.cfg`, see `example.cfg`.
 
-If not `app.cfg` is found, `example.cfg` will be used (and probably fail).
+If no `app.cfg` is found `example.cfg` will be used.
 
 Environment variables available are:
 
@@ -22,7 +22,7 @@ Environment variables available are:
 * `UBR_DESCRIPTION_DIR` - where to look for *descriptor* files (more below)
 * `UBR_WORKING_DIR` - root directory for temporary files during a backup (default `/tmp/ubr`)
 
-The final of configuration available to UBR can then be viewed with:
+The final configuration available to UBR can then be viewed with:
 
     ./ubr.sh --action config
 

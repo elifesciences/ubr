@@ -1,3 +1,4 @@
+import pathlib
 import tempfile
 import os, configparser
 import logging
@@ -60,18 +61,12 @@ _loggers = ["boto3", "botocore", "s3transfer"]
 # utils
 #
 
-# duplicated from utils
-def _mkdir_p(path):
-    import os, errno
 
+def _mkdir_p(path):
     try:
-        os.makedirs(path)
-    except OSError as err:
-        if err.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            ROOTLOG.error("problem attempting to create path %s: %s", path, err)
-            raise
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+    except Exception as err:
+        ROOTLOG.error("problem attempting to create path %s: %s", path, err)
 
 
 #
@@ -184,3 +179,11 @@ REPORT_FILE_BLACKLIST = [
 
 # number of days between now and the last backup before it's considered a problem
 REPORT_PROBLEM_THRESHOLD = 2  # days
+
+KNOWN_TARGETS = [
+    "files",
+    "tar-gzipped",
+    "mysql-database",
+    "postgresql-database",
+    "rds-snapshot",
+]

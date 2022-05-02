@@ -4,10 +4,10 @@ from .utils import ensure, unique
 from functools import partial
 import yaml
 from schema import Schema, SchemaError
-from .conf import logging
+from . import conf
 from functools import reduce
 
-LOG = logging.getLogger(__name__)
+LOG = conf.logging.getLogger(__name__)
 
 #
 # 'descriptor' wrangling
@@ -38,14 +38,6 @@ LOG = logging.getLogger(__name__)
 #
 # tar-gzipped:
 #   - /var/log/myapp/*
-
-KNOWN_TARGETS = [
-    "files",
-    "tar-gzipped",
-    "mysql-database",
-    "postgresql-database",
-    "rds-snapshot",
-]
 
 #
 # description pruning
@@ -126,7 +118,8 @@ def find_descriptors(descriptor_dir):
 def validate_descriptor(descriptor):
     "returns `True` if the given `descriptor` is correctly structured."
     try:
-        descr_schema = Schema({lambda v: v in KNOWN_TARGETS: [str]})
+        fn = lambda v: v in conf.KNOWN_TARGETS
+        descr_schema = Schema({fn: [str]})
         return descr_schema.validate(descriptor)
     except SchemaError as err:
         raise AssertionError(str(err))
