@@ -202,3 +202,7 @@ def TemporaryDirectory():
 def tempdir():
     name = tempfile.mkdtemp()
     return (name, lambda: shutil.rmtree(name))
+
+
+def subdict(d, kl):
+    return {k: v for k, v in d.items() if k in kl}

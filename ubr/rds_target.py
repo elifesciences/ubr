@@ -28,13 +28,12 @@ def rds_snapshot(instance_id, snapshot_name):
     )
 
 
-def wait_until_available(response):
+def wait_until_available(response, max_wait_time_minutes=10):
     """polls `describe_db_snapshots` until the instance described in the given `response` has
     reached the 'available' state or times out."""
     snapshot_id = response["DBSnapshot"]["DBSnapshotIdentifier"]
 
     start_time = time.time()
-    max_wait_time_minutes = 10
 
     while True:
         elapsed_seconds = int(time.time() - start_time)
@@ -77,14 +76,14 @@ def snapshot_name(instance_id):
 def backup(target_list, _, __):
     for instance_id in target_list:
         try:
-            # wait_until_available(rds_snapshot(instance_id, snapshot_name(instance_id)))
-            wait_until_available(
-                {
-                    "DBSnapshot": {
-                        "DBSnapshotIdentifier": "ubr-lax-loadtest1-2022-04-26-06-11-31"
-                    }
-                }
-            )
+            wait_until_available(rds_snapshot(instance_id, snapshot_name(instance_id)))
+            # wait_until_available(
+            #    {
+            #        "DBSnapshot": {
+            #            "DBSnapshotIdentifier": "ubr-lax-loadtest1-2022-04-26-06-11-31"
+            #        }
+            #    }
+            # )
         except botocore.errorfactory.ClientError as exc:
             if exc.response["Error"]["Code"] == "DBInstanceNotFound":
                 LOG.error("RDS instance %r not found, skipping", instance_id)

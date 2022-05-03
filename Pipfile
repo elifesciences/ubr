@@ -29,3 +29,4 @@ pylint = "~=2.13"
 pytest = "==7.0.*"
 pytest-cov = "~=3.0"
 black = "*"
+moto = {extras = ["rds"], version = "~=3.1"}
