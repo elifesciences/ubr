@@ -35,7 +35,7 @@ class TestFileBackup(BaseCase):
             descriptor, output_dir=self.expected_output_dir, opts=self.default_opts
         )
         self.assertEqual(expected_output, output)
-        self.assertTrue(utils.dir_exists(self.expected_output_dir))
+        self.assertTrue(os.path.isdir(self.expected_output_dir))
         # test all of the files exist
         for path in output["files"]["output"]:
             self.assertTrue(os.path.exists(path))
@@ -161,7 +161,7 @@ class TestFileBackup(BaseCase):
 class TestFileRestore(BaseCase):
     def setUp(self):
         self.default_opts = conf.DEFAULT_CLI_OPTS
-        self.expected_output_dir = os.path.join("/tmp/", utils.ymdhms())
+        self.expected_output_dir = os.path.join("/tmp/", utils.unique_id())
 
     def tearDown(self):
         pass

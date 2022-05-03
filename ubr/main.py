@@ -1,19 +1,21 @@
+from pprint import pprint
 import argparse
 import os, sys
 from os.path import join
 import logging
-from ubr.utils import ensure, subdict
+from ubr.utils import ensure
 from ubr import (
     conf,
     utils,
     s3,
+    rds_target,
     mysql_target,
     file_target,
     tgz_target,
     psql_target,
     report,
 )
-from ubr.descriptions import load_descriptor, find_descriptors, pname
+from ubr.descriptions import load_descriptor, find_descriptors, project_name
 
 LOG = logging.getLogger(__name__)
 
@@ -22,26 +24,20 @@ LOG = logging.getLogger(__name__)
 #
 
 
-def get_module(target):
-    "returns the module for the given 'target', a key in a map of aliases->modules"
-    target_map = {
-        "postgresql-database": psql_target,
-        "mysql-database": mysql_target,
-        "files": file_target,
-        "tar-gzipped": tgz_target,
-    }
-    target_list = ", ".join(target_map.keys())
-    ensure(
-        target in target_map,
-        "unknown target %r. known targets: %s" % (target, target_list),
-    )
-    return target_map[target]
+KNOWN_TARGET_FNS = [
+    file_target,
+    tgz_target,
+    mysql_target,
+    psql_target,
+    rds_target,
+]
+TARGET_MAP = dict(zip(conf.KNOWN_TARGETS, KNOWN_TARGET_FNS))
 
 
 def module_dispatch(target, func_name, *args, **kwargs):
     """given a target like 'mysql-database' and a function name like 'restore',
     finds the function in the target module and calls with remaining arguments"""
-    mod = get_module(target)
+    mod = TARGET_MAP[target]
     ensure(
         hasattr(mod, func_name),
         "module %r (%s) has no function %r" % (mod, target, func_name),
@@ -53,11 +49,39 @@ def machinedir(hostname, descriptor_path):
     "returns a path where this machine can deal with this descriptor"
     # ll: /tmp/ubr/civicrm/crm--prod/
     # ll: /tmp/ubr/lax/lax--ci/
-    return os.path.join(conf.WORKING_DIR, pname(descriptor_path), hostname)
+    return os.path.join(conf.WORKING_DIR, project_name(descriptor_path), hostname)
+
+
+def _print_config():
+    "debugging, print the configuration the app is running under."
+    print("--- command line args")
+    _, args = _parseargs(sys.argv[1:])
+    pprint(args.__dict__)
+    print("--- conf")
+    pprint(
+        {
+            k: v
+            for k, v in conf.__dict__.items()
+            if not k.startswith("_") and type(v) != type(os)
+        }
+    )
+    print("--- descriptors")
+    for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
+        print("%r:" % descriptor_path)
+        pprint(load_descriptor(descriptor_path, args.paths))
+
+
+def print_config(fn):
+    def wrapper(*args, **kwargs):
+        _print_config()
+        print("---")
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 #
-#
+# API
 #
 
 
@@ -87,6 +111,14 @@ def restore(descriptor, backup_dir, opts):
 #
 #
 #
+
+
+@print_config
+def backup_to_rds(hostname, path_list, opts):
+    return [
+        backup(load_descriptor(path, path_list), None, opts)
+        for path in find_descriptors(conf.DESCRIPTOR_DIR)
+    ]
 
 
 def backup_to_file(hostname, path_list, opts):
@@ -123,7 +155,7 @@ def backup_to_s3(hostname, path_list, opts):
     LOG.info("backing up ...")
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-        project = pname(descriptor_path)
+        project = project_name(descriptor_path)
         backupdir = machinedir(hostname, descriptor_path)
         backup_results = backup(
             load_descriptor(descriptor_path, path_list), backupdir, opts
@@ -136,7 +168,6 @@ def backup_to_s3(hostname, path_list, opts):
                 project,
                 utils.hostname(),
                 remove_backup_after_upload,
-                opts["progress_bar"],
             )
         )
     return results
@@ -150,7 +181,7 @@ def download_from_s3(hostname, path_list, opts):
     LOG.info("restoring ...")
     results = []
     for descriptor_path in find_descriptors(conf.DESCRIPTOR_DIR):
-        project = pname(descriptor_path)
+        project = project_name(descriptor_path)
         descriptor = load_descriptor(descriptor_path, path_list)
         download_dir = machinedir(hostname, descriptor_path)
         utils.mkdir_p(download_dir)
@@ -168,23 +199,12 @@ def download_from_s3(hostname, path_list, opts):
             if path_list:
                 for path in remote_path_list:
                     s3.download_latest_backup(
-                        download_dir,
-                        conf.BUCKET,
-                        project,
-                        hostname,
-                        target,
-                        path,
-                        opts["progress_bar"],
+                        download_dir, conf.BUCKET, project, hostname, target, path
                     )
             else:
                 # no paths specified, download all paths for hostname+target
                 s3.download_latest_backup(
-                    download_dir,
-                    conf.BUCKET,
-                    project,
-                    hostname,
-                    target,
-                    progress_bar=opts["progress_bar"],
+                    download_dir, conf.BUCKET, project, hostname, target
                 )
 
         results.append((descriptor, download_dir))
@@ -215,9 +235,7 @@ def adhoc_s3_download(path_list, opts):
         try:
             # being adhoc, we can't manage a machinename() call
             download_dir = join(conf.WORKING_DIR, os.path.basename(remote_path))
-            return s3.download(
-                conf.BUCKET, remote_path, download_dir, opts["progress_bar"]
-            )
+            return s3.download(conf.BUCKET, remote_path, download_dir)
         except AssertionError as err:
             LOG.warning(err)
 
@@ -262,48 +280,44 @@ def check_all():
 #
 
 
-def parseargs(args):
-    "accepts a list of arguments and returns a list of validated ones"
+def _parseargs(args):
+    """basic parsing of args passed in. see `parseargs` for further validation.
+    split out so it's result can be used in the `config` action."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--action",
         nargs="?",
         default="backup",
-        choices=["check", "check-all", "backup", "restore", "download"],
-        help="am I backing things up or restoring them?",
+        choices=["config", "check", "check-all", "backup", "restore", "download"],
     )
     parser.add_argument(
         "--location",
         nargs="?",
         default="s3",
-        choices=["s3", "file"],
-        help="am I doing this action from the file system or from S3?",
+        choices=["s3", "file", "rds-snapshot"],
+        help="backup/restore files to/from here",
     )
     parser.add_argument(
         "--hostname",
         nargs="?",
         default=utils.hostname(),
-        help="if restoring files, should I restore the backup of another host? good for restoring production backups to a different environment",
+        help="used to restore files from another host. default is *this* host (%r)"
+        % utils.hostname(),
     )
     parser.add_argument(
         "--paths",
         nargs="*",
         default=[],
-        help="dot-delimited paths to backup/restore only specific targets. for example: mysql-database.mydb1",
+        help="partial backup/restore using specific targets. for example: 'mysql-database.mydb1'",
     )
 
-    # enable/disable the upload/download progress bar
-    # if enabled for headless operations, like in a cron job, it may generate a lot of 'noise' to the log file
-    parser.add_argument("--progress-bar", dest="progress_bar", action="store_true")
-    parser.add_argument("--no-progress-bar", dest="progress_bar", action="store_false")
-    parser.set_defaults(progress_bar=conf.DEFAULT_CLI_OPTS["progress_bar"])
+    return parser, parser.parse_args(args)
 
-    # should a prompt be issued when necessary?
-    parser.add_argument(
-        "--prompt", action="store_true", default=conf.DEFAULT_CLI_OPTS["prompt"]
-    )
 
-    args = parser.parse_args(args)
+def parseargs(args):
+    "accepts a list of arguments and returns a list of validated ones"
+
+    parser, args = _parseargs(args)
 
     if args.action == "download" and args.location == "file":
         parser.error("you can only 'download' when location is 's3'")
@@ -319,18 +333,32 @@ def parseargs(args):
                     "an even number of paths is required: [source, target, source, target], etc"
                 )
 
+    if args.action == "restore" and args.location == "rds-snapshot":
+        parser.error("you cannot restore an RDS snapshot using UBR.")
+
     cmd = [
         getattr(args, key, None) for key in ["action", "location", "hostname", "paths"]
     ]
 
-    opts = subdict(args.__dict__, ["prompt", "progress_bar"])
+    opts = {}
 
     return cmd, opts
+
+
+@print_config
+def config():
+    """the CLI action `config`.
+    also, a simple demonstration of the `print_config` decorator"""
+    pass
 
 
 def main(args):
     cmd, opts = parseargs(args)
     action, fromloc, hostname, paths = cmd
+
+    if action == "config":
+        config()
+        exit(0)
 
     if action == "check":
         exit(len(check(hostname, paths)))
@@ -348,7 +376,11 @@ def main(args):
         return decisions[(action, fromloc)](paths, opts)
 
     decisions = {
-        "backup": {"s3": backup_to_s3, "file": backup_to_file},
+        "backup": {
+            "s3": backup_to_s3,
+            "file": backup_to_file,
+            "rds-snapshot": backup_to_rds,
+        },
         "restore": {"s3": restore_from_s3, "file": restore_from_file},
         "download": {"s3": download_from_s3},
     }

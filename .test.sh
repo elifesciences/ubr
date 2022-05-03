@@ -2,8 +2,6 @@
 # assumes activated venv
 set -e
 
-pyflakes ubr/
-
 args="$@"
 module=""
 if [ ! -z "$args" ]; then
@@ -12,10 +10,13 @@ if [ ! -z "$args" ]; then
     module="$args"
 fi
 
-if [ ! -e test-config ]; then
-    cp example.config test-config
-fi
-set -a; source test-config; set +a;
+# just for safety while using moto.
+# if you're doing things correctly these shouldn't be neccessary.
+export AWS_ACCESS_KEY_ID='testing'
+export AWS_SECRET_ACCESS_KEY='testing'
+export AWS_SECURITY_TOKEN='testing'
+export AWS_SESSION_TOKEN='testing'
+export AWS_DEFAULT_REGION='us-east-1'
 
 rm -rf build/junit.xml
 pytest "$module" -vvv --cov=ubr --junitxml=build/junit.xml

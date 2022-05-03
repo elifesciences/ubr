@@ -198,28 +198,11 @@ def backup(path_list, destination, opts):
     }
 
 
-def backup_missing_prompt_user(dbname, dump_path):
-    "in cases where we can't find the file to backup, there may be another file we can restore from that has been downloaded. prompt the user for the file"
-    backup_dir = os.path.dirname(dump_path)
-    other_files = os.listdir(backup_dir)
-    if not other_files:
-        # nothing else can be restored, return what we were given
-        return dump_path
-    # opportunity!
-    other_files = [join(backup_dir, fname) for fname in other_files]  # full paths
-    print("expected file missing: %s" % dump_path)
-    print("other files are available to restore over %s" % dbname)
-    return utils.choose("choose: ", other_files, os.path.basename)
-
-
 def _restore(dbname, backup_dir, opts):
     "look for a backup of $dbname in $backup_dir and restore it"
     try:
         backup_dir = backup_dir or conf.WORKING_DIR
         dump_path = join(backup_dir, backup_name(dbname))
-        prompt = opts["prompt"]
-        if prompt and not os.path.exists(dump_path):
-            dump_path = backup_missing_prompt_user(dbname, dump_path)
         ensure(
             os.path.exists(dump_path),
             "expected path %r does not exist or is not a file." % dump_path,

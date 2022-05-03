@@ -1,12 +1,13 @@
+import pathlib
+import tempfile
 import os, configparser
-from os.path import join
 import logging
 from pythonjsonlogger import jsonlogger
 
 # from ubr import utils # DONT!
 
 
-def envvar(nom, default):
+def _envvar(nom, default):
     return os.environ.get(nom) or default
 
 
@@ -53,25 +54,19 @@ ROOTLOG.addHandler(_filehandler)
 ROOTLOG.setLevel(logging.DEBUG)
 
 # tell boto to pipe down
-loggers = ["boto3", "botocore", "s3transfer"]
-[logging.getLogger(nom).setLevel(logging.ERROR) for nom in loggers]
+_loggers = ["boto3", "botocore", "s3transfer"]
+[logging.getLogger(nom).setLevel(logging.ERROR) for nom in _loggers]
 
 #
 # utils
 #
 
-# duplicated from utils
-def mkdir_p(path):
-    import os, errno
 
+def _mkdir_p(path):
     try:
-        os.makedirs(path)
-    except OSError as err:
-        if err.errno == errno.EEXIST and os.path.isdir(path):
-            pass
-        else:
-            ROOTLOG.error("problem attempting to create path %s: %s", path, err)
-            raise
+        pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+    except Exception as err:
+        ROOTLOG.error("problem attempting to create path %s: %s", path, err)
 
 
 #
@@ -81,7 +76,7 @@ def mkdir_p(path):
 
 PROJECT_DIR = os.getcwd()  # "/path/to/ubr/"
 
-CFG_NAME = envvar("UBR_CFG_FILE", "app.cfg")
+CFG_NAME = _envvar("UBR_CFG_FILE", "app.cfg")
 DYNCONFIG = configparser.ConfigParser(
     **{
         "allow_no_value": True,
@@ -90,10 +85,10 @@ DYNCONFIG = configparser.ConfigParser(
         "defaults": {"dir": PROJECT_DIR},
     }
 )
-DYNCONFIG.read(join(PROJECT_DIR, CFG_NAME))  # "/path/to/ubr/app.cfg"
+DYNCONFIG.read(os.path.join(PROJECT_DIR, CFG_NAME))  # "/path/to/ubr/app.cfg"
 
 
-def cfg(path, default=0xDEADBEEF):
+def _cfg(path, default=0xDEADBEEF):
     lu = {
         "True": True,
         "true": True,
@@ -114,8 +109,8 @@ def cfg(path, default=0xDEADBEEF):
         raise
 
 
-def var(envname, cfgpath, default):
-    return envvar(envname, None) or cfg(cfgpath, None) or default
+def _var(envname, cfgpath, default):
+    return _envvar(envname, None) or _cfg(cfgpath, None) or default
 
 
 #
@@ -125,47 +120,47 @@ def var(envname, cfgpath, default):
 # CLI argument parsing uses the values in this map as defaults
 # tests and other non-standard entry points should use the values in
 # this map if parsed CLI arguments are not available
-DEFAULT_CLI_OPTS = {"progress_bar": True, "prompt": False}
+DEFAULT_CLI_OPTS = {}
 
 # which S3 bucket should ubr upload backups to/restore backups from?
 BUCKET = "elife-app-backups"
 
 # where should ubr look for backup descriptions?
-DESCRIPTOR_DIR = cfg("general.descriptor_dir", "/etc/ubr/")
+DESCRIPTOR_DIR = _var("UBR_DESCRIPTOR_DIR", "general.descriptor_dir", "/etc/ubr")
 
 # where should ubr do it's work? /tmp/ubr/ by default
-WORKING_DIR = join(
-    var("UBR_WORKING_DIR", "general.working_dir", "/tmp"), "ubr"
-)  # "/tmp/ubr", "/ext/tmp/ubr"
+# "/tmp/ubr", "/ext/tmp/ubr"
+WORKING_DIR = os.path.join(
+    _var("UBR_WORKING_DIR", "general.working_dir", tempfile.gettempdir()), "ubr"
+)
+_mkdir_p(WORKING_DIR)
 
-mkdir_p(WORKING_DIR)
-
-# we used to pick these up from wherever boto could find them
-# now a machine may have several sets of credentials for different tasks
-# so we're explicit about which ones we're using.
+# always be explicit about which AWS credentials to use,
+# otherwise boto will go looking for them on the fs, in envvars, etc,
+# possibly finding an incorrect set during testing.
 
 AWS = {
-    "aws_access_key_id": cfg("aws.access_key_id"),
-    "aws_secret_access_key": cfg("aws.secret_access_key"),
+    "aws_access_key_id": _cfg("aws.access_key_id"),
+    "aws_secret_access_key": _cfg("aws.secret_access_key"),
+    "region_name": "us-east-1",
 }
 
 MYSQL = {
-    "user": cfg("mysql.user"),
-    "pass": cfg("mysql.pass"),
-    "host": cfg("mysql.host", "localhost"),
-    "port": int(
-        cfg("mysql.port", 3306)
-    ),  # pymysql absolutely cannot handle a stringified port
+    "user": _cfg("mysql.user"),
+    "pass": _cfg("mysql.pass"),
+    "host": _cfg("mysql.host", "localhost"),
+    # pymysql cannot handle a stringified port
+    "port": int(_cfg("mysql.port", 3306)),
 }
 
 POSTGRESQL = {
-    "user": cfg("postgresql.user"),
+    "user": _cfg("postgresql.user"),
     # you can't use passwords in cli connections to postgresql. it's also not good practice.
     # ubr relies on a ~/.pgpass file existing:
     # https://www.postgresql.org/docs/9.2/static/libpq-pgpass.html
     # 'pass':
-    "host": cfg("postgresql.host", "localhost"),
-    "port": int(cfg("postgresql.port", 5432)),
+    "host": _cfg("postgresql.host", "localhost"),
+    "port": int(_cfg("postgresql.port", 5432)),
 }
 
 # ignore these specific projects when reporting
@@ -184,3 +179,11 @@ REPORT_FILE_BLACKLIST = [
 
 # number of days between now and the last backup before it's considered a problem
 REPORT_PROBLEM_THRESHOLD = 2  # days
+
+KNOWN_TARGETS = [
+    "files",
+    "tar-gzipped",
+    "mysql-database",
+    "postgresql-database",
+    "rds-snapshot",
+]

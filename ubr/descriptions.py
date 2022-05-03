@@ -4,10 +4,10 @@ from .utils import ensure, unique
 from functools import partial
 import yaml
 from schema import Schema, SchemaError
-from .conf import logging
+from . import conf
 from functools import reduce
 
-LOG = logging.getLogger(__name__)
+LOG = conf.logging.getLogger(__name__)
 
 #
 # 'descriptor' wrangling
@@ -39,7 +39,6 @@ LOG = logging.getLogger(__name__)
 # tar-gzipped:
 #   - /var/log/myapp/*
 
-
 #
 # description pruning
 #
@@ -51,14 +50,18 @@ def _subdesc(desc, path):
     bits = path.split(".", 1)
     ensure(
         len(bits) == 2,
-        "expecting just two bits, got %s bits: %s" % (len(bits), path),
+        "expecting just two bits (type and target), got %s bits: %s"
+        % (len(bits), path),
         ValueError,
     )
     toplevel, target = bits
-    ensure(toplevel in desc, "descriptor has no %r key" % toplevel, ValueError)
-    ensure(
-        target in desc[toplevel], "given descriptor has no path %r" % path, ValueError
-    )
+    # lsh@2022-04-25: changed from hard fail with ValueError to soft fail with empty map
+    if not toplevel in desc:
+        LOG.warning("no %r in descriptor: %s" % (toplevel, desc))
+        return {}
+    if not target in desc[toplevel]:
+        LOG.warning("given descriptor has no path %r" % path)
+        return {}
     return {toplevel: [target]}
 
 
@@ -73,7 +76,7 @@ def subdescriptor(desc, path_list):
             acc[key] = val
         return acc
 
-    return reduce(merge, list(map(partial(_subdesc, desc), path_list)))
+    return reduce(merge, map(partial(_subdesc, desc), path_list))
 
 
 #
@@ -81,7 +84,7 @@ def subdescriptor(desc, path_list):
 #
 
 
-def pname(path):
+def project_name(path):
     "returns the name of the project given a path to a file"
     try:
         filename = os.path.basename(path)
@@ -97,37 +100,36 @@ def pname(path):
 
 def is_descriptor(path):
     "return True if the given path or filename looks like a descriptor file"
-    return pname(path) is not None
+    return project_name(path) is not None
 
 
 def find_descriptors(descriptor_dir):
     "returns a list of descriptors at the given path"
-
-    def expandtoabs(path):
-        return utils.doall(path, os.path.expanduser, os.path.abspath)
-
-    location_list = list(map(expandtoabs, utils.list_paths(descriptor_dir)))
-    return sorted(filter(is_descriptor, list(filter(os.path.exists, location_list))))
+    # '/descriptor/dir/' => ['/descriptor/dir/foo-backup.yaml', '/descriptor/dir/bar-backup.yaml']
+    return sorted(
+        [
+            os.path.abspath(os.path.expanduser(path))
+            for path in utils.list_paths(descriptor_dir)
+            if os.path.exists(path) and is_descriptor(path)
+        ]
+    )
 
 
 def validate_descriptor(descriptor):
-    "return True if the given descriptor is correctly structured."
+    "returns `True` if the given `descriptor` is correctly structured."
     try:
-        descr_schema = Schema(
-            {
-                lambda v: v
-                in ["files", "tar-gzipped", "mysql-database", "postgresql-database"]: [
-                    str
-                ]
-            }
-        )
+        fn = lambda v: v in conf.KNOWN_TARGETS
+        descr_schema = Schema({fn: [str]})
         return descr_schema.validate(descriptor)
     except SchemaError as err:
         raise AssertionError(str(err))
 
 
 def load_descriptor(descriptor_path, path_list=[]):
-    descriptor = validate_descriptor(yaml.safe_load(open(descriptor_path, "r")))
+    data = yaml.safe_load(open(descriptor_path, "r"))
+    if not data:
+        return {}
+    descriptor = validate_descriptor(data)
     if path_list:
         return subdescriptor(descriptor, path_list)
     return descriptor

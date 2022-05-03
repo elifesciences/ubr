@@ -1,9 +1,8 @@
 import hashlib
-import os, sys, re
+import os, re
 import boto3
 from os.path import join
 from datetime import datetime
-import threading
 from ubr.conf import logging
 from ubr import utils, conf
 from ubr.utils import ensure
@@ -135,46 +134,6 @@ def filter_listing(file_list, project, host, target=None, filename=""):
     return list(filter(cregex.match, file_list))
 
 
-class ProgressPercentage(object):
-    def __init__(self, filename):
-        self._filename = filename
-        self._size = (
-            float(os.path.getsize(filename))
-            if not filename.startswith("s3://")
-            else 0.0
-        )
-        self._seen_so_far = 0
-        self._lock = threading.Lock()
-        self.done = False
-
-    def __call__(self, bytes_amount):
-        # To simplify we'll assume this is hooked up
-        # to a single filename.
-        with self._lock:
-            self._seen_so_far += bytes_amount
-            percentage = (self._seen_so_far / self._size) * 100
-            self.done = percentage == 100
-            sys.stdout.write(
-                "\r%s  %s / %s  (%.2f%%)"
-                % (self._filename, self._seen_so_far, self._size, percentage)
-            )
-            if self.done:
-                sys.stdout.write("\n")
-            sys.stdout.flush()
-
-
-class DownloadProgressPercentage(ProgressPercentage):
-    def __init__(self, remote_filename):
-        super(DownloadProgressPercentage, self).__init__(remote_filename)
-        ensure(
-            remote_filename.startswith("s3://"),
-            "given filename doesn't look like s3://bucket/some/path",
-        )
-        bits = [_f for _f in remote_filename.split("/") if _f]
-        bucket, path = bits[1], "/".join(bits[2:])
-        self._size = int(s3_file(bucket, path)["Contents"][0]["Size"])
-
-
 # taken and modified from `tlastowka/calculate_multipart_etag` (GPLv3):
 # - https://github.com/tlastowka/calculate_multipart_etag
 def generate_s3_etag(source_path):
@@ -199,7 +158,7 @@ def generate_s3_etag(source_path):
 
 
 def verify_file(filename, bucket, key):
-    "compares the local md5sum with the remote md5sum. files uploaded in multiple parts "
+    "compares the local md5sum with the remote md5sum. files uploaded in multiple parts"
     s3obj = s3_file(bucket, key)
     remote_bytes = int(s3obj["Contents"][0]["Size"])
     local_bytes = os.path.getsize(filename)
@@ -238,11 +197,9 @@ def verify_file(filename, bucket, key):
     return True
 
 
-def upload_to_s3(bucket, src, dest, progress_bar=True):
+def upload_to_s3(bucket, src, dest):
     LOG.info("attempting to upload %r to s3://%s/%s", src, bucket, dest)
-    inst = ProgressPercentage(src) if progress_bar else None
-    s3_conn().upload_file(src, bucket, dest, Callback=inst)
-    progress_bar and ensure(inst.done, "failed to complete uploading to s3")
+    s3_conn().upload_file(src, bucket, dest)
     ensure(
         verify_file(src, bucket, dest),
         "local file doesn't match results uploaded to s3 (content md5 or content length difference)",
@@ -250,9 +207,7 @@ def upload_to_s3(bucket, src, dest, progress_bar=True):
     return dest
 
 
-def upload_backup(
-    bucket, backup_results, project, hostname, remove=True, progress_bar=True
-):
+def upload_backup(bucket, backup_results, project, hostname, remove=True):
     """uploads the results of processing a backup.
     `backup_results` should be a dictionary of targets with their results as values.
     each value will have a 'output' key with the outputs for that target.
@@ -263,7 +218,7 @@ def upload_backup(
     upload_targets = list(filter(os.path.exists, utils.flatten(upload_targets)))
 
     path_list = [
-        upload_to_s3(bucket, src, s3_key(project, hostname, src), progress_bar)
+        upload_to_s3(bucket, src, s3_key(project, hostname, src))
         for src in upload_targets
     ]
     # TODO: consider moving this into `main`
@@ -275,7 +230,7 @@ def upload_backup(
 ##
 
 
-def download(bucket, remote_src, local_dest, progress_bar=True):
+def download(bucket, remote_src, local_dest):
     "remote_src is the s3 key. local_dest is a path to a file on the local filesystem"
     remote_src = remote_src.lstrip("/")
     obj = s3_file(bucket, remote_src)
@@ -285,12 +240,7 @@ def download(bucket, remote_src, local_dest, progress_bar=True):
 
     utils.mkdir_p(os.path.dirname(local_dest))
 
-    inst = (
-        DownloadProgressPercentage("s3://%(bucket)s/%(remote_src)s" % locals())
-        if progress_bar
-        else None
-    )
-    s3_conn().download_file(bucket, remote_src, local_dest, Callback=inst)
+    s3_conn().download_file(bucket, remote_src, local_dest)
     return local_dest
 
 
@@ -371,13 +321,11 @@ def latest_backups(bucket, project, hostname, target, backupname=None):
     return [(backupnom, sorted(pb)[-1]) for backupnom, pb in filename_idx.items()]
 
 
-def download_latest_backup(
-    to, bucket, project, hostname, target, path=None, progress_bar=True
-):
+def download_latest_backup(to, bucket, project, hostname, target, path=None):
     backup_list = latest_backups(bucket, project, hostname, target, path)
     results = []
     for backupname, remote_src in backup_list:
         local_dest = join(to, path or backupname)
         LOG.info("downloading s3 file %r to %r", remote_src, local_dest)
-        results.append(download(bucket, remote_src, local_dest, progress_bar))
+        results.append(download(bucket, remote_src, local_dest))
     return results
