@@ -311,6 +311,13 @@ def _parseargs(args):
         help="partial backup/restore using specific targets. for example: 'mysql-database.mydb1'",
     )
 
+    # todo: remove once all instances of this are removed
+    parser.add_argument(
+        "--no-progress-bar",
+        action='store_true'
+    )
+        
+
     return parser, parser.parse_args(args)
 
 
