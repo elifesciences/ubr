@@ -312,11 +312,7 @@ def _parseargs(args):
     )
 
     # todo: remove once all instances of this are removed
-    parser.add_argument(
-        "--no-progress-bar",
-        action='store_true'
-    )
-        
+    parser.add_argument("--no-progress-bar", action="store_true")
 
     return parser, parser.parse_args(args)
 
