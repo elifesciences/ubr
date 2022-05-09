@@ -160,6 +160,11 @@ def backup_to_s3(hostname, path_list, opts):
         backup_results = backup(
             load_descriptor(descriptor_path, path_list), backupdir, opts
         )
+
+        # skip upload if the result of the backup didn't return any files.
+        if not backup_results:
+            continue
+
         remove_backup_after_upload = True
         results.append(
             s3.upload_backup(
@@ -370,9 +375,9 @@ def main(args):
         exit(len(check_all()))
 
     if hostname == "adhoc":
-        # only a subset of actions in locations implemented
+        # only a subset of actions available for adhoc locations
         decisions = {
-            # ("upload", "s3"): ... # adhoc file uploads to s3 backups bucket would be handy
+            # ("upload", "s3"): ... # todo: adhoc file uploads to s3 backups bucket would be handy
             ("download", "s3"): adhoc_s3_download,
             ("restore", "file"): adhoc_file_restore,
         }
@@ -387,6 +392,7 @@ def main(args):
         "restore": {"s3": restore_from_s3, "file": restore_from_file},
         "download": {"s3": download_from_s3},
     }
+
     return decisions[action][fromloc](hostname, paths, opts)
 
 
