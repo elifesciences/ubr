@@ -393,20 +393,6 @@ def main(args):
         "download": {"s3": download_from_s3},
     }
 
-    print(
-        "action",
-        action,
-        "fromloc",
-        fromloc,
-        "hostname",
-        hostname,
-        "paths",
-        paths,
-        "opts",
-        opts,
-    )
-    exit(1)
-
     return decisions[action][fromloc](hostname, paths, opts)
 
 
