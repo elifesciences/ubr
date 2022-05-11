@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import os, subprocess
 import errno
 from itertools import takewhile
-import collections
+from collections.abc import Iterable
 import hashlib
 from .conf import logging
 from functools import reduce
@@ -52,7 +52,7 @@ def group_by_many(lst, key_list):
 
 def flatten(x):
     def iselement(e):
-        return not (isinstance(e, collections.Iterable) and not isinstance(e, str))
+        return not (isinstance(e, Iterable) and not isinstance(e, str))
 
     for el in x:
         if iselement(el):
