@@ -213,9 +213,11 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
     each value will have a 'output' key with the outputs for that target.
     these outputs are what is uploaded to s3"""
     upload_targets = [
-        target_results["output"] for target_results in list(backup_results.values())
+        target_results["output"]
+        for target_results in backup_results.values()
+        if target_results
     ]
-    upload_targets = list(filter(os.path.exists, utils.flatten(upload_targets)))
+    upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
 
     path_list = [
         upload_to_s3(bucket, src, s3_key(project, hostname, src))

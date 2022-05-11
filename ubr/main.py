@@ -161,10 +161,6 @@ def backup_to_s3(hostname, path_list, opts):
             load_descriptor(descriptor_path, path_list), backupdir, opts
         )
 
-        # skip upload if the result of the backup didn't return any files.
-        if not backup_results:
-            continue
-
         remove_backup_after_upload = True
         results.append(
             s3.upload_backup(
