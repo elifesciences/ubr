@@ -217,7 +217,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
         for target_results in backup_results.values()
         if target_results
     ]
-    upload_targets = filter(os.path.exists, utils.flatten(upload_targets))
+    upload_targets = list(filter(os.path.exists, utils.flatten(upload_targets)))
 
     path_list = [
         upload_to_s3(bucket, src, s3_key(project, hostname, src))
@@ -225,9 +225,7 @@ def upload_backup(bucket, backup_results, project, hostname, remove=True):
     ]
     # TODO: consider moving this into `main`
     if remove:
-        remove_targets(
-            upload_targets, rooted_at=utils.common_prefix(list(upload_targets))
-        )
+        remove_targets(upload_targets, rooted_at=utils.common_prefix(upload_targets))
     return path_list
 
 
