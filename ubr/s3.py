@@ -324,6 +324,8 @@ def latest_backups(bucket, project, hostname, target, backupname=None):
 
 
 def download_latest_backup(to, bucket, project, hostname, target, path=None):
+    if path and "*" in path:
+        path = None
     backup_list = latest_backups(bucket, project, hostname, target, path)
     results = []
     for backupname, remote_src in backup_list:
