@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"
 
 [packages]
 boto3 = "~=1.21"
@@ -18,9 +18,6 @@ PyMySQL = "~=1.0"
 PyYAML = "~=6.0"
 
 [dev-packages]
-# lsh@2022-04-26: greater versions not available for python3.8.
-# remove once using python3.8 exclusively
-dataclasses = "<=0.6"
 # dropped python 3.6 support in 6.3
 coverage = "==6.2.*"
 pyflakes = "~=2.4"
