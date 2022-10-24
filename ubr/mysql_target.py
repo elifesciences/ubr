@@ -147,7 +147,7 @@ def dump(db, output_path, **kwargs):
 
     # THEORY
     #
-    # The MySQL server binary log) contains all events that describe database changes.
+    # The MySQL server binary log contains all events that describe database changes.
     # https://dev.mysql.com/doc/refman/5.7/en/binary-log.html
     # The binary log can be used for:
     # - replication of data to MySQL slaves. We do this in `prod` environments.
@@ -181,6 +181,7 @@ def dump(db, output_path, **kwargs):
     cmd = (
         """set -o pipefail
     mysqldump \
+    --column-statistics=0 \
     -u %(user)s \
     -h %(host)s \
     -P %(port)s \
