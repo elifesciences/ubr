@@ -22,8 +22,7 @@ PyYAML = "~=6.0"
 coverage = "==6.2.*"
 pyflakes = "~=2.4"
 pylint = "~=2.13"
-# dropped python 3.6 support in 7.1.0
-pytest = "==7.0.*"
+pytest = "~=7.2"
 pytest-cov = "~=3.0"
 black = "*"
 moto = {extras = ["rds"], version = "~=3.1"}
