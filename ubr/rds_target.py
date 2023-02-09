@@ -13,7 +13,6 @@ def rds_conn():
 
 
 def rds_snapshot(instance_id, snapshot_name):
-
     LOG.info("creating RDS snapshot %r from instance: %s", snapshot_name, instance_id)
 
     # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/rds.html#RDS.Client.create_db_snapshot

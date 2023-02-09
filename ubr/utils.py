@@ -127,7 +127,8 @@ def _allnamesequal(item_list):
 def common_prefix(path_list):
     """returns the common directory for a list of given paths.
     if only a single path is given, the parent directory is returned.
-    if the only common directory is the root directory, then an empty string is returned."""
+    if the only common directory is the root directory, then an empty string is returned.
+    """
     sep = "/"
     ensure(isinstance(path_list, list), "expected a list of paths")
 
