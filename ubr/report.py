@@ -36,6 +36,7 @@ def filter_backup_list(backup_list):
     "filters the given list of backups, excluding 'hidden' backups, non-production backups and projects/files that are on a blacklist configured in conf.py"
     project_blacklist = conf.REPORT_PROJECT_BLACKLIST
     file_blacklist = conf.REPORT_FILE_BLACKLIST
+
     # we want to target only working machines and ignore test/retired/etc projects
     def cond(backup):
         return (
