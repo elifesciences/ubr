@@ -1,15 +1,15 @@
-# file generated 2023-07-26 - see update-dependencies.sh
+# file generated 2023-08-04 - see update-dependencies.sh
 astroid==2.15.6
 black==23.7.0
-boto3==1.28.11
-botocore==1.31.11
+boto3==1.28.19
+botocore==1.31.19
 certifi==2023.7.22
 cffi==1.15.1
 charset-normalizer==3.2.0
 click==8.1.6
 contextlib2==21.6.0
 coverage==6.2
-cryptography==41.0.2
+cryptography==41.0.3
 dill==0.3.7
 exceptiongroup==1.1.2
 glob2==0.7
@@ -24,14 +24,14 @@ mccabe==0.7.0
 moto==3.1.16
 mypy-extensions==1.0.0
 packaging==23.1
-pathspec==0.11.1
+pathspec==0.11.2
 pg8000==1.16.6
 pgpasslib==1.1.0
-platformdirs==3.9.1
+platformdirs==3.10.0
 pluggy==1.2.0
 pycparser==2.21
 pyflakes==2.5.0
-pylint==2.17.4
+pylint==2.17.5
 PyMySQL==1.1.0
 pytest==7.4.0
 pytest-cov==3.0.0
@@ -40,13 +40,13 @@ python-json-logger==2.0.7
 pytz==2023.3
 PyYAML==6.0.1
 requests==2.31.0
-responses==0.23.1
+responses==0.23.3
 s3transfer==0.6.1
 schema==0.7.5
 scramp==1.2.0
 six==1.16.0
 tomli==2.0.1
-tomlkit==0.11.8
+tomlkit==0.12.1
 types-PyYAML==6.0.12.11
 typing_extensions==4.7.1
 urllib3==1.26.16
