@@ -2,7 +2,6 @@ from setuptools import setup
 
 MODULE = 'ubr' # name of the subdirectory your code resides in
 NAME = 'Universal Backup-Restore' # project name
-AUTHORS = ["Luke Skibinski <l.skibinski@elifesciences.org>"] # list of all contributing authors
 LICENCE = 'GPLv3' # licence short name
 COPYRIGHT = 'eLife Sciences' # copyright owner
 VERSION = '2015.5.27' # some sort of natural ordering key
