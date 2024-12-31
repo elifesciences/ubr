@@ -9,7 +9,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 contextlib2==21.6.0
 coverage==6.2
-cryptography==42.0.5
+cryptography==44.0.0
 dill==0.3.8
 exceptiongroup==1.2.0
 glob2==0.7
