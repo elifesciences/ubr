@@ -1,14 +1,14 @@
 #!/bin/bash
 set -e
 
-python=''
-pybinlist=("python3.10" "python3.8" "python3")
+python=$(which python3 python | head -n 1)
 
-for pybin in ${pybinlist[*]}; do
-    which "$pybin" &> /dev/null || continue
-    python=$pybin
-    break
-done
+py=${python##*/} # "python3" or "python"
+
+if [[ "$(readlink venv/bin/$py)" != "$python"  ]]; then
+    echo "venv/bin/$py is not symlinked to $python recreating venv"
+    rm -rf venv/*
+fi
 
 if [ -z "$python" ]; then
     echo "no usable python found, exiting"
