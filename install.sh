@@ -9,5 +9,5 @@ pip install -r requirements.txt --progress-bar off
 
 if [ ! -e app.cfg ]; then
     echo "* no app.cfg found! using the example settings (example.cfg) by default."
-    ln -sfT example.cfg app.cfg
+    ln -sf example.cfg app.cfg
 fi
