@@ -6,7 +6,7 @@ python=$(which python3 python | head -n 1)
 py=${python##*/} # "python3" or "python"
 
 if [[ "$(readlink venv/bin/$py)" != "$python"  ]]; then
-    echo "venv/bin/$py is not symlinked to $python recreating venv"
+    echo "venv/bin/$py is not symlinked to $python removing venv"
     rm -rf venv/*
 fi
 
