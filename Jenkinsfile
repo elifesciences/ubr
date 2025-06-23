@@ -6,7 +6,9 @@ elifeLibrary({
     }
 
     stage 'Project tests', {
-        elifeLocalTests "./project_tests.sh"
+        withCommitStatus({
+            sh "mise exec python@3.8 -- ./project_tests.sh"
+        }, 'project_tests@3.8', commit)
         withCommitStatus({
             sh "mise exec python@3.10 -- ./project_tests.sh"
         }, 'project_tests@3.10', commit)
