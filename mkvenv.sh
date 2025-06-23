@@ -15,8 +15,8 @@ if [ -z "$python" ]; then
     exit 1
 fi
 
-if [ ! -e "venv/bin/$python" ]; then
-    echo "could not find venv/bin/$python, recreating venv"
+if [ ! -e "venv/bin/$py" ]; then
+    echo "could not find venv/bin/$py, recreating venv"
     rm -rf venv
     $python -m venv venv
 else
