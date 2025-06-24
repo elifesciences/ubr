@@ -38,7 +38,7 @@ pytest-cov==3.0.0
 python-dateutil==2.9.0.post0
 python-json-logger==2.0.7
 pytz==2024.1
-PyYAML==6.0.1
+PyYAML==6.0.2
 requests==2.32.4
 responses==0.25.7
 s3transfer==0.10.1
