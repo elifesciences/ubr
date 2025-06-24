@@ -1,0 +1,34 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: ['3.8', '3.10']
+    steps:
+      - uses: actions/checkout@v4
+      # Seemingly something mise installs breaks post-checkout.
+      # this runs a post-task after post-mise (for caching) but before post-checkout
+      - name: Clean up Mise
+        uses: gacts/run-and-post-run@v1
+        with:
+          run: echo "Nothing"
+          post: mise implode -y
+      - name: Install tools
+        uses: jdx/mise-action@v2
+
+      - name: Project Tests
+        run: mise exec python@${{ matrix.python_version }} -- ./project_tests.sh
