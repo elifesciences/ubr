@@ -8,7 +8,7 @@ cffi==1.17.1
 charset-normalizer==3.4.2
 click==8.1.7
 contextlib2==21.6.0
-coverage==6.2
+coverage==6.5.0
 cryptography==44.0.3
 dill==0.3.8
 exceptiongroup==1.2.0
