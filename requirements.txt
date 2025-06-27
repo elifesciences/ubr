@@ -23,7 +23,7 @@ MarkupSafe==2.1.5
 mccabe==0.7.0
 moto==3.1.16
 mypy-extensions==1.1.0
-packaging==24.0
+packaging==24.2
 pathspec==0.12.1
 pg8000==1.16.6
 pgpasslib==1.1.0
