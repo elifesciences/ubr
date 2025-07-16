@@ -2,7 +2,6 @@
 python = "3.8"
 
 [env]
-_.python.venv = { path = "venv", create = true }
 LINT_TARGET_VERSION = "--target-version py38 --target-version py310"
 
 
@@ -33,6 +32,7 @@ fi
 """
 
 [tasks.install-deps]
+env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['venv']
 run = """
 # install Deps
@@ -48,6 +48,7 @@ fi
 """
 
 [tasks.lint]
+env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['install-deps']
 run = """
 # linting
@@ -60,6 +61,7 @@ pylint -E ubr/*
 """
 
 [tasks.scrub]
+env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['install-deps']
 run = """
 black ubr/ $LINT_TARGET_VERSION
@@ -79,6 +81,8 @@ pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
 """
 
 [tasks.test.env]
+VIRTUAL_ENV = './venv'
+PYTHON_HOME = ""
 # ovveride env vars for boto/moto/aws-sdks/pglib
 AWS_ACCESS_KEY_ID = 'testing'
 AWS_SECRET_ACCESS_KEY = 'testing'
