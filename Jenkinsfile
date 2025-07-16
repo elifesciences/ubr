@@ -6,6 +6,10 @@ elifeLibrary({
     }
 
     stage 'Project tests', {
+        # test config (see libraries formula)
+        # - https://github.com/elifesciences/elife-libraries-formula/blob/1f275e206f2b398ce49ba14e4a277905a5b8d332/salt/elife-libraries/init.sls#L132-L138
+        sh "rm -f app.cfg"
+        sh "cp /etc/ubr-test-app.cfg app.cfg"
         withCommitStatus({
             sh "mise exec python@3.8 -- ./project_tests.sh"
         }, 'project_tests@3.8', commit)

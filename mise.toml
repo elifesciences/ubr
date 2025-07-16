@@ -1,0 +1,86 @@
+[tools]
+python = "3.8"
+
+[env]
+_.python.venv = { path = "venv", create = true }
+
+
+[tasks.venv]
+run = """
+# Create fresh venv
+set -e
+
+python=$(readlink -f $(which python | head -n 1))
+
+if [[ "$(readlink -f venv/bin/python)" != "$python"  ]]; then
+    echo "venv/bin/python is not symlinked to $python removing venv"
+    rm -rf venv/*
+fi
+
+if [ -z "$python" ]; then
+    echo "no usable python found, exiting"
+    exit 1
+fi
+
+if [ ! -e "venv/bin/python" ]; then
+    echo "could not find venv/bin/python, recreating venv"
+    rm -rf venv
+    $python -m venv venv
+else
+    echo "using $python"
+fi
+"""
+
+[tasks.install-deps]
+depends = ['venv']
+run = """
+# install Deps
+
+set -e
+pip install pip wheel --upgrade
+pip install -r requirements.txt --progress-bar off
+
+if [ ! -e app.cfg ]; then
+    echo "* no app.cfg found! using the example settings (example.cfg) by default."
+    ln -sf example.cfg app.cfg
+fi
+"""
+
+[tasks.lint]
+depends = ['install-deps']
+run = """
+# linting
+
+find . -type f -name "*.py[co]" -delete
+find . -type d -name "__pycache__" -delete
+
+pyflakes ubr/
+pylint -E ubr/*
+"""
+
+[tasks.scrub]
+depends = ['install-deps']
+run = """
+black ubr/ --target-version py310
+"""
+
+[tasks.test]
+depends = ['install-deps']
+run = """
+rm -rf build/junit.xml || echo "not there"
+MODULE="{{arg(name="module", default="", var=true)}}"
+if [ "$MODULE" == "" ]; then
+    MODULE="\"$MODULE\""
+else
+    MODULE=""
+fi
+pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
+"""
+
+[tasks.test.env]
+# ovveride env vars for boto/moto/aws-sdks/pglib
+AWS_ACCESS_KEY_ID = 'testing'
+AWS_SECRET_ACCESS_KEY = 'testing'
+AWS_SECURITY_TOKEN = 'testing'
+AWS_SESSION_TOKEN = 'testing'
+AWS_DEFAULT_REGION = 'us-east-1'
