@@ -3,6 +3,7 @@ python = "3.8"
 
 [env]
 _.python.venv = { path = "venv", create = true }
+LINT_TARGET_VERSION = "--target-version py38 --target-version py310"
 
 
 [tasks.venv]
@@ -61,7 +62,7 @@ pylint -E ubr/*
 [tasks.scrub]
 depends = ['install-deps']
 run = """
-black ubr/ --target-version py310
+black ubr/ $LINT_TARGET_VERSION
 """
 
 [tasks.test]
