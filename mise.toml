@@ -73,9 +73,7 @@ run = """
 . venv/bin/activate
 rm -rf build/junit.xml || echo "not there"
 MODULE="{{arg(name="module", default="", var=true)}}"
-if [ "$MODULE" == "" ]; then
-    MODULE="\"$MODULE\""
-else
+if [ "$MODULE" == "''" ]; then
     MODULE=""
 fi
 pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
