@@ -5,6 +5,7 @@ from datetime import datetime
 from .base import BaseCase
 from moto import mock_s3
 
+
 @mock_s3
 class One(BaseCase):
     def setUp(self):
@@ -120,6 +121,7 @@ class One(BaseCase):
         for fname, remote_path in res:
             self.assertTrue(remote_path.endswith(fname))
 
+
 @mock_s3
 class Upload(BaseCase):
     def setUp(self):
@@ -189,6 +191,7 @@ class Upload(BaseCase):
 
         expected_missing = results["tar-gzipped"]["output"][0]
         self.assertTrue(not os.path.exists(expected_missing))
+
 
 @mock_s3
 class Download(BaseCase):

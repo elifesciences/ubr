@@ -6,6 +6,7 @@ from ubr import main, utils, psql_target as psql, s3, conf
 from .base import BaseCase
 from moto import mock_s3
 
+
 @mock_s3
 class One(BaseCase):
     def setUp(self):
