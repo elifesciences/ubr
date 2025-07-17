@@ -24,7 +24,7 @@ jobs:
       - name: Pull images
         run: docker compose -f docker-compose.ci.yaml pull --quiet
 
-      - name: Bring up image image-server
+      - name: Run test suite in container
         run: docker compose -f docker-compose.ci.yaml run --build --rm test mise exec python@${{ matrix.python_version }} -- ./test.sh
 
       - name: debug logs
