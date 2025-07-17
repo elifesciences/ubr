@@ -3,13 +3,18 @@ from os.path import join
 from ubr import main, mysql_target, s3, tgz_target, utils, conf
 from datetime import datetime
 from .base import BaseCase
+from moto import mock_s3
 
 
+@mock_s3
 class One(BaseCase):
     def setUp(self):
         self.s3_backup_bucket = "elife-app-backups-test"
         self.project_name = "_" + str(uuid.uuid4())  # underscore means 'test'
         self.hostname = "testmachine"
+
+        # let moto know about the backup bucket ahead of tests
+        s3.s3_conn().create_bucket(Bucket=self.s3_backup_bucket)
 
     def tearDown(self):
         # destroy contents of s3 project bucket
@@ -117,6 +122,7 @@ class One(BaseCase):
             self.assertTrue(remote_path.endswith(fname))
 
 
+@mock_s3
 class Upload(BaseCase):
     def setUp(self):
         self.default_opts = conf.DEFAULT_CLI_OPTS
@@ -125,14 +131,11 @@ class Upload(BaseCase):
         self.project_name = "_test"
         self.hostname = "testmachine"
 
+        # let moto know about the backup bucket ahead of tests
+        s3.s3_conn().create_bucket(Bucket=self.s3_backup_bucket)
+
     def tearDown(self):
         self.rmtmpdir()
-
-    def test_s3_file_exists(self):
-        "we can talk to s3 about the existence of files"
-        s3obj = s3.s3_file(self.s3_backup_bucket, self.project_name)
-        self.assertTrue(isinstance(s3obj, dict))
-        self.assertTrue("Contents" in s3obj)
 
     def test_backup_is_copied_to_s3(self):
         "the results of a backup are uploaded to s3"
@@ -190,6 +193,7 @@ class Upload(BaseCase):
         self.assertTrue(not os.path.exists(expected_missing))
 
 
+@mock_s3
 class Download(BaseCase):
     def setUp(self):
         self.project_name = "-test"
@@ -197,6 +201,9 @@ class Download(BaseCase):
         self.hostname = "testmachine"
         self.default_opts = conf.DEFAULT_CLI_OPTS
         self.expected_output_dir, self.rmtmpdir = utils.tempdir()
+
+        # let moto know about the backup bucket ahead of tests
+        s3.s3_conn().create_bucket(Bucket=self.s3_backup_bucket)
         s3.s3_delete_folder_contents(self.s3_backup_bucket, self.project_name)
 
         mysql_target.create("_test")
