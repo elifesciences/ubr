@@ -1,0 +1,32 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - master
+      - develop
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python_version: ['3.8', '3.10']
+    steps:
+      - uses: actions/checkout@v4
+      # This seems to work faster than pulling during docker compose up
+      - name: Pull images
+        run: docker compose -f docker-compose.ci.yaml pull --quiet
+
+      - name: Bring up image image-server
+        run: docker compose -f docker-compose.ci.yaml run --build --rm test mise exec python@${{ matrix.python_version }} -- ./test.sh
+
+      - name: debug logs
+        if: failure()
+        run: docker compose logs
