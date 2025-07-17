@@ -9,7 +9,7 @@ LINT_TARGET_VERSION = "--target-version py38 --target-version py310"
 run = """
 # Create fresh venv
 set -e
-
+env | grep -i path
 python=$(readlink -f $(which python | head -n 1))
 
 if [[ "$(readlink -f venv/bin/python)" != "$python"  ]]; then
@@ -32,10 +32,10 @@ fi
 """
 
 [tasks.install-deps]
-env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['venv']
 run = """
 # install Deps
+. venv/bin/activate
 
 set -e
 pip install pip wheel --upgrade
@@ -48,10 +48,10 @@ fi
 """
 
 [tasks.lint]
-env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['install-deps']
 run = """
 # linting
+. venv/bin/activate
 
 find . -type f -name "*.py[co]" -delete
 find . -type d -name "__pycache__" -delete
@@ -61,15 +61,16 @@ pylint -E ubr/*
 """
 
 [tasks.scrub]
-env = { VIRTUAL_ENV = './venv', PYTHON_HOME = "" }
 depends = ['install-deps']
 run = """
+. venv/bin/activate
 black ubr/ $LINT_TARGET_VERSION
 """
 
 [tasks.test]
 depends = ['install-deps']
 run = """
+. venv/bin/activate
 rm -rf build/junit.xml || echo "not there"
 MODULE="{{arg(name="module", default="", var=true)}}"
 if [ "$MODULE" == "" ]; then
@@ -80,12 +81,9 @@ fi
 pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
 """
 
-[tasks.test.env]
-VIRTUAL_ENV = './venv'
-PYTHON_HOME = ""
-# ovveride env vars for boto/moto/aws-sdks/pglib
-AWS_ACCESS_KEY_ID = 'testing'
-AWS_SECRET_ACCESS_KEY = 'testing'
-AWS_SECURITY_TOKEN = 'testing'
-AWS_SESSION_TOKEN = 'testing'
-AWS_DEFAULT_REGION = 'us-east-1'
+[tasks.ubr]
+depends = ['install-deps']
+run = """
+. venv/bin/activate
+python -m ubr.main {{arg(name="ubr-args", default="", var=true)}}
+"""
