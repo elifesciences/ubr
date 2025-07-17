@@ -1,0 +1,10 @@
+*.log
+*.pyc
+*.py~
+venv
+test-config
+.coverage
+htmlcov/
+app.cfg
+build/
+.git

@@ -1,0 +1,46 @@
+services:
+  localstack:
+    image: localstack/localstack:4.6.0
+    command: server --console-address ":9001" /tmp/minio
+    healthcheck:
+      test: ["CMD-SHELL", "curl localhost:4566"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    ports:
+      - 4566:4566
+      - 4510-4559:4510-4559
+  init-localstack:
+    image: localstack/localstack:4.6.0
+    environment:
+      AWS_ENDPOINT_URL: http://localstack:4566
+    entrypoint: >
+      /bin/sh -c "
+      awslocal s3 mb s3://elife-app-backups-test
+      "
+    depends_on:
+      localstack:
+        condition: service_healthy
+  mysql:
+    image: percona/percona-server:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=mysqlpassword
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    ports:
+      - 3306:3306
+  postgres:
+    image: postgres:12
+    environment:
+      - POSTGRES_PASSWORD=pgpassword
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "public"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+    ports:
+      - 5432:5432
