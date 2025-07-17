@@ -13,4 +13,4 @@ RUN chmod 600 .pgpass.test
 
 RUN mise trust . && mise install && mise install-deps
 
-CMD [ "mise", "exec", "--", "./test.sh" ]
+CMD [ "mise", "test" ]
