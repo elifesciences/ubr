@@ -12,7 +12,7 @@ set -e
 
 python=$(readlink -f $(which python | head -n 1))
 
-if [[ "$(readlink -f venv/bin/python)" != "$python"  ]]; then
+if [ "$(readlink -f venv/bin/python)" != "$python"  ]; then
     echo "venv/bin/python is not symlinked to $python removing venv"
     rm -rf venv/*
 fi
@@ -26,8 +26,6 @@ if [ ! -e "venv/bin/python" ]; then
     echo "could not find venv/bin/python, recreating venv"
     rm -rf venv
     $python -m venv venv
-else
-    echo "using $python"
 fi
 """
 
@@ -38,13 +36,8 @@ run = """
 . venv/bin/activate
 
 set -e
-pip install pip wheel --upgrade
-pip install -r requirements.txt --progress-bar off
-
-if [ ! -e app.cfg ]; then
-    echo "* no app.cfg found! using the example settings (example.cfg) by default."
-    ln -sf example.cfg app.cfg
-fi
+pip install pip wheel --upgrade > /dev/null 2> /dev/null
+pip install -r requirements.txt --progress-bar off > /dev/null 2> /dev/null
 """
 
 [tasks.lint]
