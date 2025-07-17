@@ -1,7 +1,0 @@
-services:
-  test:
-    build:
-      context: .
-    environment:
-      PGPASSFILE: "./.pgpass.test"
-      UBR_CFG_FILE: test.cfg
