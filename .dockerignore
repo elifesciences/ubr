@@ -8,3 +8,4 @@ htmlcov/
 app.cfg
 build/
 .git
+docker-compose.*

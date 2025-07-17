@@ -3,6 +3,5 @@ services:
     build:
       context: .
     environment:
-      AWS_ENDPOINT_URL: 'http://localstack:4566'
       PGPASSFILE: "./.pgpass.test"
       UBR_CFG_FILE: test.cfg

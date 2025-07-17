@@ -4,8 +4,9 @@ from unittest import mock
 from os.path import join
 from ubr import main, utils, psql_target as psql, s3, conf
 from .base import BaseCase
+from moto import mock_s3
 
-
+@mock_s3
 class One(BaseCase):
     def setUp(self):
         self.db1 = "_ubr_testdb"
@@ -15,6 +16,8 @@ class One(BaseCase):
 
         self.tempdir, self.rmtempdir = utils.tempdir()
         self.s3_backup_bucket = "elife-app-backups-test"
+        # let moto know about the backup bucket ahead of tests
+        s3.s3_conn().create_bucket(Bucket=self.s3_backup_bucket)
 
         self.patchers = [
             mock.patch("ubr.utils.hostname", return_value="localhost"),
