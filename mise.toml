@@ -77,5 +77,11 @@ pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
 depends = ['install-deps']
 run = """
 . venv/bin/activate
-python -m ubr.main {{arg(name="ubr-args", default="-h", var=true)}}
+
+UBR_ARGS="{{arg(name="ubr-args", default="", var=true)}}"
+if [ "$UBR_ARGS" = "''" ]; then
+    UBR_ARGS=""
+fi
+
+python -m ubr.main $UBR_ARGS
 """

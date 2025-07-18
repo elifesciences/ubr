@@ -4,4 +4,4 @@
 # usage: [-h] [--action [{config,check,check-all,backup,restore,download}]] [--location [{s3,file,rds-snapshot}]] [--hostname [HOSTNAME]] [--paths [PATHS [PATHS ...]]] [--no-progress-bar]
 set -e
 
-mise run --quiet ubr -- "$@"
+mise run --quiet ubr -- $@
