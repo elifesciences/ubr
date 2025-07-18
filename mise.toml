@@ -66,11 +66,11 @@ shell = 'sh -c'
 run = """
 . venv/bin/activate
 rm -rf build/junit.xml || echo "not there"
-echo MODULE="{{arg(name="module", default="", var=true)}}"
-echo if [ "$MODULE" == "''" ]; then
-echo     MODULE=""
-echo fi
-echo pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
+MODULE="{{arg(name="module", default="", var=true)}}"
+if [ "$MODULE" = "''" ]; then
+    MODULE=""
+fi
+pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
 """
 
 [tasks.ubr]
