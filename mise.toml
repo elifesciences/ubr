@@ -1,2 +1,87 @@
 [tools]
 python = "3.8"
+
+[env]
+LINT_TARGET_VERSION = "--target-version py38 --target-version py310"
+
+
+[tasks.venv]
+run = """
+# Create fresh venv
+set -e
+
+python=$(readlink -f $(which python | head -n 1))
+
+if [ "$(readlink -f venv/bin/python)" != "$python"  ]; then
+    echo "venv/bin/python is not symlinked to $python removing venv"
+    rm -rf venv/*
+fi
+
+if [ -z "$python" ]; then
+    echo "no usable python found, exiting"
+    exit 1
+fi
+
+if [ ! -e "venv/bin/python" ]; then
+    echo "could not find venv/bin/python, recreating venv"
+    rm -rf venv
+    $python -m venv venv
+fi
+"""
+
+[tasks.install-deps]
+depends = ['venv']
+run = """
+# install Deps
+. venv/bin/activate
+
+set -e
+pip install pip wheel --upgrade > /dev/null 2> /dev/null
+pip install -r requirements.txt --progress-bar off > /dev/null 2> /dev/null
+"""
+
+[tasks.lint]
+depends = ['install-deps']
+run = """
+# linting
+. venv/bin/activate
+
+find . -type f -name "*.py[co]" -delete
+find . -type d -name "__pycache__" -delete
+
+pyflakes ubr/
+pylint -E ubr/*
+"""
+
+[tasks.scrub]
+depends = ['install-deps']
+run = """
+. venv/bin/activate
+black ubr/ $LINT_TARGET_VERSION
+"""
+
+[tasks.test]
+depends = ['install-deps']
+shell = 'sh -c'
+run = """
+. venv/bin/activate
+rm -rf build/junit.xml || echo "not there"
+MODULE="{{arg(name="module", default="", var=true)}}"
+if [ "$MODULE" = "''" ]; then
+    MODULE=""
+fi
+pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
+"""
+
+[tasks.ubr]
+depends = ['install-deps']
+run = """
+. venv/bin/activate
+
+UBR_ARGS="{{arg(name="ubr-args", default="", var=true)}}"
+if [ "$UBR_ARGS" = "''" ]; then
+    UBR_ARGS=""
+fi
+
+python -m ubr.main $UBR_ARGS
+"""
