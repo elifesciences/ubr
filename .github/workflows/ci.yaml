@@ -15,9 +15,6 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python_version: ['3.8', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v4
       # This seems to work faster than pulling during docker compose up
@@ -25,8 +22,7 @@ jobs:
         run: docker compose -f docker-compose.ci.yaml pull --quiet
 
       - name: Run test suite in container
-        run: docker compose -f docker-compose.ci.yaml run --build --rm test mise test -t python@${{ matrix.python_version }}
-
+        run: docker compose -f docker-compose.ci.yaml run --build --rm test
       - name: debug logs
         if: failure()
         run: docker compose logs
