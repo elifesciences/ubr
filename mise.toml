@@ -36,8 +36,8 @@ run = """
 . venv/bin/activate
 
 set -e
-pip install pip wheel --upgrade > /dev/null 2> /dev/null
-pip install -r requirements.txt --progress-bar off > /dev/null 2> /dev/null
+pip install pip wheel --upgrade
+pip install -r requirements.txt --progress-bar off
 """
 
 [tasks.lint]
@@ -68,8 +68,8 @@ pytest $MODULE -vvv --cov=ubr --junitxml=build/junit.xml
 """
 
 [tasks.ubr]
-depends = ['install-deps']
 run = """
+mise run install-deps > /dev/null 2> /dev/null
 . venv/bin/activate
 
 UBR_ARGS="{{arg(name="ubr-args", default="", var=true)}}"
