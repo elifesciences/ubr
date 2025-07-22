@@ -41,7 +41,7 @@ pytz==2024.1
 PyYAML==6.0.2
 requests==2.32.4
 responses==0.25.7
-s3transfer==0.10.1
+s3transfer==0.13.1
 schema==0.7.7
 scramp==1.2.0
 six==1.16.0
