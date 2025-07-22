@@ -30,7 +30,7 @@ pgpasslib==1.1.0
 platformdirs==4.3.8
 pluggy==1.6.0
 pycparser==2.21
-pyflakes==2.5.0
+pyflakes==3.4.0
 pylint==3.3.7
 PyMySQL==1.1.1
 pytest==7.4.4
