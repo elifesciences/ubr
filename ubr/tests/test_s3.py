@@ -3,10 +3,10 @@ from os.path import join
 from ubr import main, mysql_target, s3, tgz_target, utils, conf
 from datetime import datetime
 from .base import BaseCase
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 class One(BaseCase):
     def setUp(self):
         self.s3_backup_bucket = "elife-app-backups-test"
@@ -122,7 +122,7 @@ class One(BaseCase):
             self.assertTrue(remote_path.endswith(fname))
 
 
-@mock_s3
+@mock_aws
 class Upload(BaseCase):
     def setUp(self):
         self.default_opts = conf.DEFAULT_CLI_OPTS
@@ -193,7 +193,7 @@ class Upload(BaseCase):
         self.assertTrue(not os.path.exists(expected_missing))
 
 
-@mock_s3
+@mock_aws
 class Download(BaseCase):
     def setUp(self):
         self.project_name = "-test"
