@@ -51,13 +51,7 @@ find . -type d -name "__pycache__" -delete
 
 pyflakes ubr/
 pylint -E ubr/*
-"""
-
-[tasks.scrub]
-depends = ['install-deps']
-run = """
-. venv/bin/activate
-black ubr/ $LINT_TARGET_VERSION
+black --check ubr/ $LINT_TARGET_VERSION
 """
 
 [tasks.test]
