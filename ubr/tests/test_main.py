@@ -4,10 +4,10 @@ from unittest import mock
 from os.path import join
 from ubr import main, utils, psql_target as psql, s3, conf
 from .base import BaseCase
-from moto import mock_s3
+from moto import mock_aws
 
 
-@mock_s3
+@mock_aws
 class One(BaseCase):
     def setUp(self):
         self.db1 = "_ubr_testdb"

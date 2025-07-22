@@ -1,9 +1,9 @@
 from ubr import rds_target, utils
-from moto import mock_rds
+from moto import mock_aws
 from unittest.mock import patch
 
 
-@mock_rds
+@mock_aws
 def test_rds_snapshot():
     instance_id = "project-dbname"
 
@@ -28,7 +28,7 @@ def test_rds_snapshot():
     assert utils.subdict(result["DBSnapshot"], expected.keys()) == expected
 
 
-@mock_rds
+@mock_aws
 def test_wait_until_available():
     instance_id = "project-dbname"
 
@@ -45,7 +45,7 @@ def test_wait_until_available():
     assert rds_target.wait_until_available(response, max_wait_time_minutes=1)
 
 
-@mock_rds
+@mock_aws
 def test_backup():
     instance_id = "project-dbname"
     descriptor = [{"rds_snapshot": [instance_id]}]
@@ -67,7 +67,7 @@ def test_backup():
             )
 
 
-@mock_rds
+@mock_aws
 def test_backup__no_db_instance():
     instance_id = "project-dbname"
     descriptor = [{"rds_snapshot": [instance_id]}]
