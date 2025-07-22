@@ -25,7 +25,7 @@ moto==3.1.16
 mypy-extensions==1.1.0
 packaging==24.2
 pathspec==0.12.1
-pg8000==1.16.6
+pg8000==1.31.4
 pgpasslib==1.1.0
 platformdirs==4.2.0
 pluggy==1.4.0
@@ -43,7 +43,7 @@ requests==2.32.4
 responses==0.25.7
 s3transfer==0.10.1
 schema==0.7.7
-scramp==1.2.0
+scramp==1.4.6
 six==1.16.0
 tomli==2.0.1
 tomlkit==0.12.4
