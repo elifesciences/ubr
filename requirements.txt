@@ -1,8 +1,8 @@
 # file generated 2024-03-22 - see update-dependencies.sh
 astroid==3.3.11
 black==25.1.0
-boto3==1.39.10
-botocore==1.39.10
+boto3==1.39.12
+botocore==1.39.12
 certifi==2025.7.14
 cffi==1.17.1
 charset-normalizer==3.4.2
