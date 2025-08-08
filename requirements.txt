@@ -40,7 +40,7 @@ python-json-logger==3.3.0
 pytz==2025.2
 PyYAML==6.0.2
 requests==2.32.4
-responses==0.25.7
+responses==0.25.8
 s3transfer==0.13.1
 schema==0.7.7
 scramp==1.4.6
