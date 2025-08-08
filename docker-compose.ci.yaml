@@ -19,7 +19,7 @@ services:
     ports:
       - 3306:3306
   postgres:
-    image: postgres:12
+    image: postgres:17
     environment:
       - POSTGRES_PASSWORD=pgpassword
     healthcheck:
