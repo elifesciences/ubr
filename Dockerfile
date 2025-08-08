@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:24.04
 
 RUN apt update -y && apt install -y gpg wget curl postgresql-client mysql-client rsync && \
     install -dm 755 /etc/apt/keyrings && \
