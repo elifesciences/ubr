@@ -8,12 +8,21 @@
   ],
   "packageRules": [
     {
+      "matchDepNames": [
+        "postgres",
+        "ubuntu",
+        "python"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
       "matchPackageNames": [
         "boto3",
         "botocore"
       ],
       "groupName": "boto3",
       "commitMessageTopic": "Boto3"
-    }
+    },
+
   ]
 }
