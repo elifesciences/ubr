@@ -13,7 +13,7 @@
         "ubuntu",
         "python"
       ],
-      "enabled": false
+      "dependencyDashboardApproval": true
     },
     {
       "matchPackageNames": [
