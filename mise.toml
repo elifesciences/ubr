@@ -1,5 +1,5 @@
 [tools]
-python = "3.10"
+python = "3.13.6"
 
 [env]
 LINT_TARGET_VERSION = "--target-version py310"
