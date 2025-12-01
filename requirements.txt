@@ -21,7 +21,7 @@ jmespath==1.0.1
 lazy-object-proxy==1.12.0
 MarkupSafe==3.0.3
 mccabe==0.7.0
-moto==5.1.17
+moto==5.1.18
 mypy-extensions==1.1.0
 packaging==25.0
 pathspec==0.12.1
