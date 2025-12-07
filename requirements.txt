@@ -33,7 +33,7 @@ pycparser==2.23
 pyflakes==3.4.0
 pylint==4.0.4
 PyMySQL==1.1.2
-pytest==9.0.1
+pytest==9.0.2
 pytest-cov==7.0.0
 python-dateutil==2.9.0.post0
 python-json-logger==4.0.0
