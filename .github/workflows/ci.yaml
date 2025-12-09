@@ -21,6 +21,14 @@ jobs:
         run: docker compose -f docker-compose.ci.yaml run --build --rm lint
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false # If one version fails, don't cancel the others
+      matrix:
+        mysql-version: ["8.0", "8.4"]
+        postgres-version: ["13", "14"]
+    env:
+      MYSQL_VERSION: ${{ matrix.mysql-version }}
+      POSTGRES_VERSION: ${{ matrix.postgres-version }}
     steps:
       - uses: actions/checkout@v6
       # This seems to work faster than pulling during docker compose up
