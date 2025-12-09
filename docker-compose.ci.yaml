@@ -9,7 +9,7 @@ services:
       postgres:
         condition: service_healthy
   mysql:
-    image: percona/percona-server:8.0
+    image: percona/percona-server:${MYSQL_VERSION:-8.0}
     environment:
       - MYSQL_ROOT_PASSWORD=mysqlpassword
     healthcheck:
@@ -19,7 +19,7 @@ services:
     ports:
       - 3306:3306
   postgres:
-    image: postgres:12
+    image: postgres:${POSTGRES_VERSION:-13}
     environment:
       - POSTGRES_PASSWORD=pgpassword
     healthcheck:
