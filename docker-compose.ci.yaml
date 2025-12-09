@@ -33,6 +33,8 @@ services:
   test:
     build:
       context: .
+      args:
+        POSTGRES_VERSION: ${POSTGRES_VERSION:-13}
     environment:
       PGPASSFILE: "./.pgpass.test"
       UBR_CFG_FILE: test.cfg
