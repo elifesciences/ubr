@@ -156,8 +156,7 @@ def dump(dbname, output_path):
     # tolerated (or even expected), but shouldn't lead to data loss (except owners)
     # when automated
 
-    cmd = (
-        """
+    cmd = """
     set -o pipefail
     pg_dump \
     --username %(user)s \
@@ -165,9 +164,7 @@ def dump(dbname, output_path):
     --host %(host)s \
     --port %(port)s \
     --no-owner \
-    --dbname %(dbname)s | gzip > %(output_path)s"""
-        % kwargs
-    )
+    --dbname %(dbname)s | gzip > %(output_path)s""" % kwargs
     return utils.system(cmd) == 0
 
 
