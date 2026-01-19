@@ -67,15 +67,12 @@ def dbexists(db):
 def mysql_cli_cmd(mysqlcmd, **kwargs):
     "runs very simple commands from the command line against mysql. doesn't handle quoting at all. totally insecure."
     args = defaults(mysqlcmd=mysqlcmd, **kwargs)
-    cmd = (
-        """mysql \
+    cmd = """mysql \
     -u %(user)s \
     -p%(pass)s \
     -h %(host)s \
     -P %(port)s \
-    -e '%(mysqlcmd)s'"""
-        % args
-    )
+    -e '%(mysqlcmd)s'""" % args
     return utils.system(cmd)
 
 
@@ -107,27 +104,21 @@ def load(db, dump_path, dropdb=False, **kwargs):
         )
         LOG.debug("passed assertion check!")
 
-    cmd = (
-        """mysql \
+    cmd = """mysql \
     -u %(user)s \
     -p%(pass)s \
     -h %(host)s \
     -P %(port)s \
-    %(dbname)s < %(path)s"""
-        % args
-    )
+    %(dbname)s < %(path)s""" % args
 
     if dump_path.endswith(".gz"):
         LOG.debug("dealing with a gzipped file")
-        cmd = (
-            """zcat %(path)s | mysql \
+        cmd = """zcat %(path)s | mysql \
         -u %(user)s \
         -p%(pass)s \
         -h %(host)s \
         -P %(port)s \
-        %(dbname)s"""
-            % args
-        )
+        %(dbname)s""" % args
 
     return utils.system(cmd) == 0
 
@@ -178,8 +169,7 @@ def dump(db, output_path, **kwargs):
     # https://console.aws.amazon.com/rds/home?region=us-east-1#parameter-groups-detail:ids=default.mysql5.7;type=DbParameterGroup;editing=false
     # Moreover, when we are restoring we are not even interested in GTIDs as we are dropping the database first.
     # If GTIDs were enables, and we were to restore a slave node to bring it on par with master, we could use them. Unlikely use case as replication is always managed by RDS.
-    cmd = (
-        """set -o pipefail
+    cmd = """set -o pipefail
     mysqldump \
     --column-statistics=0 \
     -u %(user)s \
@@ -189,9 +179,7 @@ def dump(db, output_path, **kwargs):
     --single-transaction \
     --skip-dump-date \
     --set-gtid-purged=OFF \
-    %(dbname)s | gzip > %(path)s"""
-        % args
-    )
+    %(dbname)s | gzip > %(path)s""" % args
     retval = utils.system(cmd)
     if not retval == 0:
         # not the best error to be throwing. perhaps a CommandError ?
