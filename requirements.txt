@@ -29,7 +29,7 @@ pg8000==1.31.5
 pgpasslib==1.1.0
 platformdirs==4.5.1
 pluggy==1.6.0
-pycparser==2.23
+pycparser==3.0
 pyflakes==3.4.0
 pylint==4.0.4
 PyMySQL==1.1.2
