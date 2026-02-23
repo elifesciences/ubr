@@ -27,7 +27,7 @@ packaging==26.0
 pathspec==1.0.4
 pg8000==1.31.5
 pgpasslib==1.1.0
-platformdirs==4.7.0
+platformdirs==4.9.2
 pluggy==1.6.0
 pycparser==3.0
 pyflakes==3.4.0
