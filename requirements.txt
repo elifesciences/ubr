@@ -1,11 +1,11 @@
 # file generated 2024-03-22 - see update-dependencies.sh
 astroid==4.0.3
 black==26.3.0
-boto3==1.42.60
-botocore==1.42.60
+boto3==1.42.63
+botocore==1.42.63
 certifi==2026.2.25
 cffi==2.0.0
-charset-normalizer==3.4.4
+charset-normalizer==3.4.5
 click==8.3.1
 contextlib2==21.6.0
 coverage==7.13.4
@@ -27,7 +27,7 @@ packaging==26.0
 pathspec==1.0.4
 pg8000==1.31.5
 pgpasslib==1.1.0
-platformdirs==4.9.2
+platformdirs==4.9.4
 pluggy==1.6.0
 pycparser==3.0
 pyflakes==3.4.0
@@ -50,5 +50,5 @@ tomlkit==0.14.0
 typing_extensions==4.15.0
 urllib3==2.6.3
 Werkzeug==3.1.6
-wrapt==2.1.1
+wrapt==2.1.2
 xmltodict==1.0.4
