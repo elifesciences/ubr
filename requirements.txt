@@ -45,7 +45,7 @@ s3transfer==0.16.0
 schema==0.7.8
 scramp==1.4.8
 six==1.17.0
-tomli==2.4.0
+tomli==2.4.1
 tomlkit==0.14.0
 typing_extensions==4.15.0
 urllib3==2.6.3
