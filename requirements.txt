@@ -24,7 +24,7 @@ mccabe==0.7.0
 moto==5.2.1
 mypy-extensions==1.1.0
 packaging==26.2
-pathspec==1.0.4
+pathspec==1.1.1
 pg8000==1.31.5
 pgpasslib==1.1.0
 platformdirs==4.9.6
