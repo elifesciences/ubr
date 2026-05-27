@@ -1,8 +1,8 @@
 # file generated 2024-03-22 - see update-dependencies.sh
 astroid==4.0.3
 black==26.5.1
-boto3==1.43.10
-botocore==1.43.10
+boto3==1.43.12
+botocore==1.43.12
 certifi==2026.4.22
 cffi==2.0.0
 charset-normalizer==3.4.7
@@ -46,7 +46,7 @@ schema==0.7.8
 scramp==1.4.8
 six==1.17.0
 tomli==2.4.1
-tomlkit==0.14.0
+tomlkit==0.15.0
 typing_extensions==4.15.0
 urllib3==2.7.0
 Werkzeug==3.1.8
